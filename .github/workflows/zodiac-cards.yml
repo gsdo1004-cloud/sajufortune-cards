@@ -13,6 +13,8 @@ jobs:
     env:
       THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
       THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+      INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+      INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
     steps:
       - uses: actions/checkout@v4
 
@@ -50,3 +52,9 @@ jobs:
 
       - name: 스레드 릴스 영상 발행
         run: python zodiac_reels.py publish
+
+      - name: 인스타 카드뉴스 캐러셀 발행
+        run: python zodiac_instagram.py carousel
+
+      - name: 인스타 릴스 영상 발행
+        run: python zodiac_instagram.py reel
