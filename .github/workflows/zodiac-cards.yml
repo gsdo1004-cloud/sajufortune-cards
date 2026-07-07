@@ -48,13 +48,17 @@ jobs:
         run: sleep 30
 
       - name: 스레드 카드뉴스 캐러셀 발행
+        continue-on-error: true
         run: python zodiac_cardnews.py publish
 
       - name: 스레드 릴스 영상 발행
+        continue-on-error: true
         run: python zodiac_reels.py publish
 
       - name: 인스타 카드뉴스 캐러셀 발행
+        continue-on-error: true
         run: python zodiac_instagram.py carousel
 
       - name: 인스타 릴스 영상 발행
+        continue-on-error: true
         run: python zodiac_instagram.py reel
