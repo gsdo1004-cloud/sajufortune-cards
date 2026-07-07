@@ -219,13 +219,19 @@ def do_generate():
     date_iso = zs.today_iso()
     outdir = Path(__file__).resolve().parent / "cards" / date_iso
     outdir.mkdir(parents=True, exist_ok=True)
+    for _old in outdir.glob("card_*.png"):   # 이전 회차(장수 변경) 잔재 제거
+        _old.unlink()
     n = render_pngs(date_iso, outdir)
     print(f"[OK] generated {n} cards → {outdir}  ({date_full(date_iso)})")
 
 
 def do_publish():
     date_iso = zs.today_iso()
-    urls = [f"{RAW_BASE}/cards/{date_iso}/card_{i:02d}.png" for i in range(1, 9)]
+    outdir = Path(__file__).resolve().parent / "cards" / date_iso
+    files = sorted(outdir.glob("card_*.png"))
+    urls = [f"{RAW_BASE}/cards/{date_iso}/{f.name}" for f in files]
+    if not urls:
+        raise SystemExit("[FAIL] 발행할 카드 PNG가 없습니다 (generate 먼저 실행)")
     caption = (f"{date_full(date_iso)} 오늘의 띠별 운세 🔮\n"
                f"내 띠는 오늘 어떤 흐름일까요?\n\n"
                f"#오늘의운세 #띠별운세 #사주 #운세 #12띠")
