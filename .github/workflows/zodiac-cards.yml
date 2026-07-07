@@ -1,15 +1,15 @@
-name: 띠별운세 카드뉴스 (새벽 자동발행)
+name: 띠별운세 자동발행 (카드뉴스 + 릴스 · 새벽)
 
 on:
   schedule:
     - cron: '35 20 * * *'   # KST 05:35 (UTC 20:35 전날). 정각 아님 → 지연 무관·peak 회피
-  workflow_dispatch:          # 수동 테스트용
+  workflow_dispatch:
 
 jobs:
-  cardnews:
+  publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: write         # cards/ 커밋(public raw 호스팅)용
+      contents: write
     env:
       THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
       THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
@@ -20,27 +20,33 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: 한글 컬러 이모지 폰트 설치
-        run: sudo apt-get update && sudo apt-get install -y fonts-noto-color-emoji
+      - name: 폰트·ffmpeg 설치
+        run: sudo apt-get update && sudo apt-get install -y fonts-noto-color-emoji ffmpeg
 
       - name: 의존성 설치
         run: |
-          pip install requests playwright
+          pip install requests playwright edge-tts
           python -m playwright install --with-deps chromium
 
-      - name: 카드 8장 생성 (sajufortune 실데이터)
+      - name: 카드 생성 (sajufortune 실데이터)
         run: python zodiac_cardnews.py generate
 
-      - name: 이미지 커밋 (public raw 호스팅)
+      - name: 릴스 영상 생성 (카드 → 9:16 + TTS 내레이션)
+        run: python zodiac_reels.py generate
+
+      - name: 커밋 (카드+릴스 public raw 호스팅)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add cards/
-          git commit -m "cards $(TZ=Asia/Seoul date +%F)" || echo "변경 없음"
+          git add cards/ reels/
+          git commit -m "cards+reel $(TZ=Asia/Seoul date +%F)" || echo "변경 없음"
           git push
 
       - name: raw URL 전파 대기
-        run: sleep 25
+        run: sleep 30
 
-      - name: 스레드 캐러셀 발행
+      - name: 스레드 카드뉴스 캐러셀 발행
         run: python zodiac_cardnews.py publish
+
+      - name: 스레드 릴스 영상 발행
+        run: python zodiac_reels.py publish
