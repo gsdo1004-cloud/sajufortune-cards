@@ -61,7 +61,7 @@ body { background:#e9e9ee; display:flex; flex-direction:column; gap:0;
   grid-template-columns:repeat(6,1fr); gap:22px 8px; }
 .zodiac-grid div { text-align:center; font-size:80px; line-height:1; }
 .sec { font-weight:800; font-size:40px; color:#E84B8A; margin-bottom:48px; letter-spacing:-0.02em; }
-.block { display:flex; align-items:flex-start; gap:40px; margin-bottom:52px; }
+.block { display:flex; align-items:flex-start; gap:40px; margin-bottom:40px; }
 .icon { flex:0 0 148px; width:148px; height:148px; border-radius:50%; background:#FDEFF5;
   display:flex; align-items:center; justify-content:center; font-size:90px; line-height:1; }
 .bd { flex:1; padding-top:4px; }
@@ -70,6 +70,8 @@ body { background:#e9e9ee; display:flex; flex-direction:column; gap:0;
 .stars { color:#F4A6C6; font-size:38px; letter-spacing:2px; }
 .stars b { color:#E84B8A; }
 .run { font-size:35px; line-height:1.5; color:#5f5f68; font-weight:500; }
+.luck { margin-top:16px; font-size:29px; font-weight:700; color:#b8568f;
+  background:#FDEFF5; display:inline-block; padding:9px 24px; border-radius:22px; }
 .toplist { margin-top:80px; display:flex; flex-direction:column; gap:46px; }
 .top { display:flex; align-items:center; gap:34px; font-size:64px; font-weight:900; color:#26262e; }
 .top .em { font-size:96px; }
@@ -102,20 +104,27 @@ def build_html(date_iso):
              f'<div class="zodiac-grid">{em}</div>'
              f'<div class="brand">{SITE}</div></div></div>')
 
-    pairs = [ORDER[i:i + 2] for i in range(0, 12, 2)]
+    groups = [ORDER[i:i + 3] for i in range(0, 12, 3)]   # 한 장에 3띠 (총 6장)
+    total = len(groups) + 2   # 표지 + 본문 + 요약
     bodies = ""
-    for idx, pair in enumerate(pairs):
+    for idx, grp in enumerate(groups):
         blocks = ""
-        for s in pair:
+        for s in grp:
             r = R[s]
+            # 행운 정보 파싱 (tip 예: "오늘의 행운 색: 푸른색 / 행운 방향: 동쪽")
+            _t = r.tip.replace("오늘의 ", "").split(" / ")
+            _color = _t[0].split(":")[-1].strip() if _t else ""
+            _dir = _t[1].split(":")[-1].strip() if len(_t) > 1 else ""
+            luck = f"🎲 행운수 {r.lucky_num} · 🎨 {_color} · 🧭 {_dir}"
             blocks += (f'<div class="block"><div class="icon">{r.emoji}</div>'
                        f'<div class="bd"><div class="nm">{r.sign_ko} '
                        f'<span class="stars">{stars(r.overall_score)}</span></div>'
-                       f'<div class="run">{OA[s]}</div></div></div>')
-        sec = " · ".join(R[s].sign_ko for s in pair)
+                       f'<div class="run">{OA[s]}</div>'
+                       f'<div class="luck">{luck}</div></div></div>')
+        sec = " · ".join(R[s].sign_ko for s in grp)
         bodies += (f'<div class="card"><div class="sheet">'
                    f'<div class="sec">오늘의 흐름 · {sec}</div>{blocks}'
-                   f'<div class="brand">{SITE} · {idx + 2} / 8</div></div></div>')
+                   f'<div class="brand">{SITE} · {idx + 2} / {total}</div></div></div>')
 
     top = sorted(ORDER, key=lambda s: R[s].overall_score, reverse=True)[:3]
     items = "".join(
