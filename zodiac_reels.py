@@ -156,16 +156,21 @@ def publish_video(video_url, caption):
         raise SystemExit(f"[FAIL] video container: {j}")
 
     # 비디오 처리 대기 (status 폴링 — VIDEO는 트랜스코딩 시간 필요)
-    for _ in range(30):
+    finished = False
+    s = None
+    for _ in range(60):
         time.sleep(6)
         st = requests.get(f"{base}/{cid}",
                           params={"fields": "status", "access_token": tok},
                           timeout=30).json()
         s = st.get("status")
         if s == "FINISHED":
+            finished = True
             break
         if s == "ERROR":
             raise SystemExit(f"[FAIL] video processing: {st}")
+    if not finished:
+        raise SystemExit(f"[FAIL] video not FINISHED after 6min. last status: {s}")
 
     j = _post(f"{base}/threads_publish", {"creation_id": cid, "access_token": tok})
     pid = j.get("id")
