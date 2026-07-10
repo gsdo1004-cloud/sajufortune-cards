@@ -111,7 +111,8 @@ def do_carousel(date_iso):
                f"내 띠는 오늘 어떤 흐름일까요?\n\n"
                f"#오늘의운세 #띠별운세 #사주 #운세 #12띠 #데일리운세")
     pid = publish_carousel(urls, caption)
-    add_comment(pid, f"내 띠 운세 자세히 보기 → https://{SITE}/zodiac")
+    add_comment(pid, "오늘 내 사주 점수는 몇 점일까요? 생년월일만 넣으면 무료 → "
+                     f"https://{SITE}/unse/today?utm_source=instagram&utm_medium=carousel")
 
 
 def do_reel(date_iso):
@@ -120,7 +121,8 @@ def do_reel(date_iso):
                f"오늘 나의 흐름, 영상으로 확인하세요\n\n"
                f"#오늘의운세 #띠별운세 #릴스 #사주 #운세")
     pid = publish_reel(url, caption)
-    add_comment(pid, f"내 띠 운세 → https://{SITE}/zodiac")
+    add_comment(pid, "오늘 내 사주 점수는 몇 점일까요? 생년월일만 넣으면 무료 → "
+                     f"https://{SITE}/unse/today?utm_source=instagram&utm_medium=reel")
 
 
 if __name__ == "__main__":

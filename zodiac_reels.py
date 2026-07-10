@@ -202,7 +202,9 @@ def do_publish(date_iso):
                f"영상으로 보는 12띠 오늘의 흐름\n\n"
                f"#오늘의운세 #띠별운세 #사주 #운세 #릴스")
     pid = publish_video(url, caption)
-    publish_reply(pid, f"내 띠 운세 자세히 →\nhttps://{SITE}/zodiac")
+    publish_reply(pid, "오늘 내 사주 점수는 몇 점일까요?\n"
+                       "생년월일만 넣으면 무료 →\n"
+                       f"https://{SITE}/unse/today?utm_source=threads&utm_medium=reel")
 
 
 if __name__ == "__main__":
