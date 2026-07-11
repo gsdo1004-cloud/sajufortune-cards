@@ -36,6 +36,46 @@ BASE = Path(__file__).resolve().parent
 ORDER = ["rat", "ox", "tiger", "rabbit", "dragon", "snake",
          "horse", "goat", "monkey", "rooster", "dog", "pig"]
 
+# ── 오행 BGM (2026-07-11) — 그날 일진 지지 오행에 맞는 자작 주파수 음악을 은은하게 ──
+# 카드 틴트(zodiac_cardnews.ELEM_THEME)와 세트: 색·음악이 함께 '그날의 기운' 표현.
+# 클립: 자작 WAV에서 90초 발췌, loudnorm(-20LUFS) 통일. 볼륨 11%+페이드 → TTS 명료도 유지.
+BGM_MAP = {
+    "수": "bgm_water.mp3",   # 528Hz 깊은수면+비 (물)
+    "목": "bgm_wood.mp3",    # 888Hz 긍정에너지 (성장)
+    "토": "bgm_earth.mp3",   # 432Hz 스트레스 해소 (안정)
+    "화": "bgm_fire.mp3",    # 888Hz 황금 로파이 (따뜻한 활력)
+    "금": "bgm_metal.mp3",   # 888Hz 금전운 (황금)
+}
+
+
+def _mix_bgm(video, date_iso):
+    """완성 릴스에 일진 오행 BGM을 깔아 오디오만 재믹싱. 실패해도 원본(무음 BGM) 유지."""
+    from ganzhi_zodiac import day_context
+    elem = day_context(dt.date.fromisoformat(date_iso))["branch_elem"]
+    bgm = BASE / "bgm" / BGM_MAP.get(elem, "bgm_earth.mp3")
+    if not bgm.exists():
+        print(f"[WARN] BGM 파일 없음({bgm.name}) — 무음 유지")
+        return video
+    dur = _dur(video)
+    fade_out = max(0.0, dur - 2.0)
+    tmp = video.with_name(video.stem + "_bgm.mp4")
+    try:
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", str(video), "-stream_loop", "-1", "-i", str(bgm),
+             "-filter_complex",
+             f"[1:a]volume=0.11,afade=t=in:d=1.5,afade=t=out:st={fade_out:.2f}:d=2[bg];"
+             f"[0:a][bg]amix=inputs=2:duration=first:normalize=0[a]",
+             "-map", "0:v", "-map", "[a]", "-c:v", "copy",
+             "-c:a", "aac", "-b:a", "128k", "-t", f"{dur:.2f}", str(tmp)],
+            check=True, capture_output=True)
+        tmp.replace(video)
+        print(f"[OK] BGM 믹스: {elem}의 기운 → {bgm.name} (vol 11%, fade)")
+    except subprocess.CalledProcessError as e:
+        print(f"[WARN] BGM 믹스 실패 — 무음으로 진행: {e.stderr[-300:] if e.stderr else e}")
+        if tmp.exists():
+            tmp.unlink()
+    return video
+
 GH_USER = "gsdo1004-cloud"
 GH_REPO = "sajufortune-cards"
 RAW_BASE = f"https://raw.githubusercontent.com/{GH_USER}/{GH_REPO}/main"
@@ -137,6 +177,7 @@ def make_reel_tts(date_iso):
     for f in tmp.glob("*"):
         f.unlink()
     tmp.rmdir()
+    _mix_bgm(out, date_iso)  # 2026-07-11 일진 오행 BGM (은은하게 11%)
     print(f"[OK] reel+TTS → {out} ({n}컷, 약 {round(_dur(out), 1)}초, {W}x{H})")
     return out
 
