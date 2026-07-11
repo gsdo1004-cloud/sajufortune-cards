@@ -22,6 +22,17 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import zodiac_seo as zs
+from ganzhi_zodiac import day_context, ELEM_KO
+
+# ── 오행(일진 지지) 테마 — 2026-07-11 간지 틴트 (레이아웃·핑크 액센트는 고정) ──
+# 화(불)의 날 = 기존 브랜드 핑크 그대로. 나머지는 같은 파스텔 레벨의 오방색.
+ELEM_THEME = {
+    "화": {"bg": "#FBE4EE", "icon": "#FDEFF5", "badge": "#E84B8A"},
+    "토": {"bg": "#FBF3DC", "icon": "#FDF8EC", "badge": "#D4A544"},
+    "목": {"bg": "#EAF5E3", "icon": "#F4FAEF", "badge": "#6B9E4F"},
+    "금": {"bg": "#F4F4F0", "icon": "#FAFAF7", "badge": "#8E8E86"},
+    "수": {"bg": "#E8EDF3", "icon": "#F3F6F9", "badge": "#44586E"},
+}
 
 GH_USER = "gsdo1004-cloud"
 GH_REPO = "sajufortune-cards"
@@ -46,7 +57,7 @@ CSS = """
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background:#e9e9ee; display:flex; flex-direction:column; gap:0;
   margin:0; font-family:'Pretendard','Noto Color Emoji',-apple-system,sans-serif; }
-.card { width:1080px; height:1350px; background:#FBE4EE; padding:40px; }
+.card { width:1080px; height:1350px; background:__BG__; padding:40px; }
 .sheet { width:100%; height:100%; background:#fff; border-radius:30px;
   padding:80px 74px; position:relative; display:flex; flex-direction:column; }
 .tag { align-self:center; font-weight:800; font-size:38px; letter-spacing:-0.02em;
@@ -62,8 +73,10 @@ body { background:#e9e9ee; display:flex; flex-direction:column; gap:0;
 .zodiac-grid div { text-align:center; font-size:80px; line-height:1; }
 .sec { font-weight:800; font-size:40px; color:#E84B8A; margin-bottom:48px; letter-spacing:-0.02em; }
 .block { display:flex; align-items:flex-start; gap:40px; margin-bottom:40px; }
-.icon { flex:0 0 148px; width:148px; height:148px; border-radius:50%; background:#FDEFF5;
+.icon { flex:0 0 148px; width:148px; height:148px; border-radius:50%; background:__ICON__;
   display:flex; align-items:center; justify-content:center; font-size:90px; line-height:1; }
+.day-badge { display:inline-block; margin-top:30px; font-size:36px; font-weight:800;
+  color:__BADGE__; background:__ICON__; padding:12px 36px; border-radius:32px; }
 .bd { flex:1; padding-top:4px; }
 .nm { font-weight:900; font-size:52px; color:#26262e; letter-spacing:-0.02em;
   display:flex; align-items:center; gap:18px; margin-bottom:14px; }
@@ -71,7 +84,7 @@ body { background:#e9e9ee; display:flex; flex-direction:column; gap:0;
 .stars b { color:#E84B8A; }
 .run { font-size:35px; line-height:1.5; color:#5f5f68; font-weight:500; }
 .luck { margin-top:16px; font-size:29px; font-weight:700; color:#b8568f;
-  background:#FDEFF5; display:inline-block; padding:9px 24px; border-radius:22px; }
+  background:__ICON__; display:inline-block; padding:9px 24px; border-radius:22px; }
 .toplist { margin-top:80px; display:flex; flex-direction:column; gap:46px; }
 .top { display:flex; align-items:center; gap:34px; font-size:64px; font-weight:900; color:#26262e; }
 .top .em { font-size:96px; }
@@ -81,26 +94,36 @@ body { background:#e9e9ee; display:flex; flex-direction:column; gap:0;
 """
 
 
-def build_html(date_iso):
+def build_html(date_iso, theme_elem=None):
+    d = dt.date.fromisoformat(date_iso)
     R = {s: zs.make_reading(s, date_iso) for s in ORDER}
     df = date_full(date_iso)
 
-    # 총운 문구: 카드 한 세트(12띠) 안에서 겹치지 않게 유니크 재배정 (결정론 유지)
-    _pool = zs.OVERALL_POOL
-    _used = set()
-    OA = {}
+    # 2026-07-11 간지 재설계: 그날 일진(지지 오행)으로 테마 결정 + 띠별 문구는
+    # 일진 관계(충·합·삼합·오행) 리드 사용 — 12띠 전부 명리 근거 기반 카피.
+    dc = day_context(d)
+    elem = theme_elem or dc["branch_elem"]
+    theme = ELEM_THEME.get(elem, ELEM_THEME["화"])
+    day_badge = f"오늘은 {dc['label']} · {ELEM_KO[elem]}의 기운"
+
+    CTX = {s: zs.zodiac_day(s, d) for s in ORDER}
+    _seen = set()
+    RUN = {}
     for _s in ORDER:
-        _i = zs._seed(_s, date_iso) % len(_pool)
-        while _i in _used:
-            _i = (_i + 1) % len(_pool)
-        _used.add(_i)
-        OA[_s] = _pool[_i]
+        _lead = CTX[_s]["lead"]
+        _txt = _lead + "."
+        if _lead in _seen and ". " in R[_s].overall:
+            # 같은 관계(기조)로 리드가 겹치면 기조 문장으로 대체 → 카드 안 중복 방지
+            _txt = R[_s].overall.split(". ", 1)[1]
+        _seen.add(_lead)
+        RUN[_s] = _txt
 
     em = "".join(f"<div>{R[s].emoji}</div>" for s in ORDER)
     cover = (f'<div class="card"><div class="sheet">'
              f'<div class="tag">{df}</div>'
              f'<div class="cv-title"><span class="mark">띠별</span> 운세</div>'
              f'<div class="cv-sub">오늘, 나의 흐름은?</div>'
+             f'<div style="text-align:center"><span class="day-badge">{day_badge}</span></div>'
              f'<div class="zodiac-grid">{em}</div>'
              f'<div class="brand">{SITE}</div></div></div>')
 
@@ -119,7 +142,7 @@ def build_html(date_iso):
             blocks += (f'<div class="block"><div class="icon">{r.emoji}</div>'
                        f'<div class="bd"><div class="nm">{r.sign_ko} '
                        f'<span class="stars">{stars(r.overall_score)}</span></div>'
-                       f'<div class="run">{OA[s]}</div>'
+                       f'<div class="run">{RUN[s]}</div>'
                        f'<div class="luck">{luck}</div></div></div>')
         sec = " · ".join(R[s].sign_ko for s in grp)
         bodies += (f'<div class="card"><div class="sheet">'
@@ -137,9 +160,12 @@ def build_html(date_iso):
                f'<div class="cta">내 사주 흐름 자세히 보기<br>{SITE}</div>'
                f'<div class="brand">{df}</div></div></div>')
 
+    css = (CSS.replace("__BG__", theme["bg"])
+              .replace("__ICON__", theme["icon"])
+              .replace("__BADGE__", theme["badge"]))
     return ('<!doctype html><html lang="ko"><head><meta charset="utf-8">'
             '<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">'
-            f'<style>{CSS}</style></head><body>{cover}{bodies}{summary}</body></html>')
+            f'<style>{css}</style></head><body>{cover}{bodies}{summary}</body></html>')
 
 
 def render_pngs(date_iso, outdir):

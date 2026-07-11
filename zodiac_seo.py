@@ -1,7 +1,10 @@
 """12띠 일일 운세 SEO 콘텐츠 생성기.
 
-결정론적(sign+date seed)으로 매일 다른 운세 본문 생성.
-외부 API 호출 없음 — 빠르고 무료, 영구 캐시 가능.
+2026-07-11: 그날 실제 일진(간지) 기준으로 재설계.
+  기존엔 sha256(띠+날짜)로 문장 풀에서 랜덤 추출 → 간지 무관 창작이었음.
+  이제 그날 일진 지지와 각 띠의 전통 관계(충·합·삼합·형·파·해·오행)로 '기조'를 정하고,
+  기조에 맞는 문장 풀 분기 + 점수 편향 + 행운 색·숫자·방향을 오행에서 도출한다.
+  (계산은 automation/ganzhi_zodiac.py — 외부 API·의존성 0, 여전히 빠르고 무료·캐시 가능)
 
 사용처:
   - /zodiac/<sign>/<date> SEO 페이지
@@ -13,6 +16,8 @@ import hashlib
 import datetime as dt
 from dataclasses import dataclass
 from typing import List
+
+from ganzhi_zodiac import zodiac_day, day_context
 
 ZODIAC = [
     ("rat",    "쥐띠", "子", ["1924","1936","1948","1960","1972","1984","1996","2008","2020"]),
@@ -128,6 +133,116 @@ YEAR_POOL = [
 ]
 
 
+# ── 기조(tone)별 문장 풀 (2026-07-11 간지 재설계) ──────────────────
+# 그날 일진과 각 띠의 관계로 정해진 기조에 맞는 조언만 나오게 분기.
+TONE_OVERALL = {
+    "상승": [
+        "미뤄두었던 일을 시작하기 더없이 좋은 흐름입니다. 마음먹은 대로 나아가십시오.",
+        "노력해온 일에 반가운 결실이 보이는 날입니다. 자신을 믿으셔도 좋습니다.",
+        "귀한 인연과 도움이 들어오는 흐름입니다. 손 내미는 이를 반갑게 맞으십시오.",
+        "막힌 일이 술술 풀리는 순한 기운입니다. 평소보다 한 걸음 더 나아가 보십시오.",
+        "기회가 문을 두드리는 날입니다. 망설이지 말고 한 가지를 매듭지으십시오.",
+    ],
+    "능동": [
+        "주도권이 내 손에 있는 날입니다. 다만 겸손을 잃지 않으면 결과가 단단해집니다.",
+        "결단력이 빛나는 흐름입니다. 미뤄둔 결정을 내리시기 좋은 날입니다.",
+        "앞장서서 일을 이끌면 좋은 성과가 따릅니다. 서두르지만 않으면 됩니다.",
+        "내가 중심을 잡아야 하는 날입니다. 차분히 방향을 정하면 주변이 따라옵니다.",
+    ],
+    "평온": [
+        "큰 기복 없이 무난하게 흐르는 날입니다. 하던 일을 꾸준히 이어가십시오.",
+        "서두르지 않을수록 일이 잘 풀립니다. 한 박자 늦추면 좋은 결과가 따릅니다.",
+        "평범함 속에 안정이 있는 날입니다. 익숙한 자리를 지키는 것이 곧 복입니다.",
+        "마음의 평정을 지키는 것이 가장 큰 운입니다. 여유를 잃지 마십시오.",
+    ],
+    "신중": [
+        "한 박자 쉬어가면 오히려 득이 되는 날입니다. 큰 결정은 하루만 미루십시오.",
+        "부딪히기 쉬운 기운이니 말을 아끼면 그것이 곧 복이 됩니다.",
+        "서두르면 어긋나는 흐름입니다. 오늘은 듣는 자리에 머무르는 것이 지혜입니다.",
+        "무리하지 않는 것이 오늘의 가장 큰 개운법입니다. 완급을 조절하십시오.",
+    ],
+    "주의": [
+        "사소한 어긋남이 생기기 쉬운 날이니 약속과 일정을 한 번 더 살피십시오.",
+        "마음에 걸리는 일은 그날 바로 풀어두면 탈이 없습니다.",
+        "오늘은 나서기보다 자기 자리를 지키는 것이 힘이 되는 날입니다.",
+        "작은 지출도 한 번 더 살피면 새는 것을 막을 수 있습니다.",
+    ],
+}
+# money/love/health 는 기조를 3단계(좋음/보통/주의)로 묶어 분기
+_TONE_TIER = {"상승": "good", "능동": "good", "평온": "mid", "신중": "care", "주의": "care"}
+TONE_MONEY = {
+    "good": [
+        "재물운이 상승하는 흐름입니다. 오래 준비한 일에 좋은 소식이 들 수 있습니다.",
+        "재물의 문이 열리는 날입니다. 들어올 것은 챙기되 욕심은 접어두십시오.",
+        "본업에 집중하실 때 재물운이 가장 강합니다. 성실함이 곧 돈이 됩니다.",
+    ],
+    "mid": [
+        "재물운은 안정적입니다. 작은 절약이 큰 액수로 자라는 시기입니다.",
+        "재물운은 천천히 그러나 확실히 자랍니다. 조급함만 버리시면 됩니다.",
+        "큰 변동 없는 무난한 재물 흐름입니다. 지키는 것이 곧 버는 것입니다.",
+    ],
+    "care": [
+        "오늘은 큰 지출·투자를 미루시는 것이 길합니다. 보증·권유는 한 번 거르십시오.",
+        "재물은 새기 쉬운 날입니다. 지갑을 열기 전에 한 번 더 생각하십시오.",
+        "금전 거래는 한 번 더 확인하시면 탈이 없습니다. 무리한 결정은 미루십시오.",
+    ],
+}
+TONE_LOVE = {
+    "good": [
+        "귀한 인연이 들어오는 따뜻한 흐름입니다. 먼저 안부를 전해 보십시오.",
+        "오래된 갈등이 자연스레 풀리는 날입니다. 먼저 손 내미는 분이 복을 받습니다.",
+        "가족·인연과의 대화가 큰 기쁨을 줍니다. 함께하는 시간이 약이 됩니다.",
+    ],
+    "mid": [
+        "인간관계는 잔잔하고 편안한 흐름입니다. 작은 안부 한 마디가 다리가 됩니다.",
+        "묵은 인연이 다시 연결되기 좋은 날입니다. 옛 친구의 연락에 반갑게 답하십시오.",
+        "배우자·연인과의 신뢰가 무르익는 시기입니다. 함께 보내는 시간을 아끼십시오.",
+    ],
+    "care": [
+        "오늘은 말 한마디를 아끼면 오히려 신뢰가 쌓입니다. 감정은 하루 묵혀 두십시오.",
+        "서두르면 어긋나는 관계운입니다. 한 박자 천천히, 들어주는 것이 답입니다.",
+        "오해가 생기기 쉬운 날이니 마음에 걸리는 말은 바로 풀어두십시오.",
+    ],
+}
+TONE_HEALTH = {
+    "good": [
+        "몸도 마음도 가벼운 날입니다. 가벼운 걸음이 오늘의 운을 더 부드럽게 풉니다.",
+        "기운이 살아나는 흐름입니다. 부지런히 움직일수록 컨디션이 좋아집니다.",
+        "건강운이 평탄합니다. 따뜻한 차 한 잔이 하루를 든든하게 받쳐줍니다.",
+    ],
+    "mid": [
+        "무리만 하지 않으면 평탄한 건강 흐름입니다. 수면을 넉넉히 챙기십시오.",
+        "소화기 관리에 신경 쓰시면 좋습니다. 따뜻한 음식이 가장 좋은 약입니다.",
+        "마음의 안정이 곧 건강입니다. 잠깐의 산책·명상이 큰 힘이 됩니다.",
+    ],
+    "care": [
+        "피로가 쌓이기 쉬운 날이니 무리를 삼가고 일찍 쉬십시오.",
+        "허리·무릎 관리가 필요한 시기입니다. 가벼운 스트레칭을 거르지 마십시오.",
+        "몸이 먼저 신호를 보냅니다. 오늘만큼은 자신을 아끼며 천천히 가십시오.",
+    ],
+}
+TONE_YEAR = {
+    "good": [
+        "오랜 노력이 결실을 맺으니 기대하셔도 좋습니다.",
+        "재물운이 서서히 열리니 작은 기회를 살피세요.",
+        "긍정적인 마음가짐이 하루를 빛나게 합니다.",
+        "먼저 손 내미는 분에게 복이 따릅니다.",
+    ],
+    "mid": [
+        "가족과의 대화에서 뜻밖의 위로를 얻습니다.",
+        "마음의 여유가 행운을 부릅니다.",
+        "옛 인연에게서 반가운 소식이 올 수 있습니다.",
+        "건강을 먼저 챙기시면 만사가 순조롭습니다.",
+    ],
+    "care": [
+        "서두르지 않으면 막혔던 일이 자연히 풀립니다.",
+        "신중한 결정이 좋은 결과로 이어집니다.",
+        "금전 거래는 한 번 더 살펴보면 탈이 없습니다.",
+        "활동을 조금 줄이고 휴식하면 활력이 살아납니다.",
+    ],
+}
+
+
 @dataclass
 class ZodiacReading:
     sign_slug: str
@@ -166,6 +281,10 @@ def _score(seed: int, offset: int) -> int:
     return 3 + ((seed >> (offset * 4)) % 3)
 
 
+def _clamp_star(n: int) -> int:
+    return max(1, min(5, n))
+
+
 def make_reading(sign_slug: str, date_iso: str | None = None) -> ZodiacReading:
     if sign_slug not in SLUG_TO_INFO:
         raise ValueError(f"unknown sign: {sign_slug}")
@@ -176,18 +295,27 @@ def make_reading(sign_slug: str, date_iso: str | None = None) -> ZodiacReading:
     date_ko = f"{d.year}년 {d.month}월 {d.day}일"
     seed = _seed(sign_slug, date_iso)
 
-    overall = _pick(OVERALL_POOL, seed, 0)
-    money = _pick(MONEY_POOL, seed, 1)
-    love = _pick(LOVE_POOL, seed, 2)
-    health = _pick(HEALTH_POOL, seed, 3)
-    tip = _pick(TIP_POOL, seed, 4)
-    lucky_num = _pick(LUCKY_NUMS, seed, 5)
+    # 2026-07-11: 그날 일진과 이 띠의 관계로 기조 결정 → 문장·점수·행운요소 전부 간지 근거
+    ctx = zodiac_day(sign_slug, d)
+    tone = ctx["tone"]
+    tier = _TONE_TIER[tone]
+    iljin = ctx["day_pillar"]  # 예: '정해'
+
+    # 종합운 = 그날 기운 리드(관계 근거) + 기조에 맞는 조언
+    overall = f"오늘은 {iljin}일, {ctx['lead']}. " + _pick(TONE_OVERALL[tone], seed, 0)
+    money = _pick(TONE_MONEY[tier], seed, 1)
+    love = _pick(TONE_LOVE[tier], seed, 2)
+    health = _pick(TONE_HEALTH[tier], seed, 3)
+    tip = f"오늘의 행운 색: {ctx['lucky_color']} / 행운 방향: {ctx['lucky_direction']}"
+    lucky_num = ctx["lucky_number"]
 
     emoji = SIGN_EMOJI.get(sign_slug, "🔮")
-    money_score = _score(seed, 1)
-    love_score = _score(seed, 2)
-    health_score = _score(seed, 3)
-    overall_score = round((money_score + love_score + health_score) / 3)
+    base_star = ctx["stars"]
+    # 영역별로 ±1 결정론적 변주 (기조 중심 유지)
+    money_score = _clamp_star(base_star + ((seed >> 4) % 3 - 1))
+    love_score = _clamp_star(base_star + ((seed >> 8) % 3 - 1))
+    health_score = _clamp_star(base_star + ((seed >> 12) % 3 - 1))
+    overall_score = base_star
 
     year_list = []
     for y in years:
@@ -196,7 +324,7 @@ def make_reading(sign_slug: str, date_iso: str | None = None) -> ZodiacReading:
         if int(y) < 1940 or int(y) >= 2020:
             continue
         ys = _seed(f"{sign_slug}{y}", date_iso)
-        year_list.append({"year": y, "yy": y[2:], "text": _pick(YEAR_POOL, ys, 0)})
+        year_list.append({"year": y, "yy": y[2:], "text": _pick(TONE_YEAR[tier], ys, 0)})
 
     title = f"{date_ko} {sign_ko} 오늘의 운세 — 재물·연애·건강 총정리"
     description = f"{date_ko} {sign_ko} 운세: {overall[:60]}…"
