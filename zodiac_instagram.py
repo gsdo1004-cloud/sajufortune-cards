@@ -25,6 +25,13 @@ SITE = "sajufortune.kr"
 IG = "https://graph.instagram.com/v21.0"
 N_CARDS = 6   # 3띠 구성 = 표지1+본문4+요약1
 
+# ⚠️ 인스타 자동발행 킬스위치 (2026-07-12) --------------------------------------
+# gsdo10042026(김산) 계정 링크제한(~2026.8.10) 기간 동안 인스타 발행+첫댓글 링크를
+# 전면 차단한다. 제재 사유가 "링크 자동댓글 대량 살포"라, 링크제한 기간에 계속 발행하면
+# 영구정지 위험. 스레드 발행·카드/릴스 생성 스텝은 별도라 영향 없음.
+# 재개: 8/10 제한 해제 확인 후 False로. (재개 시 첫댓글 링크 → 프로필 링크 유도로 전환 권장)
+IG_PUBLISH_DISABLED = True
+
 
 def date_full(di):
     d = dt.date.fromisoformat(di)
@@ -126,6 +133,10 @@ def do_reel(date_iso):
 
 
 if __name__ == "__main__":
+    if IG_PUBLISH_DISABLED:
+        print("[SKIP] 인스타 자동발행 비활성화됨 (IG_PUBLISH_DISABLED=True). "
+              "링크제한 해제(2026-08-10) 후 재개.")
+        sys.exit(0)
     mode = sys.argv[1] if len(sys.argv) > 1 else "carousel"
     di = sys.argv[2] if len(sys.argv) > 2 else zs.today_iso()
     if mode == "carousel":
