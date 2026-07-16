@@ -262,9 +262,10 @@ def do_publish():
                f"내 띠는 오늘 어떤 흐름일까요?\n\n"
                f"#오늘의운세 #띠별운세 #사주 #운세 #12띠")
     pid = publish_carousel(urls, caption)
-    publish_reply(pid, "오늘 내 사주 점수는 몇 점일까요?\n"
-                       "생년월일만 넣으면 무료 →\n"
-                       f"https://{SITE}/unse/today?utm_source=threads&utm_medium=carousel")
+    # [2026-07-16] 스레드 외부링크 도달저하 회피 — 첫댓글을 일진 풀이·사주 상식 훅으로.
+    # 사주포춘 링크는 주 1회(일요일 캐러셀)만. comment_hooks 참조.
+    from comment_hooks import build_first_comment
+    publish_reply(pid, build_first_comment(date_iso, "carousel"))
 
 
 if __name__ == "__main__":

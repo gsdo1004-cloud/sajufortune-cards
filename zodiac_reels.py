@@ -243,7 +243,9 @@ def do_publish(date_iso):
                f"영상으로 보는 12띠 오늘의 흐름\n\n"
                f"#오늘의운세 #띠별운세 #사주 #운세 #릴스")
     pid = publish_video(url, caption)
-    publish_reply(pid, f"내 띠 운세 자세히 →\nhttps://{SITE}/zodiac")
+    # [2026-07-16] 첫댓글=일진 풀이·사주 상식 훅 (링크 없음). 사주포춘 링크는 캐러셀 주 1회로 일원화.
+    from comment_hooks import build_first_comment
+    publish_reply(pid, build_first_comment(date_iso, "reels"))
 
 
 if __name__ == "__main__":
