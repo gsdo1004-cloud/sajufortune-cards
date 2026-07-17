@@ -80,12 +80,37 @@ def git_push(dates: list[str], alerts: list[str]) -> bool:
         return False
 
 
+def _is_our_shorts(date_iso: str) -> bool:
+    """이 날짜 mp4가 '우리가 만든 Topview 쇼츠'인지 판정.
+
+    zodiac_shorts.make_shorts가 완주해야만 shorts_meta.json을 남긴다. 이 표식이
+    영상보다 오래됐거나 없으면 그 mp4는 레거시 릴스(Actions 산출물)다.
+    """
+    video = BASE / "reels" / f"{date_iso}_tts.mp4"
+    meta = BASE / "cards" / date_iso / "shorts_meta.json"
+    if not (video.exists() and meta.exists()):
+        return False
+    try:
+        m = json.loads(meta.read_text(encoding="utf-8"))
+        if m.get("date") != date_iso or not m.get("voice"):
+            return False
+        # 표식이 영상보다 먼저 만들어졌으면(=영상이 나중에 딴 걸로 덮임) 신뢰 불가
+        return meta.stat().st_mtime >= video.stat().st_mtime - 5
+    except (json.JSONDecodeError, OSError):
+        return False
+
+
 def queue_youtube_shorts(date_iso: str, alerts: list[str],
                          do_upload: bool = True) -> bool:
     """쇼츠를 운명과학TV 업로드 큐에 적재 후 멀티업로더 실행."""
     video = BASE / "reels" / f"{date_iso}_tts.mp4"
     if not video.exists():
         alerts.append(f"쇼츠 영상 없음({video.name}) — 유튜브 업로드 생략")
+        return False
+    # 🚨 2026-07-17 오업로드 사고 방지: 우리 쇼츠가 아니면 절대 올리지 않는다.
+    if not _is_our_shorts(date_iso):
+        alerts.append(f"{date_iso} mp4가 우리 쇼츠가 아님(레거시 릴스 추정) — "
+                      f"유튜브 업로드 거부")
         return False
     meta_src = BASE / "cards" / date_iso / "shorts_meta.json"
     voice = ""
@@ -171,9 +196,15 @@ def main():
         try:
             import zodiac_shorts
             out = BASE / "reels" / f"{date_iso}_tts.mp4"
-            if out.exists() and out.stat().st_size > 500_000:
-                log("쇼츠 이미 존재 — 건너뜀")
+            # ⚠️ 2026-07-17 버그: 파일 존재+크기만 보면 **레거시 릴스**(Actions가 05:35에
+            # HTML카드+EdgeTTS로 만들어 커밋한 같은 이름 파일)를 우리 쇼츠로 오인해
+            # 그대로 유튜브에 올린다(실제 오업로드 1건 발생). 판정은 반드시 우리가 남긴
+            # 표식(shorts_meta.json)으로. 없으면 그 mp4는 남의 것 → 새로 만든다.
+            if out.exists() and _is_our_shorts(date_iso):
+                log("쇼츠 이미 존재(우리 것 확인) — 건너뜀")
             else:
+                if out.exists():
+                    log("기존 mp4는 레거시 릴스 — 덮어쓰고 Topview 쇼츠로 재조립")
                 zodiac_shorts.make_shorts(date_iso)
             video_ok = True
             try:  # G드라이브에 영상도 미러
