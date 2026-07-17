@@ -23,7 +23,7 @@ GH_REPO = "sajufortune-cards"
 RAW_BASE = f"https://raw.githubusercontent.com/{GH_USER}/{GH_REPO}/main"
 SITE = "sajufortune.kr"
 IG = "https://graph.instagram.com/v21.0"
-N_CARDS = 6   # 3띠 구성 = 표지1+본문4+요약1
+N_CARDS = 6   # 레거시 HTML 구성(표지1+본문4+요약1). Topview 5장이면 자동 감지.
 
 # ⚠️ 인스타 자동발행 킬스위치 (2026-07-12) --------------------------------------
 # gsdo10042026(김산) 계정 링크제한(~2026.8.10) 기간 동안 인스타 발행+첫댓글 링크를
@@ -113,7 +113,10 @@ def publish_reel(video_url, caption):
 
 
 def do_carousel(date_iso):
-    urls = [f"{RAW_BASE}/cards/{date_iso}/card_{i:02d}.png" for i in range(1, N_CARDS + 1)]
+    # 2026-07-17: 카드 장수를 실제 파일에서 감지 (Topview 5장 / 레거시 6장 겸용)
+    local = sorted((Path(__file__).resolve().parent / "cards" / date_iso).glob("card_*.png"))
+    n = len(local) if local else N_CARDS
+    urls = [f"{RAW_BASE}/cards/{date_iso}/card_{i:02d}.png" for i in range(1, n + 1)]
     caption = (f"{date_full(date_iso)} 오늘의 띠별 운세 🔮\n"
                f"내 띠는 오늘 어떤 흐름일까요?\n\n"
                f"#오늘의운세 #띠별운세 #사주 #운세 #12띠 #데일리운세")

@@ -1,3 +1,18 @@
-﻿
+
 _preview/
 __pycache__/
+
+# 2026-07-17 — 이 repo는 PUBLIC. 아래는 절대 올라가면 안 됨.
+# ⚠️ .gitignore는 줄 끝 주석을 지원하지 않는다. 주석은 반드시 별도 줄에.
+
+# 로그에 키 앞자리·내부 경로가 찍힘
+zodiac_daily.log
+# TTS 시험 산출물
+_tts_test.*
+# 에셋라이브러리 BGM 로컬 캐시 — 음원 공개 금지·용량 폭탄
+bgm_cache/
+# 조립 중간물(컷 mp4·나레이션 mp3)
+cards/*/_shorts/
+cards/*/_reel/
+.env
+credentials.json

@@ -30,11 +30,27 @@ jobs:
           pip install requests playwright edge-tts
           python -m playwright install --with-deps chromium
 
-      - name: 카드 생성 (sajufortune 실데이터)
-        run: python zodiac_cardnews.py generate
+      # 2026-07-17: 집 PC 새벽 파이프라인이 Topview GPT Image 2 카드 5장 + 타입캐스트
+      # 쇼츠를 미리 커밋해둠 → 있으면 그대로 발행(레거시 생성 건너뜀), 없으면(PC 꺼짐·
+      # 생성 실패) 기존 HTML 카드 + Edge TTS 릴스로 폴백 — 발행은 어떤 경우에도 나간다.
+      - name: 카드 생성 (Topview 커밋분 있으면 건너뜀)
+        run: |
+          TODAY=$(TZ=Asia/Seoul date +%F)
+          N=$(ls cards/$TODAY/card_*.png 2>/dev/null | wc -l)
+          if [ "$N" -ge 5 ]; then
+            echo "Topview 카드 ${N}장 존재 — 레거시 생성 건너뜀"
+          else
+            python zodiac_cardnews.py generate
+          fi
 
-      - name: 릴스 영상 생성 (카드 → 9:16 + TTS 내레이션)
-        run: python zodiac_reels.py generate
+      - name: 릴스 영상 생성 (커밋분 있으면 건너뜀)
+        run: |
+          TODAY=$(TZ=Asia/Seoul date +%F)
+          if [ -s "reels/${TODAY}_tts.mp4" ]; then
+            echo "쇼츠 영상 존재 — 레거시 릴스 생성 건너뜀"
+          else
+            python zodiac_reels.py generate
+          fi
 
       - name: 커밋 (카드+릴스 public raw 호스팅)
         run: |
