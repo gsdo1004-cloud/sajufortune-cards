@@ -1,16 +1,24 @@
 # -*- coding: utf-8 -*-
-"""띠별운세 일일 파이프라인 오케스트레이터 (집 PC, 새벽 04:40 스케줄).
+"""띠별운세 일일 파이프라인 오케스트레이터 (집 PC, **전날 18:00** 스케줄).
 
-흐름 (전 단계 멱등 — 2차 실행이 빈 곳만 메움):
-  1. 오늘 5장 보장   ← 평소엔 어제 D+1 선행 생성분이 있어 즉시 통과 (발행 무실패의 핵심)
-  2. 내일 5장 선행 생성 (D+1 버퍼) — 오늘 아침 인증이 죽어도 내일 발행은 무사
-  3. G드라이브 미러 (틱톡·blog-auto 소스)
-  4. 쇼츠 영상 조립 (타입캐스트 성우 로테이션 + BGM 로테이션)
-  5. repo 커밋·푸시 → 05:35 GitHub Actions가 쓰레드 캐러셀+영상 발행 (Topview분 우선)
-  6. 운명과학TV 쇼츠 업로드 큐 적재 + 멀티업로더 실행
+⏰ 생성과 발행을 분리한다 (2026-07-17 한밝님 지시):
+  - 18:00 (D-1) 생성 → 자정까지 **6시간 재시도 여유**. 새벽에 만들어 바로 쏘면 실패 시 복구 불가.
+  - 00:00 (D) 발행 → "D일 오늘의 운세"가 D일 0시에 나가 **날짜가 정확히 일치**하고,
+    밤에 잠 못 드는 시청자부터 다음날 밤까지 **하루 전체를 커버**한다(05:35은 새벽을 통째로 놓침).
+  - 틱톡은 수동이라 한밝님이 저녁에 G드라이브에서 받아 **틱톡 예약(00:00)**으로 거신다.
+
+흐름 (전 단계 멱등 — 재실행이 빈 곳만 메움). 기준일 = **내일(D)**:
+  1. D 5장 보장     ← 평소엔 어제 버퍼분이 있어 즉시 통과 (발행 무실패의 핵심)
+  2. D+1 5장 선행   ← 내일 18:00 실행이 죽어도 모레 발행은 무사
+  3. G드라이브 미러 (틱톡 수동 업로드·blog-auto 소스)
+  4. D 쇼츠 조립 (타입캐스트 성우 로테이션 + BGM 로테이션)
+  5. repo 커밋·푸시 → 00:02 GitHub Actions가 쓰레드 발행 (Topview분 우선)
+  6. 운명과학TV 쇼츠 업로드 — **비공개 + publishAt=D 00:00 예약공개**
   7. 실패 시 이메일 경보 (zodiac_alert)
 
-실행: python zodiac_daily_pipeline.py [--date YYYY-MM-DD] [--no-upload] [--no-push]
+실행: python zodiac_daily_pipeline.py [--date YYYY-MM-DD] [--today] [--no-upload] [--no-push]
+      --date  기준일 명시 (기본 = 내일)
+      --today 기준일을 오늘로 (수동 복구용)
 """
 from __future__ import annotations
 
@@ -36,10 +44,12 @@ UPLOADER_DIR = Path(r"G:\내 드라이브\01클로드\작업폴더\music_pipelin
 UPLOAD_QUEUE = UPLOADER_DIR / "upload_queue_unmyeong"
 # pythonw로 돌 때 sys.executable=pythonw.exe → 자식도 무창(콘솔 안 뜸). 절대경로 고정.
 UPLOADER_PY = sys.executable
-# 🔒 비공개 고정 — 한밝님 2026-07-17 확인. [[feedback_youtube_private_default]] 규칙 유지.
-# "매일 발행"은 매일 '업로드'까지 자동이라는 뜻이고, 공개 전환은 한밝님이 스튜디오에서 직접.
-# ⚠️ 한밝님이 "공개"라고 명시하기 전에는 절대 public으로 바꾸지 말 것.
+# 🔒 업로드는 항상 private + publishAt 예약공개 (한밝님 2026-07-17 확인).
+# [[feedback_youtube_private_default]]의 "항상 비공개" 규칙을 지키면서 00:00 정각 발행을 얻는 방식:
+# 18:00에 비공개로 올라가고 자정에 유튜브가 자동 공개한다. 그 사이 1~6시간 동안 한밝님이
+# 확인·취소 가능. ⚠️ privacy를 public으로 직접 바꾸지 말 것 — 예약공개가 정본 경로.
 YT_PRIVACY = "private"
+YT_PUBLISH_HOUR = "00:00:00+09:00"   # 기준일 자정 정각
 
 
 def log(msg: str):
@@ -171,6 +181,7 @@ def queue_youtube_shorts(date_iso: str, alerts: list[str],
         UPLOAD_QUEUE.mkdir(parents=True, exist_ok=True)
         qv = UPLOAD_QUEUE / f"zodiac_{date_iso}.mp4"
         shutil.copy2(video, qv)
+        publish_at = f"{date_iso}T{YT_PUBLISH_HOUR}"
         meta = {
             "video_file": str(qv),
             "title": title[:100],
@@ -178,11 +189,12 @@ def queue_youtube_shorts(date_iso: str, alerts: list[str],
             "tags": ["띠별운세", "오늘의운세", "12띠", "사주", "운세", "shorts"],
             "category": "24",
             "privacy": YT_PRIVACY,
+            "publish_at": publish_at,     # 업로더: privacy=private일 때만 publishAt 적용
             "contains_synthetic_media": True,
         }
         (UPLOAD_QUEUE / f"zodiac_{date_iso}_meta.json").write_text(
             json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
-        log(f"유튜브 큐 적재: {qv.name} (privacy={YT_PRIVACY}, AI고지=true, 성우={voice})")
+        log(f"유튜브 큐 적재: {qv.name} (예약공개 {publish_at}, AI고지=true, 성우={voice})")
     except OSError as e:
         alerts.append(f"유튜브 큐 적재 실패: {e}")
         return False
@@ -207,12 +219,18 @@ def main():
     date_iso = None
     if "--date" in args:
         date_iso = args[args.index("--date") + 1]
-    date_iso = date_iso or zs.today_iso()
+    elif "--today" in args:
+        date_iso = zs.today_iso()
+    else:
+        # 기본 = 내일. 이 파이프라인은 **전날 18:00**에 돌아 다음날치를 만든다.
+        date_iso = (dt.date.fromisoformat(zs.today_iso())
+                    + dt.timedelta(days=1)).isoformat()
     tomorrow = (dt.date.fromisoformat(date_iso) + dt.timedelta(days=1)).isoformat()
     do_upload = "--no-upload" not in args
     do_push = "--no-push" not in args
 
-    log(f"=== 띠별운세 일일 파이프라인 시작: {date_iso} (버퍼 {tomorrow}) ===")
+    log(f"=== 띠별운세 파이프라인 시작: 기준일 {date_iso} "
+        f"(오늘={zs.today_iso()}, 버퍼={tomorrow}) ===")
     alerts: list[str] = []
 
     # 1) 오늘 5장 보장 (평소엔 어제 만든 재고로 즉시 통과)
