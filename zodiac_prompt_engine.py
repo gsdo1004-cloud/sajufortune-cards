@@ -165,6 +165,49 @@ def group_prompt(date: dt.date, rows: list[dict], theme: dict | None = None,
     )
 
 
+def summary12_prompt(date: dt.date, rows_by_ko: dict[str, dict],
+                     theme: dict | None = None, simple: bool = False) -> str:
+    """12띠 전부를 한 장에 담은 '일시정지해서 읽는' 요약 카드 (A/B 10초판용).
+
+    근거(2026-07-17 경쟁사 실측): 조회수 상위 운세 쇼츠는 전부 6~11초이고, 12띠를
+    한 화면에 띄워 시청자가 **일시정지해 자기 띠를 찾게** 만든다 → 완주율이 100%를
+    넘어 알고리즘에 유리. 우리 95초판은 자기 띠가 나오면 이탈한다.
+
+    밀도 = 한밝님 레퍼런스 카드(2026-07-17) 구조: 셀마다 띠명 + 2줄 운세 + 행운 +
+    운세지수. GPT Image 2가 작은 글씨도 버틴다는 실증. ⚠️ 12셀 밀도에선 글자 결손이
+    가끔 나오지만 **한밝님 판단: 오타 한두 개는 문제 없음** — 밀도를 우선한다.
+
+    rows_by_ko[ko] = {line, stars{전체..}, lucky(색·방향), keyword}
+    """
+    t = theme or daily_theme(date)
+    rows = ""
+    for i in range(0, 12, 3):
+        cells = []
+        for ko in ZODIAC12[i:i + 3]:
+            r = rows_by_ko.get(ko) or {}
+            n = max(1, min(5, int((r.get("stars") or {}).get("전체", 4))))
+            cells.append(
+                f"[{ko}: fortune text '{r.get('advice') or r.get('line', '')}' / "
+                f"'행운 {r.get('lucky', '')}' / '운세지수 {'★' * n}{'☆' * (5 - n)}']")
+        rows += f"Row{i // 3 + 1}: " + "  ".join(cells) + "\n"
+    deco = (f"Background: {t['bg'][1]}. " if not simple else
+            "Background: soft plain auspicious gradient. ")
+    return (
+        f"Vertical 9:16 Korean daily zodiac fortune SUMMARY card showing ALL TWELVE "
+        f"zodiac signs at once, designed to be paused and read. "
+        f"Top title '오늘의 띠별운세' bold, with date badge '{t['date_kr']} ({t['weekday']})' below it. "
+        f"Then a clean 3-column x 4-row grid of twelve rounded cells. In EACH cell: a small cute "
+        f"zodiac animal on the left; on the right its Korean name in bold color, below it the "
+        f"fortune sentence in SMALL but crisp readable Korean (wrap to 2-3 short lines), and at "
+        f"the cell bottom a thin divider with '행운' keywords on the left and '운세지수' stars on "
+        f"the right. Exact contents:\n{rows}"
+        f"All twelve animals cute and friendly, {t['concept'][1]}. {_SNAKE_GUARD} "
+        f"{deco}Bright clean editorial layout, generous padding, soft card shadows, "
+        f"{t['palette'][1]}. Every Korean line must be sharp and legible on a phone. "
+        f"Art style: {t['style'][1]}. {_NEG}"
+    )
+
+
 def daily_set(date: dt.date, rows_by_ko: dict[str, dict]) -> dict:
     """하루 5장 프롬프트 전체.
 
@@ -188,6 +231,12 @@ def daily_set(date: dt.date, rows_by_ko: dict[str, dict]) -> dict:
             "prompt": group_prompt(date, rows, t),
             "simple_prompt": group_prompt(date, rows, t, simple=True),
         })
+    # 6번째 = 12띠 요약 1장 (A/B 10초판 전용). 95초판은 1~5만 쓴다.
+    images.append({
+        "name": "12띠요약", "file": "06_12띠요약", "signs": list(ZODIAC12),
+        "prompt": summary12_prompt(date, rows_by_ko, t),
+        "simple_prompt": summary12_prompt(date, rows_by_ko, t, simple=True),
+    })
     return {"theme": t, "images": images}
 
 

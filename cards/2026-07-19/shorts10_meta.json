@@ -1,0 +1,11 @@
+{
+ "date": "2026-07-19",
+ "variant": "A_10s",
+ "voice": {
+  "engine": "typecast",
+  "voice": "민욱(남)",
+  "tempo": 1.0
+ },
+ "bgm": "bgm_metal.mp3",
+ "duration": 10.7
+}

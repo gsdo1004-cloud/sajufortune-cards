@@ -82,33 +82,38 @@ def synth_typecast(text: str, out_path: Path, voice_id: str,
     out_path.write_bytes(r.content)
 
 
-def synth_edge(text: str, out_path: Path) -> None:
+def synth_edge(text: str, out_path: Path, tempo: float = 1.0) -> None:
     import asyncio
     import edge_tts
+    rate = f"{int(round((tempo - 1.0) * 100)) + 6:+d}%"   # 기본 +6%에 tempo 반영
 
     async def go():
-        await edge_tts.Communicate(text, EDGE_VOICE, rate="+6%").save(str(out_path))
+        await edge_tts.Communicate(text, EDGE_VOICE, rate=rate).save(str(out_path))
     asyncio.run(go())
 
 
 def synth(text: str, out_path: Path, date: dt.date | None = None,
-          log=print) -> dict:
-    """내레이션 1줄 합성 — 타입캐스트 2회 → edge 폴백. 반환 {engine, voice}."""
+          log=print, tempo: float = 1.0) -> dict:
+    """내레이션 1줄 합성 — 타입캐스트 2회 → edge 폴백. 반환 {engine, voice}.
+
+    tempo: 말 속도(0.5~2.0). 네이버 클립 90초 제한을 맞추려 자동 상향될 수 있음.
+    """
     date = date or dt.date.today()
     v = pick_voice(date)
+    tempo = max(0.5, min(2.0, tempo))
     key = load_typecast_key()
     if key:
         for attempt in (1, 2):
             try:
-                synth_typecast(text, out_path, v["voice_id"], key)
-                return {"engine": "typecast", "voice": v["label"]}
+                synth_typecast(text, out_path, v["voice_id"], key, tempo=tempo)
+                return {"engine": "typecast", "voice": v["label"], "tempo": tempo}
             except Exception as e:
                 log(f"[WARN] typecast 시도{attempt} 실패({v['label']}): {e}")
                 time.sleep(3 * attempt)
     else:
         log("[WARN] 타입캐스트 키 없음 — edge-tts 폴백")
-    synth_edge(text, out_path)
-    return {"engine": "edge", "voice": "SunHi(폴백)"}
+    synth_edge(text, out_path, tempo)
+    return {"engine": "edge", "voice": "SunHi(폴백)", "tempo": tempo}
 
 
 if __name__ == "__main__":

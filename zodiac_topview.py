@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""띠별운세 Topview GPT Image 2 — 하루 5장 '무실패' 생성 모듈 (2026-07-17 한밝님 지시)
+"""띠별운세 Topview GPT Image 2 — 하루 6장 '무실패' 생성 모듈 (2026-07-17 한밝님 지시)
 
 "이 이미지가 실패하면 다른 모든 것이 구현이 안 된다" → 설계 원칙:
   1) 멱등: 검증 통과한 장은 절대 재생성 안 함 → 재실행(2차 스케줄)이 빈 곳만 메움
@@ -13,7 +13,7 @@
 
 인증: 환경변수 TOPVIEW_UID/TOPVIEW_API_KEY 우선, 없으면 .claude.json의
       topview-mcp 헤더(sk-rGl 유효키)에서 자동 추출 ([[reference_topview_skill]] 정본).
-사용: python zodiac_topview.py ensure [YYYY-MM-DD]   # 5장 보장 생성(멱등)
+사용: python zodiac_topview.py ensure [YYYY-MM-DD]   # 6장 보장 생성(멱등)
       python zodiac_topview.py status [YYYY-MM-DD]   # 검증 상태만 출력
       python zodiac_topview.py mirror [YYYY-MM-DD]   # G드라이브 일자별 폴더로 복사
 """
@@ -48,7 +48,8 @@ CREDIT_PATH = "/user/credit/detail"
 
 MODEL = "GPT Image 2"          # 한글 텍스트 렌더링 실증 유일 (2026-07-17)
 ASPECT = "9:16"
-RESOLUTION = "1K"              # 0.2크레딧/장 → 하루 5장 = 1.0크레딧
+RESOLUTION = "1K"              # 0.2크레딧/장 → 하루 6장 = 1.2크레딧 (월 36, 잔액 418 = 11개월)
+N_CARDS = 6                    # 표지1 + 띠별4 + 12띠요약1(A/B 10초판용)
 POLL_TIMEOUT = 300
 MIN_BYTES = 60_000             # 1K 9:16 정상물은 수백 KB — 60KB 미만은 깨진 파일
 RATIO_RANGE = (0.50, 0.63)     # 9:16 = 0.5625
@@ -172,12 +173,39 @@ def make_client() -> TopviewClient:
 
 
 # ── 운세 데이터 → 이미지용 짧은 문구 ─────────────────────────
+def _advice(overall: str, limit: int = 46) -> str:
+    """overall("오늘은 갑오일, {리드}. {조언1}. {조언2}") → 조언부만 2~3줄 분량으로.
+
+    ⚠️ 글자수로 자르면 "…보십시" "…단단해집니"처럼 어중간하게 끊긴다(2026-07-17 실측).
+    문장 단위로 담되 limit을 넘으면 그 문장은 통째로 버린다.
+    """
+    parts = [p.strip().rstrip(".") for p in overall.split(". ") if p.strip()]
+    sents = parts[1:] if len(parts) > 1 else parts   # [0]=일진 리드 제외
+    out = ""
+    for s in sents:
+        cand = f"{out}. {s}" if out else s
+        if len(cand) > limit:
+            break
+        out = cand
+    return (out or sents[0][:limit]) + "."
+
+
 def build_rows(date_iso: str) -> dict[str, dict]:
-    """12띠 각각 {line(≤22자), stars{전체/금전/연애/건강}} — 같은 그룹 내 중복 문구 회피."""
+    """12띠 각각 {line, advice, lucky, stars{전체/금전/연애/건강}}.
+
+    line   = 짧은 리드 (띠별 3띠 카드용, ≤22자)
+    advice = 조언 2~3줄 (12띠 요약 카드 셀용) — 한밝님 레퍼런스 밀도
+    lucky  = "흰색·서쪽" 형태 (그날 일진 오행에서 도출 — 명리 근거)
+    같은 그룹 내 중복 문구는 회피.
+    """
     d = dt.date.fromisoformat(date_iso)
     rows: dict[str, dict] = {}
+    # ⚠️ advice는 **12띠 전체**에서 중복을 막아야 한다. 그룹(3띠) 안에서만 막았더니
+    # 12띠 요약 카드에서 쥐띠=닭띠, 용띠=개띠로 같은 문장이 나왔다(2026-07-17 실측).
+    # 같은 기조(tone)면 문장 풀이 같아 seed가 겹칠 수 있어서다.
+    used_advice: set[str] = set()
     for group in zpe.GROUPS:
-        used: set[str] = set()
+        used_line: set[str] = set()
         for ko in group:
             slug = zs.KO_TO_SLUG[ko]
             r = zs.make_reading(slug, date_iso)
@@ -185,14 +213,32 @@ def build_rows(date_iso: str) -> dict[str, dict]:
             line = ctx["lead"].split(" — ")[0].strip().rstrip(".")
             if len(line) > 22:   # 긴 문구 = 이미지 오타 위험 → 기조별 짧은 문구로
                 line = ALT_LINES[ctx["tone"]][0]
-            if line in used:
+            if line in used_line:
                 for alt in ALT_LINES.get(ctx["tone"], []):
-                    if alt not in used:
+                    if alt not in used_line:
                         line = alt
                         break
-            used.add(line)
+            used_line.add(line)
+
+            advice = _advice(r.overall)
+            if advice in used_advice:
+                # 기조 풀(4~5문장)만으론 부족하다 — 같은 기조를 6띠가 공유하면 바닥난다
+                # (7/20 실측 11/12). 같은 tier의 재물·건강·인연 문장까지 후보에 넣어
+                # 기조 일관성은 지키면서 후보를 13개로 넓힌다.
+                tier = zs._TONE_TIER[ctx["tone"]]
+                pool = (zs.TONE_OVERALL[ctx["tone"]] + zs.TONE_MONEY[tier]
+                        + zs.TONE_HEALTH[tier] + zs.TONE_LOVE[tier])
+                for cand in pool:
+                    alt = _advice("일진. " + cand)
+                    if alt not in used_advice:
+                        advice = alt
+                        break
+            used_advice.add(advice)
+
             rows[ko] = {
                 "line": line,
+                "advice": advice,
+                "lucky": f"{ctx['lucky_color']}·{ctx['lucky_direction']}",
                 "stars": {"전체": r.overall_score, "금전": r.money_score,
                           "연애": r.love_score, "건강": r.health_score},
                 "tone": ctx["tone"],
@@ -381,13 +427,13 @@ def check_balance(client: TopviewClient, alerts: list[str]) -> float | None:
 
 
 def ensure_daily_images(date_iso: str | None = None) -> dict:
-    """하루 5장 보장 생성(멱등). 반환: {date, ok, files, failed, alerts}."""
+    """하루 6장(표지1+띠별4+12띠요약1) 보장 생성(멱등). 반환: {date, ok, files, failed, alerts}."""
     date_iso = date_iso or zs.today_iso()
     d = dt.date.fromisoformat(date_iso)
     out_dir = BASE / "cards" / date_iso
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    log(f"=== 띠별운세 이미지 5장 보장 생성: {date_iso} ===")
+    log(f"=== 띠별운세 이미지 {N_CARDS}장 보장 생성: {date_iso} ===")
     alerts: list[str] = []
     client = make_client()
     check_balance(client, alerts)
@@ -409,14 +455,14 @@ def ensure_daily_images(date_iso: str | None = None) -> dict:
                 break   # 두 경로 다 죽음(401/4100) → 나머지도 무의미
 
     ok = not failed
-    log(f"=== 결과: {len(files)}/5 성공"
+    log(f"=== 결과: {len(files)}/{N_CARDS} 성공"
         f"{' | 실패: ' + ', '.join(failed) if failed else ''} ===")
     return {"date": date_iso, "ok": ok, "files": files,
             "failed": failed, "alerts": alerts}
 
 
 # ── G드라이브 미러 (틱톡·blog-auto 소스) ─────────────────────
-KOREAN_NAMES = ["01_표지", "02_띠별A", "03_띠별B", "04_띠별C", "05_띠별D"]
+KOREAN_NAMES = ["01_표지", "02_띠별A", "03_띠별B", "04_띠별C", "05_띠별D", "06_12띠요약"]
 
 
 def mirror_to_gdrive(date_iso: str | None = None) -> bool:
@@ -432,8 +478,8 @@ def mirror_to_gdrive(date_iso: str | None = None) -> bool:
             if s.exists() and validate_image(s) is None:
                 shutil.copy2(s, dst / f"{name}.png")
                 n += 1
-        log(f"G드라이브 미러: {n}/5장 → {dst}")
-        return n == 5
+        log(f"G드라이브 미러: {n}/{N_CARDS}장 → {dst}")
+        return n == N_CARDS
     except OSError as e:
         log(f"[WARN] G드라이브 미러 실패(파이프라인 지속): {e}")
         return False

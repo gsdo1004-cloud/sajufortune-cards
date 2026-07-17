@@ -116,8 +116,11 @@ def _upload_marker(date_iso: str) -> Path:
     return BASE / "cards" / date_iso / "uploaded.json"
 
 
-def _record_upload(date_iso: str) -> str:
-    """업로더 로그에서 방금 올린 영상ID를 찾아 표식으로 남긴다. 반환=video_id."""
+def _record_upload(date_iso: str, variant: str = "B") -> str:
+    """업로더 로그에서 방금 올린 영상ID를 찾아 표식으로 남긴다. 반환=video_id.
+
+    variant도 함께 기록 → 2주 뒤 A/B 집계 때 어느 날이 어느 변종이었는지 근거가 된다.
+    """
     vid = ""
     try:
         logs = sorted((UPLOADER_DIR / "logs").glob("upload_unmyeong_*.json"),
@@ -130,7 +133,8 @@ def _record_upload(date_iso: str) -> str:
         log(f"[WARN] 업로드 로그 파싱 실패(표식은 남김): {e}")
     try:
         _upload_marker(date_iso).write_text(json.dumps(
-            {"date": date_iso, "video_id": vid, "privacy": YT_PRIVACY,
+            {"date": date_iso, "video_id": vid, "variant": variant,
+             "privacy": YT_PRIVACY, "publish_at": f"{date_iso}T{YT_PUBLISH_HOUR}",
              "uploaded_at": dt.datetime.now().isoformat(timespec="seconds")},
             ensure_ascii=False), encoding="utf-8")
     except OSError as e:
@@ -139,8 +143,13 @@ def _record_upload(date_iso: str) -> str:
 
 
 def queue_youtube_shorts(date_iso: str, alerts: list[str],
-                         do_upload: bool = True) -> bool:
-    """쇼츠를 운명과학TV 업로드 큐에 적재 후 멀티업로더 실행."""
+                         do_upload: bool = True, variant: str = "B") -> bool:
+    """쇼츠를 운명과학TV 업로드 큐에 적재 후 멀티업로더 실행.
+
+    variant: A=10초 압축판(reels/{date}_10s.mp4) / B=95초판(reels/{date}_tts.mp4).
+    2주 A/B(2026-07-19~08-01) — 유튜브만 변종을 바꾸고 쓰레드·틱톡은 95초 고정이라
+    실험이 오염되지 않는다.
+    """
     # 🚨 2026-07-17: 멱등성 없어서 재실행하면 같은 날짜가 중복 업로드됨(실측 확인).
     # 업로더 자체엔 중복방지가 없다 → 여기서 표식으로 막는다.
     mk = _upload_marker(date_iso)
@@ -151,16 +160,22 @@ def queue_youtube_shorts(date_iso: str, alerts: list[str],
             vid = "?"
         log(f"이미 업로드됨({date_iso} → {vid}) — 건너뜀")
         return True
-    video = BASE / "reels" / f"{date_iso}_tts.mp4"
+    if variant == "A":
+        video = BASE / "reels" / f"{date_iso}_10s.mp4"
+        ok_mark = (BASE / "cards" / date_iso / "shorts10_meta.json").exists()
+    else:
+        video = BASE / "reels" / f"{date_iso}_tts.mp4"
+        ok_mark = _is_our_shorts(date_iso)
     if not video.exists():
-        alerts.append(f"쇼츠 영상 없음({video.name}) — 유튜브 업로드 생략")
+        alerts.append(f"쇼츠 영상 없음({video.name}, 변종{variant}) — 유튜브 업로드 생략")
         return False
     # 🚨 2026-07-17 오업로드 사고 방지: 우리 쇼츠가 아니면 절대 올리지 않는다.
-    if not _is_our_shorts(date_iso):
+    if not ok_mark:
         alerts.append(f"{date_iso} mp4가 우리 쇼츠가 아님(레거시 릴스 추정) — "
                       f"유튜브 업로드 거부")
         return False
-    meta_src = BASE / "cards" / date_iso / "shorts_meta.json"
+    meta_src = (BASE / "cards" / date_iso /
+                ("shorts10_meta.json" if variant == "A" else "shorts_meta.json"))
     voice = ""
     try:
         m = json.loads(meta_src.read_text(encoding="utf-8"))
@@ -179,7 +194,7 @@ def queue_youtube_shorts(date_iso: str, alerts: list[str],
             f"중요한 결정은 신중히 판단해 주세요.")
     try:
         UPLOAD_QUEUE.mkdir(parents=True, exist_ok=True)
-        qv = UPLOAD_QUEUE / f"zodiac_{date_iso}.mp4"
+        qv = UPLOAD_QUEUE / f"zodiac_{date_iso}_{variant}.mp4"
         shutil.copy2(video, qv)
         publish_at = f"{date_iso}T{YT_PUBLISH_HOUR}"
         meta = {
@@ -192,9 +207,10 @@ def queue_youtube_shorts(date_iso: str, alerts: list[str],
             "publish_at": publish_at,     # 업로더: privacy=private일 때만 publishAt 적용
             "contains_synthetic_media": True,
         }
-        (UPLOAD_QUEUE / f"zodiac_{date_iso}_meta.json").write_text(
+        (UPLOAD_QUEUE / f"zodiac_{date_iso}_{variant}_meta.json").write_text(
             json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
-        log(f"유튜브 큐 적재: {qv.name} (예약공개 {publish_at}, AI고지=true, 성우={voice})")
+        log(f"유튜브 큐 적재: {qv.name} (변종{variant}, 예약공개 {publish_at}, "
+            f"AI고지=true, 성우={voice})")
     except OSError as e:
         alerts.append(f"유튜브 큐 적재 실패: {e}")
         return False
@@ -209,8 +225,8 @@ def queue_youtube_shorts(date_iso: str, alerts: list[str],
     if r.returncode != 0:
         alerts.append(f"유튜브 업로더 종료코드 {r.returncode}: {(r.stderr or r.stdout)[-300:]}")
         return False
-    vid = _record_upload(date_iso)
-    log(f"유튜브 업로드 완료: {vid or '(ID확인실패)'} — {YT_PRIVACY}")
+    vid = _record_upload(date_iso, variant)
+    log(f"유튜브 업로드 완료: {vid or '(ID확인실패)'} — 변종{variant}, 자정 예약공개")
     return True
 
 
@@ -247,11 +263,15 @@ def main():
     zt.mirror_to_gdrive(date_iso)
     zt.mirror_to_gdrive(tomorrow)
 
-    # 4) 쇼츠 조립 (오늘 5장이 있어야 함)
+    # 4) 쇼츠 조립 (이미지가 다 있어야 함)
+    #    95초판은 항상 만든다 = 쓰레드·틱톡·네이버클립 공용(90초 이내 게이트 적용).
+    #    A일이면 10초 압축판도 추가로 만들어 **유튜브에만** 올린다 → A/B가 오염되지 않음.
     video_ok = False
+    variant = "B"
     if r_today["ok"]:
         try:
             import zodiac_shorts
+            variant = zodiac_shorts.ab_variant(date_iso)
             out = BASE / "reels" / f"{date_iso}_tts.mp4"
             # ⚠️ 2026-07-17 버그: 파일 존재+크기만 보면 **레거시 릴스**(Actions가 05:35에
             # HTML카드+EdgeTTS로 만들어 커밋한 같은 이름 파일)를 우리 쇼츠로 오인해
@@ -264,10 +284,17 @@ def main():
                     log("기존 mp4는 레거시 릴스 — 덮어쓰고 Topview 쇼츠로 재조립")
                 zodiac_shorts.make_shorts(date_iso)
             video_ok = True
-            try:  # G드라이브에 영상도 미러
+            if variant == "A":   # A/B: 10초 압축판 (유튜브 전용)
+                s10 = BASE / "reels" / f"{date_iso}_10s.mp4"
+                if s10.exists() and (BASE / "cards" / date_iso / "shorts10_meta.json").exists():
+                    log("10초판 이미 존재 — 건너뜀")
+                else:
+                    zodiac_shorts.make_shorts_10s(date_iso)
+            log(f"A/B 변종: {variant} ({'10초 압축판' if variant == 'A' else '95초판'}) → 유튜브")
+            try:  # G드라이브에 영상도 미러 (틱톡·네이버클립 수동 업로드용 = 95초판)
                 gd = zt.GDRIVE_DIR / date_iso
                 gd.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(out, gd / "06_영상.mp4")
+                shutil.copy2(out, gd / "07_영상.mp4")
             except OSError as e:
                 log(f"[WARN] 영상 G미러 실패: {e}")
         except BaseException as e:
@@ -280,9 +307,9 @@ def main():
     if do_push:
         git_push([date_iso, tomorrow], alerts)
 
-    # 6) 운명과학TV 쇼츠 업로드
+    # 6) 운명과학TV 쇼츠 업로드 (A/B 변종 반영, 자정 예약공개)
     if video_ok:
-        queue_youtube_shorts(date_iso, alerts, do_upload)
+        queue_youtube_shorts(date_iso, alerts, do_upload, variant)
 
     # 7) 경보
     if alerts:

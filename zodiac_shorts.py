@@ -33,6 +33,12 @@ W, H = 1080, 1920
 FPS = 30
 NO_WINDOW = 0x08000000 if os.name == "nt" else 0   # 스케줄러 무창 실행
 
+# 네이버 클립 = 1분 30초 이내만 업로드 가능 (한밝님 2026-07-17). 초과하면 채널 하나를
+# 통째로 못 쓴다. 88초를 목표로 잡아 인코딩 오차·패딩 여유를 둔다.
+CLIP_LIMIT = 90.0
+TARGET_SEC = 84.0
+PAD = 0.7          # 컷당 꼬리 여백
+
 # ── BGM 풀 (한밝님 지정: 구글 에셋폴더 주파수 + 로컬) ────────
 BGM_DIRS = [
     Path(r"G:\내 드라이브\01클로드\에셋라이브러리\bgm\251108깊은수면528비소리"),
@@ -158,13 +164,30 @@ def make_shorts(date_iso: str | None = None) -> Path:
     tmp = BASE / "cards" / date_iso / "_shorts"
     tmp.mkdir(exist_ok=True)
 
+    # ── 길이 게이트: 네이버 클립은 90초 초과분을 아예 안 받는다 (한밝님 2026-07-17).
+    # 문구 길이가 날마다 달라 고정 설정으론 언젠가 넘는다 → 재서 넘치면 속도를 올린다.
     voice_used = None
+    mp3s = [tmp / f"n{i}.mp3" for i in range(len(narrs))]
+    tempo = 1.0
+    for attempt in range(3):
+        for mp3, narr in zip(mp3s, narrs):
+            info = typecast_tts.synth(narr, mp3, d, log=log, tempo=tempo)
+            voice_used = info
+        total = sum(_dur(m) + PAD for m in mp3s)
+        if total <= CLIP_LIMIT:
+            log(f"길이 {total:.1f}초 (제한 {CLIP_LIMIT}초, tempo={tempo:.2f}) ✅")
+            break
+        new_tempo = round(min(1.35, tempo * (total / TARGET_SEC)), 2)
+        if new_tempo <= tempo:      # 더 올릴 수 없음 → 그대로 두고 경고
+            log(f"[WARN] {total:.1f}초 — tempo 상한. 네이버 클립 제외될 수 있음")
+            break
+        log(f"길이 {total:.1f}초 > {CLIP_LIMIT}초 → tempo {tempo:.2f}→{new_tempo:.2f} 재합성")
+        tempo = new_tempo
+
     clips = []
     for i, (card, narr) in enumerate(zip(cards, narrs)):
-        mp3 = tmp / f"n{i}.mp3"
-        info = typecast_tts.synth(narr, mp3, d, log=log)
-        voice_used = voice_used or info
-        L = round(_dur(mp3) + 0.7, 2)
+        mp3 = mp3s[i]
+        L = round(_dur(mp3) + PAD, 2)
         clip = tmp / f"c{i:02d}.mp4"
         frames = int(L * FPS)
         # 3배 lanczos 업스케일 후 중앙 zoompan(교차 in/out) — 떨림 금지 표준
@@ -224,11 +247,102 @@ def make_shorts(date_iso: str | None = None) -> Path:
     return out
 
 
+# ── A/B 10초 압축판 (2026-07-17) ──────────────────────────────
+# 근거(경쟁사 실측): 조회수 상위 운세 쇼츠는 전부 6~11초이고 12띠를 한 화면에 띄워
+# **일시정지해 읽게** 만든다(사주노트 8초 219K·부자될상 7초 73K). 95초판은 자기 띠가
+# 나오면 이탈 → 완주율 열세. 2주 A/B로 실측한다.
+HOOK_SEC = 2.0        # 표지 + 훅 내레이션
+SUMMARY_SEC = 8.0     # 12띠 카드 (일시정지해서 읽는 구간)
+
+
+def make_shorts_10s(date_iso: str | None = None) -> Path:
+    """표지 2초(훅 TTS) + 12띠 요약 8초 = 10초. 출력: reels/{date}_10s.mp4"""
+    date_iso = date_iso or zs.today_iso()
+    d = dt.date.fromisoformat(date_iso)
+    cdir = BASE / "cards" / date_iso
+    cover, summary = cdir / "card_01.png", cdir / "card_06.png"
+    for p in (cover, summary):
+        if not p.exists():
+            raise SystemExit(f"[FAIL] 10초판 재료 없음: {p.name} ({date_iso})")
+
+    tmp = cdir / "_s10"
+    tmp.mkdir(exist_ok=True)
+    # 훅은 짧을수록 좋다 — 전체 10초 안에 12띠 읽는 시간(8초)을 남겨야 한다.
+    # (긴 훅 "…요일, 오늘의 띠별 운세. 내 띠 확인하세요."는 4초를 먹어 12.1초가 됐음)
+    hook = f"{d.month}월 {d.day}일 오늘의 띠별 운세!"
+    mp3 = tmp / "hook.mp3"
+    info = typecast_tts.synth(hook, mp3, d, log=log)
+    hook_len = max(HOOK_SEC, round(_dur(mp3) + 0.3, 2))
+
+    clips = []
+    for i, (img, L, audio) in enumerate([(cover, hook_len, mp3), (summary, SUMMARY_SEC, None)]):
+        clip = tmp / f"c{i}.mp4"
+        frames = int(L * FPS)
+        # 요약 카드는 줌을 최소로 — 글씨를 읽어야 하므로 흔들리면 안 된다
+        z = f"min(1.0+0.0008*on,1.06)" if i == 0 else f"min(1.0+0.0002*on,1.02)"
+        vf = (f"scale={W*3}:{H*3}:flags=lanczos,"
+              f"zoompan=z='{z}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
+              f":d={frames}:s={W}x{H}:fps={FPS},format=yuv420p")
+        cmd = ["ffmpeg", "-y", "-loop", "1", "-i", str(img)]
+        if audio:
+            cmd += ["-i", str(audio), "-af", "apad"]
+        else:   # 무음 트랙 (concat은 스트림 구성이 같아야 함)
+            cmd += ["-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo"]
+        cmd += ["-t", str(L), "-vf", vf, "-r", str(FPS),
+                "-c:v", "libx264", "-preset", "veryfast",
+                "-c:a", "aac", "-b:a", "128k", "-ar", "44100", "-ac", "2",
+                "-pix_fmt", "yuv420p", str(clip)]
+        _run(cmd)
+        clips.append(clip)
+
+    lst = tmp / "list.txt"
+    lst.write_text("".join(f"file '{c.as_posix()}'\n" for c in clips), encoding="utf-8")
+    out = BASE / "reels" / f"{date_iso}_10s.mp4"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    _run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst),
+          "-c", "copy", str(out)])
+
+    bgm = pick_bgm(d)
+    if bgm:
+        dur = _dur(out)
+        tmp_b = out.with_name(out.stem + "_b.mp4")
+        try:
+            _run(["ffmpeg", "-y", "-i", str(out), "-stream_loop", "-1", "-i", str(bgm),
+                  "-filter_complex",
+                  f"[1:a]loudnorm=I=-20:TP=-2,volume=0.13,afade=t=in:d=0.8,"
+                  f"afade=t=out:st={max(0.0, dur-1.5):.2f}:d=1.5[bg];"
+                  f"[0:a][bg]amix=inputs=2:duration=first:normalize=0[a]",
+                  "-map", "0:v", "-map", "[a]", "-c:v", "copy",
+                  "-c:a", "aac", "-b:a", "128k", "-t", f"{dur:.2f}", str(tmp_b)])
+            tmp_b.replace(out)
+        except subprocess.CalledProcessError as e:
+            log(f"[WARN] 10초판 BGM 실패: {e.stderr[-200:] if e.stderr else e}")
+            if tmp_b.exists():
+                tmp_b.unlink()
+
+    (cdir / "shorts10_meta.json").write_text(json.dumps(
+        {"date": date_iso, "variant": "A_10s", "voice": info,
+         "bgm": bgm.name if bgm else None, "duration": round(_dur(out), 1)},
+        ensure_ascii=False, indent=1), encoding="utf-8")
+    for f in tmp.glob("*"):
+        f.unlink()
+    tmp.rmdir()
+    log(f"✅ 10초판 완성 → {out} ({_dur(out):.1f}초, {info['engine']}:{info['voice']})")
+    return out
+
+
+def ab_variant(date_iso: str) -> str:
+    """A/B 배정. 14일이면 각 변종이 모든 요일을 정확히 한 번씩 → 요일 효과 상쇄."""
+    return "A" if dt.date.fromisoformat(date_iso).toordinal() % 2 == 0 else "B"
+
+
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     mode = sys.argv[1] if len(sys.argv) > 1 else "generate"
     di = sys.argv[2] if len(sys.argv) > 2 else None
     if mode == "generate":
         make_shorts(di)
+    elif mode == "10s":
+        make_shorts_10s(di)
     else:
-        raise SystemExit("사용법: python zodiac_shorts.py generate [YYYY-MM-DD]")
+        raise SystemExit("사용법: python zodiac_shorts.py [generate|10s] [YYYY-MM-DD]")
