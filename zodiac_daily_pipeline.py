@@ -34,6 +34,8 @@ NO_WINDOW = 0x08000000 if os.name == "nt" else 0
 # 운명과학TV 멀티업로더 (2026-07-17 정찰 확정)
 UPLOADER_DIR = Path(r"G:\내 드라이브\01클로드\작업폴더\music_pipeline")
 UPLOAD_QUEUE = UPLOADER_DIR / "upload_queue_unmyeong"
+# pythonw로 돌 때 sys.executable=pythonw.exe → 자식도 무창(콘솔 안 뜸). 절대경로 고정.
+UPLOADER_PY = sys.executable
 # 🔒 비공개 고정 — 한밝님 2026-07-17 확인. [[feedback_youtube_private_default]] 규칙 유지.
 # "매일 발행"은 매일 '업로드'까지 자동이라는 뜻이고, 공개 전환은 한밝님이 스튜디오에서 직접.
 # ⚠️ 한밝님이 "공개"라고 명시하기 전에는 절대 public으로 바꾸지 말 것.
@@ -100,9 +102,45 @@ def _is_our_shorts(date_iso: str) -> bool:
         return False
 
 
+def _upload_marker(date_iso: str) -> Path:
+    return BASE / "cards" / date_iso / "uploaded.json"
+
+
+def _record_upload(date_iso: str) -> str:
+    """업로더 로그에서 방금 올린 영상ID를 찾아 표식으로 남긴다. 반환=video_id."""
+    vid = ""
+    try:
+        logs = sorted((UPLOADER_DIR / "logs").glob("upload_unmyeong_*.json"),
+                      key=lambda p: p.stat().st_mtime)
+        if logs:
+            for e in json.loads(logs[-1].read_text(encoding="utf-8")):
+                if e.get("status") == "success":
+                    vid = e.get("video_id", "")
+    except Exception as e:
+        log(f"[WARN] 업로드 로그 파싱 실패(표식은 남김): {e}")
+    try:
+        _upload_marker(date_iso).write_text(json.dumps(
+            {"date": date_iso, "video_id": vid, "privacy": YT_PRIVACY,
+             "uploaded_at": dt.datetime.now().isoformat(timespec="seconds")},
+            ensure_ascii=False), encoding="utf-8")
+    except OSError as e:
+        log(f"[WARN] 업로드 표식 기록 실패(다음 실행에 중복 위험): {e}")
+    return vid
+
+
 def queue_youtube_shorts(date_iso: str, alerts: list[str],
                          do_upload: bool = True) -> bool:
     """쇼츠를 운명과학TV 업로드 큐에 적재 후 멀티업로더 실행."""
+    # 🚨 2026-07-17: 멱등성 없어서 재실행하면 같은 날짜가 중복 업로드됨(실측 확인).
+    # 업로더 자체엔 중복방지가 없다 → 여기서 표식으로 막는다.
+    mk = _upload_marker(date_iso)
+    if mk.exists():
+        try:
+            vid = json.loads(mk.read_text(encoding="utf-8")).get("video_id", "?")
+        except Exception:
+            vid = "?"
+        log(f"이미 업로드됨({date_iso} → {vid}) — 건너뜀")
+        return True
     video = BASE / "reels" / f"{date_iso}_tts.mp4"
     if not video.exists():
         alerts.append(f"쇼츠 영상 없음({video.name}) — 유튜브 업로드 생략")
@@ -152,14 +190,15 @@ def queue_youtube_shorts(date_iso: str, alerts: list[str],
     if not do_upload:
         log("업로더 실행 생략(--no-upload)")
         return True
-    r = _run([sys.executable, "04_auto_upload.py", "--channel", "unmyeong"],
+    r = _run([UPLOADER_PY, "04_auto_upload.py", "--channel", "unmyeong"],
              cwd=UPLOADER_DIR, timeout=900)
     ok = r.returncode == 0 and ("업로드" in r.stdout or "upload" in r.stdout.lower()
                                 or r.stdout.strip() != "")
     if r.returncode != 0:
         alerts.append(f"유튜브 업로더 종료코드 {r.returncode}: {(r.stderr or r.stdout)[-300:]}")
         return False
-    log(f"유튜브 업로더 완료: {r.stdout.strip().splitlines()[-1] if r.stdout.strip() else 'OK'}")
+    vid = _record_upload(date_iso)
+    log(f"유튜브 업로드 완료: {vid or '(ID확인실패)'} — {YT_PRIVACY}")
     return True
 
 
