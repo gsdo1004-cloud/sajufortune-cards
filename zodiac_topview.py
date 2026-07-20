@@ -441,7 +441,8 @@ def ensure_daily_images(date_iso: str | None = None) -> dict:
     rows = build_rows(date_iso)
     ds = zpe.daily_set(d, rows)
     t = ds["theme"]
-    log(f"오늘 조합: [{t['style'][0]}] 배경={t['bg'][0]} 컨셉={t['concept'][0]} 색={t['palette'][0]}")
+    log(f"오늘 조합: [{t['style'][0]}] 배경={t['bg'][0]} 컨셉={t['concept'][0]} "
+        f"색={t['palette'][0]} 구도={t['composition'][0]}")
 
     files, failed = [], []
     dead_paths: set[str] = set()

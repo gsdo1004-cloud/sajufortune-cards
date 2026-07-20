@@ -74,6 +74,20 @@ PROPS = [
     "a peach of longevity", "a small treasure chest",
 ]
 
+# 그룹(띠별 3장) 구도 축 — 2026-07-20 추가.
+# 근거: G:\내 드라이브\01클로드\작업폴더\집PC이관_PNGTuber_2026-07-20\
+#       2026-07-20_12지신운세_이미지프롬프트_개선가이드_v1.md
+# TTS가 운세를 전부 읽어주므로 화면이 정보를 도식적으로 재전달할 필요가 없다(redundancy
+# effect) → group_prompt의 "표 형태(동물 좌/텍스트 우, 3단 나열)"를 무드 비주얼로 교체.
+GROUP_COMPOSITIONS = [
+    ("디오라마 병치", "arranged as a diorama of small independent vignette scenes placed "
+                    "side by side, each animal fully absorbed in its own tiny setting"),
+    ("원형 배치",     "arranged gently around a soft circular formation, each animal "
+                    "occupying its own graceful position along the circle"),
+    ("부채꼴 배열",   "fanned out like an open folding fan, each animal in its own "
+                    "elegant position across the gentle arc"),
+]
+
 WEEKDAY_KR = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
 
 # 12지신 (표준 순서) — 하루 4장 = 3띠씩
@@ -88,9 +102,11 @@ GROUP_NAMES = ["띠별A", "띠별B", "띠별C", "띠별D"]
 GROUPS = [ZODIAC12[i * 3:(i + 1) * 3] for i in range(4)]   # 3띠 × 4장
 
 
-def _pick(date: dt.date, axis: list, period: int = 1):
-    """날짜 기반 결정론적 선택. period=순환 주기(클수록 천천히 바뀜)."""
-    idx = (date.toordinal() // period) % len(axis)
+def _pick(date: dt.date, axis: list, period: int = 1, stride: int = 1):
+    """날짜 기반 결정론적 선택. period=순환 주기(클수록 천천히 바뀜),
+    stride=인덱스 보폭(다른 축과 길이가 같아도 stride를 다르게 주면 인덱스가
+    어긋나 조합이 겹치지 않는다 — 2026-07-20, 아래 daily_theme 주석 참고)."""
+    idx = ((date.toordinal() // period) * stride) % len(axis)
     return axis[idx]
 
 
@@ -98,13 +114,18 @@ def daily_theme(date: dt.date) -> dict:
     """오늘의 다양성 조합. 각 축을 다른 주기로 돌려 반복을 최대한 늦춘다."""
     o = date.toordinal()
     return {
-        "style":   _pick(date, ART_STYLES, 1),   # 매일 바뀜
-        "bg":      _pick(date, BACKGROUNDS, 1),   # 매일 바뀜(화풍과 다른 배열이라 어긋나며 순환)
-        "concept": _pick(date, CONCEPTS, 2),      # 2일마다
-        "palette": _pick(date, PALETTES, 1),      # 매일
-        "props":   [PROPS[(o * 5 + i * 7) % len(PROPS)] for i in range(2)],
-        "weekday": WEEKDAY_KR[date.weekday()],
-        "date_kr": f"{date.month}월 {date.day}일",
+        "style":       _pick(date, ART_STYLES, 1),           # 매일 바뀜(기준 축)
+        # ⚠️2026-07-20 수정: style·bg 둘 다 period=1·길이12라 인덱스가 항상 같았음
+        # (idx=o%12 동일) → "화풍과 다른 배열이라 어긋나며 순환"은 잘못된 가정이었고
+        # 실제로는 화풍+배경 조합이 12일마다 그대로 반복되고 있었다. stride로 보폭을
+        # 어긋나게 해 실제 다른 조합이 나오게 함(palette도 동일 문제라 같이 수정).
+        "bg":          _pick(date, BACKGROUNDS, 1, stride=5),  # 매일, 화풍과 다른 보폭(5, 12와 서로소)
+        "concept":     _pick(date, CONCEPTS, 2),               # 2일마다
+        "palette":     _pick(date, PALETTES, 1, stride=5),     # 매일, 화풍과 다른 보폭(5, 6과도 서로소)
+        "props":       [PROPS[(o * 5 + i * 7) % len(PROPS)] for i in range(2)],
+        "composition": _pick(date, GROUP_COMPOSITIONS, 5),     # 5일마다(그룹 3장 카드 구도)
+        "weekday":     WEEKDAY_KR[date.weekday()],
+        "date_kr":     f"{date.month}월 {date.day}일",
     }
 
 
@@ -133,7 +154,9 @@ def cover_prompt(date: dt.date, theme: dict | None = None, simple: bool = False)
         f"Large bold clean Korean title '오늘의 운세' at top center, "
         f"date '{t['date_kr']} {t['weekday']}' clearly just below. "
         f"All twelve cute Korean zodiac animals (rat, ox, tiger, rabbit, dragon, snake, "
-        f"horse, sheep, monkey, rooster, dog, pig), {t['concept'][1]}, arranged cheerfully and friendly. "
+        f"horse, sheep, monkey, rooster, dog, pig), {t['concept'][1]}, gently arranged in a soft "
+        f"circular mandala-wheel formation around the title, each animal in its own graceful "
+        f"position along the circle — not a grid, not stacked rows. "
         f"{deco}"
         f"{t['palette'][1]}. Art style: {t['style'][1]}. "
         f"{_SNAKE_GUARD} Warm auspicious festive lucky mood. {_NEG}"
@@ -142,22 +165,28 @@ def cover_prompt(date: dt.date, theme: dict | None = None, simple: bool = False)
 
 def group_prompt(date: dt.date, rows: list[dict], theme: dict | None = None,
                  simple: bool = False) -> str:
-    """띠별 3띠 프롬프트. rows = [{ko, line, stars:{전체,금전,연애,건강}}] 3개."""
+    """띠별 3띠 프롬프트. rows = [{ko, line, stars:{전체,금전,연애,건강}}] 3개.
+
+    2026-07-20: "동물 좌/텍스트 우" 3단 표 형태(도식적 나열)를 무드 비주얼 구도로
+    교체. 근거·배경은 GROUP_COMPOSITIONS 선언부 주석 참고.
+    """
     t = theme or daily_theme(date)
     animals = ", ".join(ZODIAC_EN.get(r["ko"], r["ko"]) for r in rows)
+    comp = t.get("composition") or GROUP_COMPOSITIONS[0]
     secs = ""
     for i, r in enumerate(rows, 1):
         en = ZODIAC_EN.get(r["ko"], "animal")
-        secs += (f"Section {i} — Korean heading '{r['ko']}' with a cute {en} character: "
-                 f"fortune text '{r['line']}', star line '{stars_line(r['stars'])}'. ")
+        secs += (f"Vignette {i} — a cute {en} character labeled '{r['ko']}' in elegant small "
+                 f"Korean type, its one-line fortune '{r['line']}' and star line "
+                 f"'{stars_line(r['stars'])}' gently placed beside it, not boxed or tabled. ")
     deco = (f"Background: {t['bg'][1]}. " if not simple else
             "Background: soft plain auspicious gradient. ")
     guard = _SNAKE_GUARD + " " if any(r["ko"] == "뱀띠" for r in rows) else ""
     return (
-        f"Vertical 9:16 Korean zodiac fortune card, clean readable layout. "
+        f"Vertical 9:16 Korean zodiac fortune card, atmospheric mood illustration — "
+        f"NOT an infographic, NOT a chart, NOT a table. "
         f"Top title '오늘의 띠별운세' bold clean Korean, small date '{t['date_kr']} {t['weekday']}'. "
-        f"Three stacked horizontal sections, each = one cute zodiac animal ({animals}, in order) "
-        f"on the left + its Korean text block on the right. "
+        f"Three animals ({animals}, in order) {comp[1]}. "
         f"{secs}"
         f"Characters {t['concept'][1]}. {deco}"
         f"{t['palette'][1]}. Art style: {t['style'][1]}. "
@@ -249,7 +278,8 @@ if __name__ == "__main__":
         d = base + dt.timedelta(days=i)
         t = daily_theme(d)
         print(f"{d} {t['weekday']}: [{t['style'][0]}] · 배경={t['bg'][0]} · 컨셉={t['concept'][0]} · "
-              f"색={t['palette'][0]} · 소품={t['props'][0].split('(')[0].strip()}")
+              f"색={t['palette'][0]} · 구도={t['composition'][0]} · "
+              f"소품={t['props'][0].split('(')[0].strip()}")
     demo_rows = {ko: {"line": "운이 활짝 열리는 날", "stars": {"전체": 4, "금전": 3, "연애": 5, "건강": 4}}
                  for ko in ZODIAC12}
     s = daily_set(base, demo_rows)

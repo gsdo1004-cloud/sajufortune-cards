@@ -33,6 +33,38 @@ W, H = 1080, 1920
 FPS = 30
 NO_WINDOW = 0x08000000 if os.name == "nt" else 0   # 스케줄러 무창 실행
 
+# ── PNGTuber 반응형 아바타 PIP (2026-07-20 연결) ──────────────
+# 근거: G:\내 드라이브\01클로드\작업폴더\집PC이관_PNGTuber_2026-07-20\README_인수인계.md
+# "숏폼(남녀 목소리 번갈아) = 그날 TTS 목소리 성별에 맞춰 아바타도 교체" — 타입캐스트
+# 성별 로테이션(typecast_tts.pick_voice)과 동일 기준으로 페르소나를 고른다.
+PNGTUBER_DIR = Path(r"G:\내 드라이브\01클로드\작업폴더\tts_pipeline\track_a_sellfarm")
+PNGTUBER_AVATAR_ROOT = Path(r"G:\내 드라이브\01클로드\아바타\png tuber model")
+PNGTUBER_PERSONA = {"male": "frames_shorts_young", "female": "frames_female_hanbok"}
+PNGTUBER_MOUTH_FILES = ["mouth_0_closed_nobg.png", "mouth_1_slight_nobg.png",
+                        "mouth_2_half_nobg.png", "mouth_3_wide_nobg.png"]
+
+
+def _apply_pngtuber_pip(video_path: Path, date: dt.date) -> None:
+    """쇼츠에 PNGTuber 반응형 아바타 PIP를 얹는다. 절대 예외를 던지지 않음 —
+    G드라이브 스톨·프레임 누락 등 무엇이 실패해도 쇼츠 조립 자체는 계속 진행한다
+    (human_touch_pip.apply_pip과 동일한 '빌드를 멈추지 않는다' 원칙)."""
+    try:
+        if str(PNGTUBER_DIR) not in sys.path:
+            sys.path.insert(0, str(PNGTUBER_DIR))
+        import pngtuber_shorts_pip as pnt_pip
+        gender = typecast_tts.pick_voice(date)["gender"]
+        persona = PNGTUBER_PERSONA[gender]
+        frame_dir = PNGTUBER_AVATAR_ROOT / persona
+        frames = [frame_dir / f for f in PNGTUBER_MOUTH_FILES]
+        missing = [f for f in frames if not f.exists()]
+        if missing:
+            log(f"[WARN] PNGTuber 프레임 없음({persona}) — PIP 생략: {missing[0]}")
+            return
+        info = pnt_pip.compose(str(video_path), [str(f) for f in frames])
+        log(f"PNGTuber PIP 완료: {persona}({gender}), {info['위치']} 위치, {info['길이']}초")
+    except Exception as e:
+        log(f"[WARN] PNGTuber PIP 실패(쇼츠는 그대로 진행): {type(e).__name__}: {e}")
+
 # 네이버 클립 = 1분 30초 이내만 업로드 가능 (한밝님 2026-07-17). 초과하면 채널 하나를
 # 통째로 못 쓴다. 88초를 목표로 잡아 인코딩 오차·패딩 여유를 둔다.
 CLIP_LIMIT = 90.0
@@ -212,6 +244,10 @@ def make_shorts(date_iso: str | None = None) -> Path:
     _run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst),
           "-c", "copy", str(out)])
 
+    # PNGTuber PIP는 BGM을 섞기 전(내레이션 단독 오디오)에 얹는다 —
+    # RMS 립싱크가 BGM 잡음 없이 실제 발화에만 반응하도록.
+    _apply_pngtuber_pip(out, d)
+
     # BGM 은은하게 (매일 다른 곡, 11% + 페이드 + loudnorm)
     bgm = pick_bgm(d)
     if bgm:
@@ -301,6 +337,8 @@ def make_shorts_10s(date_iso: str | None = None) -> Path:
     out.parent.mkdir(parents=True, exist_ok=True)
     _run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst),
           "-c", "copy", str(out)])
+
+    _apply_pngtuber_pip(out, d)
 
     bgm = pick_bgm(d)
     if bgm:
