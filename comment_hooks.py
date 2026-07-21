@@ -121,14 +121,16 @@ def _sat_join(ctx, d):
 
 
 def _sun_cta(ctx, d, channel):
-    """일: 사주포춘 링크 CTA (주 1회)."""
+    """일: '오늘의 운세·무료 사주' 프로필 유도 (URL 없음 — 쓰레드 도달 보호).
+    쓰레드는 외부링크를 스팸 신호로 봐 노출을 낮추므로, 직접 URL 대신
+    프로필에 걸린 홈페이지로만 유도한다. ('오늘의 운세' 키워드 강세 반영)"""
     if channel == "reels":
-        return (f"오늘 영상 속 내 띠, 진짜 내 사주로는 몇 점일까요?\n"
-                f"생년월일만 넣으면 무료 →\n"
-                f"https://{SITE}/unse/today?utm_source=threads&utm_medium=reels")
-    return ("오늘 내 사주 점수는 몇 점일까요?\n"
-            "생년월일만 넣으면 무료 →\n"
-            f"https://{SITE}/unse/today?utm_source=threads&utm_medium=carousel")
+        return ("오늘 영상 속 내 띠, 진짜 내 사주로는 몇 점일까요? 🔮\n"
+                "생년월일만 넣으면 '오늘의 운세'를 무료로 볼 수 있어요.\n"
+                "👉 프로필 링크에서 무료로 확인하세요 🙂")
+    return ("오늘 내 사주 점수는 몇 점일까요? 🔮\n"
+            "생년월일만 넣으면 '오늘의 운세'를 무료로 볼 수 있어요.\n"
+            "👉 프로필 링크에서 무료로 확인하세요 🙂")
 
 
 def _sun_reels_nolink(ctx, d):

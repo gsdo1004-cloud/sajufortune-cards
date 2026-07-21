@@ -238,14 +238,21 @@ def publish_reply(post_id, text):
 
 
 def do_publish(date_iso):
+    marker = Path(__file__).resolve().parent / "cards" / date_iso / "threads_pub_reels.json"
+    if marker.exists():
+        print(f"[스킵] {date_iso} 릴스 이미 발행됨(멱등 가드)")
+        return
     url = f"{RAW_BASE}/reels/{date_iso}_tts.mp4"
     caption = (f"{date_full(date_iso)} 오늘의 띠별 운세 🔮\n"
                f"영상으로 보는 12띠 오늘의 흐름\n\n"
+               f"👉 무료 '오늘의 운세'는 프로필 링크에서 확인하세요\n"
                f"#오늘의운세 #띠별운세 #사주 #운세 #릴스")
     pid = publish_video(url, caption)
     # [2026-07-16] 첫댓글=일진 풀이·사주 상식 훅 (링크 없음). 사주포춘 링크는 캐러셀 주 1회로 일원화.
     from comment_hooks import build_first_comment
     publish_reply(pid, build_first_comment(date_iso, "reels"))
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text(json.dumps({"post_id": pid}, ensure_ascii=False), encoding="utf-8")
 
 
 if __name__ == "__main__":

@@ -254,18 +254,25 @@ def do_generate():
 def do_publish():
     date_iso = zs.today_iso()
     outdir = Path(__file__).resolve().parent / "cards" / date_iso
+    # 멱등 가드: 오늘 이미 발행했으면 재발행 안 함(같은 날 중복 방지).
+    marker = outdir / "threads_pub_carousel.json"
+    if marker.exists():
+        print(f"[스킵] {date_iso} 캐러셀 이미 발행됨(멱등 가드)")
+        return
     files = sorted(outdir.glob("card_*.png"))
     urls = [f"{RAW_BASE}/cards/{date_iso}/{f.name}" for f in files]
     if not urls:
         raise SystemExit("[FAIL] 발행할 카드 PNG가 없습니다 (generate 먼저 실행)")
     caption = (f"{date_full(date_iso)} 오늘의 띠별 운세 🔮\n"
                f"내 띠는 오늘 어떤 흐름일까요?\n\n"
+               f"👉 무료 '오늘의 운세'는 프로필 링크에서 확인하세요\n"
                f"#오늘의운세 #띠별운세 #사주 #운세 #12띠")
     pid = publish_carousel(urls, caption)
     # [2026-07-16] 스레드 외부링크 도달저하 회피 — 첫댓글을 일진 풀이·사주 상식 훅으로.
     # 사주포춘 링크는 주 1회(일요일 캐러셀)만. comment_hooks 참조.
     from comment_hooks import build_first_comment
     publish_reply(pid, build_first_comment(date_iso, "carousel"))
+    marker.write_text(json.dumps({"post_id": pid}, ensure_ascii=False), encoding="utf-8")
 
 
 if __name__ == "__main__":
