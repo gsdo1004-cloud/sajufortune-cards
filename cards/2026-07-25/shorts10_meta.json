@@ -1,0 +1,11 @@
+{
+ "date": "2026-07-25",
+ "variant": "A_10s",
+ "voice": {
+  "engine": "typecast",
+  "voice": "원우(남)",
+  "tempo": 1.0
+ },
+ "bgm": "스트레스 & 불안 해소 + 432Hz (Stress & Anxiety Relief + 432Hz) (3).wav",
+ "duration": 11.0
+}
