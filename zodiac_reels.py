@@ -124,11 +124,20 @@ def narration_lines(date_iso):
     return lines
 
 
-def _tts(text, out_mp3):
+# ── 길이 게이트 (2026-07-26 신설) ──
+# 네이버 클립은 90초를 넘으면 아예 받지 않는다. 이 경로에는 길이 제한이 아예 없어서
+# 집PC 파이프라인이 못 만든 날 Actions 가 여기로 만들면 95초짜리가 나왔다(7/27 실측).
+# 상한 85초, 목표 80초. 넘치면 말 속도를 올려 다시 합성한다(zodiac_shorts 와 동일 방식).
+CLIP_LIMIT = 85.0
+TARGET_SEC = 80.0
+BASE_RATE_PCT = 12      # 기본 말 속도(+12%)
+MAX_RATE_PCT = 35       # 여기까지만 빠르게 — 더 올리면 시니어 시청자가 못 따라온다
+PAD = 0.7               # 클립마다 붙는 여유(아래 클립 생성의 +0.7 과 같은 값)
+
+
+def _tts(text, out_mp3, rate_pct: int = BASE_RATE_PCT):
     async def go():
-        # 2026-07-26: +6% → +12%. 쇼츠는 템포가 빠를수록 완주율이 오른다.
-        # 타겟이 30대~시니어라 과속은 피해 +12% 선에서 멈춘다(zodiac_shorts.LONG_TEMPO 와 동일 기준).
-        await edge_tts.Communicate(text, VOICE, rate="+12%").save(str(out_mp3))
+        await edge_tts.Communicate(text, VOICE, rate=f"+{int(rate_pct)}%").save(str(out_mp3))
     asyncio.run(go())
 
 
@@ -150,11 +159,30 @@ def make_reel_tts(date_iso):
     tmp = BASE / "cards" / date_iso / "_reel"
     tmp.mkdir(exist_ok=True)
 
+    # 1) 먼저 나레이션만 합성해 전체 길이를 잰다. 85초를 넘으면 말 속도를 올려 재합성.
+    mp3s = [tmp / f"n{i}.mp3" for i in range(n)]
+    rate = BASE_RATE_PCT
+    for _attempt in range(3):
+        total = 0.0
+        for mp3, narr in zip(mp3s, narrs[:n]):
+            _tts(narr, mp3, rate)
+            total += _dur(mp3) + PAD
+        if total <= CLIP_LIMIT:
+            print(f"[OK] 길이 {total:.1f}초 (상한 {CLIP_LIMIT}초, rate +{rate}%)")
+            break
+        new_rate = min(MAX_RATE_PCT,
+                       int(round(((rate + 100) * (total / TARGET_SEC)) - 100)))
+        if new_rate <= rate:
+            print(f"[WARN] {total:.1f}초 — 속도 상한(+{rate}%). 네이버 클립에서 제외될 수 있음")
+            break
+        print(f"[..] 길이 {total:.1f}초 > {CLIP_LIMIT}초 → rate +{rate}% → +{new_rate}% 재합성")
+        rate = new_rate
+
+    # 2) 확정된 나레이션으로 클립을 만든다.
     clips = []
     for i in range(n):
-        mp3 = tmp / f"n{i}.mp3"
-        _tts(narrs[i], mp3)
-        L = round(_dur(mp3) + 0.7, 2)
+        mp3 = mp3s[i]
+        L = round(_dur(mp3) + PAD, 2)
         clip = tmp / f"c{i:02d}.mp4"
         vf = (f"scale=1080:1350,"
               f"zoompan=z='min(zoom+0.0008,1.10)':d={int(L * FPS)}:s=1080x1350:fps={FPS},"
