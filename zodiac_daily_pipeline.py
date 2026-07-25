@@ -238,9 +238,15 @@ def main():
     elif "--today" in args:
         date_iso = zs.today_iso()
     else:
-        # 기본 = 내일. 이 파이프라인은 **전날 18:00**에 돌아 다음날치를 만든다.
+        # 기본 = 모레(D+2). 2026-07-26 이전에는 D+1(내일치)만 만들어, 18:00 실행이 하루
+        # 실패하면 바로 다음날 발행이 빈다. D+2 로 앞당겨 두면 하루치 여유가 생겨
+        # 문제를 발견하고 손볼 시간이 확보된다(발행도 같은 D+2 를 올린다).
+        try:
+            offset = int(os.environ.get("ZODIAC_PIPELINE_OFFSET_DAYS", "2"))
+        except ValueError:
+            offset = 2
         date_iso = (dt.date.fromisoformat(zs.today_iso())
-                    + dt.timedelta(days=1)).isoformat()
+                    + dt.timedelta(days=offset)).isoformat()
     tomorrow = (dt.date.fromisoformat(date_iso) + dt.timedelta(days=1)).isoformat()
     do_upload = "--no-upload" not in args
     do_push = "--no-push" not in args

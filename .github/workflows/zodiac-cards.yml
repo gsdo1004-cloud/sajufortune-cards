@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       offset_days:
-        description: '발행 대상 날짜 오프셋 (0=오늘, 1=내일). 비우면 1'
+        description: '발행 대상 날짜 오프셋 (0=오늘, 1=내일, 2=모레). 비우면 2'
         required: false
         default: ''
 
@@ -24,12 +24,13 @@ jobs:
       THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
       INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
       INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
-      # 21시 실행이 '내일치'를 올린다. 그날치를 밤 10시에 올리면 아침엔 늘 전날 글만
-      # 보였다(2026-07-26 확인). 자정이 지나면 이미 그날 글이 계정에 있게 만든다.
-      # 되돌리려면 0 으로. 카드·릴스 재료는 집PC 파이프라인이 D+1 까지 미리 만들어 둔다.
+      # 21시 실행이 '이틀 뒤(D+2)'치를 올린다. 그날치를 밤 10시에 올리면 아침엔 늘
+      # 전날 글만 보였고(2026-07-26 확인), D+1 이면 하루라도 실패하면 곧장 빈다.
+      # D+2 면 하루치 여유가 생겨 문제를 발견하고 손볼 시간이 있다.
+      # 재료는 집PC 파이프라인(매일 18:00)이 같은 D+2 기준으로 만들어 커밋한다.
       # 수동 실행(workflow_dispatch)에서 offset_days 를 주면 그 값이 우선한다.
       # 예: 오늘치를 한 번 더 올려야 하면 0 을 지정.
-      ZODIAC_PUBLISH_OFFSET_DAYS: ${{ github.event.inputs.offset_days || '1' }}
+      ZODIAC_PUBLISH_OFFSET_DAYS: ${{ github.event.inputs.offset_days || '2' }}
     steps:
       - uses: actions/checkout@v4
 
