@@ -257,7 +257,7 @@ def do_publish(date_iso):
 
 if __name__ == "__main__":
     mode = sys.argv[1] if len(sys.argv) > 1 else "generate"
-    di = sys.argv[2] if len(sys.argv) > 2 else zs.today_iso()
+    di = sys.argv[2] if len(sys.argv) > 2 else zs.target_iso()
     if mode == "generate":
         make_reel_tts(di)
     elif mode == "publish":

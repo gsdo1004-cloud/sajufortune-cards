@@ -12,6 +12,7 @@
   - 카드뉴스·쓰레드 자동 발행 본문
 """
 from __future__ import annotations
+import os
 import hashlib
 import datetime as dt
 from dataclasses import dataclass
@@ -360,3 +361,18 @@ def all_signs() -> list:
 def today_iso() -> str:
     # KST(UTC+9) 기준. Render 서버는 UTC라 한국 새벽에 전날로 어긋나는 것 방지.
     return (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=9)).date().isoformat()
+
+
+def target_iso() -> str:
+    """카드·릴스 생성/발행이 다룰 날짜. 기본은 오늘(KST).
+
+    2026-07-26: 밤 21시에 '그날치'를 올리다 보니 아침에 보면 항상 전날 글만 보였다.
+    ZODIAC_PUBLISH_OFFSET_DAYS=1 로 두면 21시에 '내일치'를 올려, 자정이 지나면
+    이미 그날 글이 계정에 있다. 되돌리려면 이 환경변수를 0 으로 두면 된다.
+    """
+    try:
+        offset = int(os.environ.get("ZODIAC_PUBLISH_OFFSET_DAYS", "0"))
+    except ValueError:
+        offset = 0
+    base = dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=9)
+    return (base + dt.timedelta(days=offset)).date().isoformat()

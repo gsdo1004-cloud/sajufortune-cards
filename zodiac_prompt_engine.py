@@ -45,7 +45,16 @@ BACKGROUNDS = [
     ("꽃밭 정원",  "blooming flower garden with fluttering butterflies"),
     ("등불 축제",  "warm night lantern festival with floating glowing lanterns"),
     ("연꽃 연못",  "tranquil lotus pond at dawn with lily pads and soft ripples"),
+    # 2026-07-25 +1 — 길이를 13으로 만들어 스타일(12)과 서로소가 되게 한다. 아래 주석 참고.
+    ("대나무 숲",  "quiet green bamboo grove with dappled sunlight and drifting leaves"),
 ]
+
+# ⚠️ 축 길이는 서로 서로소로 유지할 것 (2026-07-25)
+# 문제: 스타일·배경이 둘 다 길이 12라 stride를 줘도 짝이 고정됐다.
+#       종이공예→봄벚꽃, 빈티지→천상구름 … 이 짝이 영원히 유지되고 12일마다 같은 그림이 나왔다.
+#       ("매일 똑같은 그림이 반복된다"는 피드백의 실제 원인)
+# 해결: 길이를 12·13·11·7·13·5 로 벌렸다. 최소공배수가 6만 일을 넘어 사실상 반복이 없다.
+#       축을 늘리거나 줄일 때 길이가 서로 나누어떨어지지 않는지 꼭 확인할 것.
 
 CONCEPTS = [
     ("한복",       "each animal wearing colorful traditional hanbok"),
@@ -56,6 +65,10 @@ CONCEPTS = [
     ("복 요정",    "as tiny winged fortune fairies carrying luck"),
     ("전통 놀이",  "cheerfully enjoying traditional Korean folk play"),
     ("명절 한복",  "in festive holiday hanbok with ornaments"),
+    # 2026-07-25 +3 → 길이 11 (소수)
+    ("차 한잔",    "gathered for a cozy traditional tea time with small cups"),
+    ("달구경",     "gazing up at the moon together in quiet wonder"),
+    ("악사·풍류",  "as cheerful traditional musicians with small folk instruments"),
 ]
 
 PALETTES = [
@@ -65,6 +78,7 @@ PALETTES = [
     ("무지개 밝음","bright cheerful rainbow palette"),
     ("청록 신비",  "mystic teal, indigo and violet palette"),
     ("노을 따뜻",  "warm amber sunset palette"),
+    ("먹빛 담채",  "restrained ink-and-light-wash palette with subtle color accents"),  # +1 → 7
 ]
 
 PROPS = [
@@ -72,6 +86,7 @@ PROPS = [
     "a lucky talisman (부적)", "a blooming lotus", "brush and scroll",
     "a glowing lantern", "a bright full moon", "an elegant crane", "auspicious clouds",
     "a peach of longevity", "a small treasure chest",
+    "a decorated folding fan (부채)",                                   # +1 → 13
 ]
 
 # 그룹(띠별 3장) 구도 축 — 2026-07-20 추가.
@@ -86,6 +101,11 @@ GROUP_COMPOSITIONS = [
                     "occupying its own graceful position along the circle"),
     ("부채꼴 배열",   "fanned out like an open folding fan, each animal in its own "
                     "elegant position across the gentle arc"),
+    # 2026-07-25 +2 → 길이 5. 3개일 땐 같은 배치가 4~5일씩 이어져 지루했다.
+    ("층층 계단식",   "placed on gentle stepped tiers at different heights, like a "
+                    "traditional stone stairway, each animal on its own level"),
+    ("중앙 집합",     "gathered warmly toward a glowing center point, leaning in "
+                    "together as if sharing one lantern"),
 ]
 
 WEEKDAY_KR = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]

@@ -242,7 +242,7 @@ def publish_reply(post_id, text):
 
 
 def do_generate():
-    date_iso = zs.today_iso()
+    date_iso = zs.target_iso()
     outdir = Path(__file__).resolve().parent / "cards" / date_iso
     outdir.mkdir(parents=True, exist_ok=True)
     for _old in outdir.glob("card_*.png"):   # 이전 회차(장수 변경) 잔재 제거
@@ -252,7 +252,7 @@ def do_generate():
 
 
 def do_publish():
-    date_iso = zs.today_iso()
+    date_iso = zs.target_iso()
     outdir = Path(__file__).resolve().parent / "cards" / date_iso
     # 멱등 가드: 오늘 이미 발행했으면 재발행 안 함(같은 날 중복 방지).
     marker = outdir / "threads_pub_carousel.json"

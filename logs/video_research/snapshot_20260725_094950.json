@@ -1,0 +1,21 @@
+{
+  "at": "2026-07-25T09:49:50",
+  "daily": {
+    "hook_sec": "2.0",
+    "summary_sec": "8.0",
+    "cta_text": "무료 운세 · 사주풀이 990원 · 프로필 링크",
+    "cta_zone": "0.212, 0.271",
+    "pngtuber": "on"
+  },
+  "monthly": {
+    "variants": [
+      "30",
+      "60"
+    ],
+    "resolution": "1080x1920",
+    "fps": "30",
+    "cta_text": "무료 운세 · 사주풀이 990원 · 프로필 링크",
+    "safe_bottom_ratio": "0.82",
+    "gdrive": "G:\\내 드라이브\\01클로드\\운세쇼츠"
+  }
+}
