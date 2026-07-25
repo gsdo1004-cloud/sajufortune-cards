@@ -126,7 +126,9 @@ def narration_lines(date_iso):
 
 def _tts(text, out_mp3):
     async def go():
-        await edge_tts.Communicate(text, VOICE, rate="+6%").save(str(out_mp3))
+        # 2026-07-26: +6% → +12%. 쇼츠는 템포가 빠를수록 완주율이 오른다.
+        # 타겟이 30대~시니어라 과속은 피해 +12% 선에서 멈춘다(zodiac_shorts.LONG_TEMPO 와 동일 기준).
+        await edge_tts.Communicate(text, VOICE, rate="+12%").save(str(out_mp3))
     asyncio.run(go())
 
 

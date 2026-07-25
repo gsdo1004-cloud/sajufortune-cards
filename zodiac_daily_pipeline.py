@@ -273,11 +273,13 @@ def main():
     #    95초판은 항상 만든다 = 쓰레드·틱톡·네이버클립 공용(90초 이내 게이트 적용).
     #    A일이면 10초 압축판도 추가로 만들어 **유튜브에만** 올린다 → A/B가 오염되지 않음.
     video_ok = False
-    variant = "B"
+    # 2026-07-26: A/B(격일 변종) 종료. 두 판을 매일 다 만들고 플랫폼별로 길이를 나눈다.
+    #   95초판 → 스레드·틱톡·네이버클립   /   20초판 → 유튜브 쇼츠
+    # 같은 날 플랫폼마다 다른 영상이 나가므로 같은 영상 도배로 보이지 않는다(스팸 회피).
+    variant = "A"   # 유튜브에 올릴 판본 = 20초 압축판 고정
     if r_today["ok"]:
         try:
             import zodiac_shorts
-            variant = zodiac_shorts.ab_variant(date_iso)
             out = BASE / "reels" / f"{date_iso}_tts.mp4"
             # ⚠️ 2026-07-17 버그: 파일 존재+크기만 보면 **레거시 릴스**(Actions가 05:35에
             # HTML카드+EdgeTTS로 만들어 커밋한 같은 이름 파일)를 우리 쇼츠로 오인해
@@ -290,13 +292,19 @@ def main():
                     log("기존 mp4는 레거시 릴스 — 덮어쓰고 Topview 쇼츠로 재조립")
                 zodiac_shorts.make_shorts(date_iso)
             video_ok = True
-            if variant == "A":   # A/B: 10초 압축판 (유튜브 전용)
-                s10 = BASE / "reels" / f"{date_iso}_10s.mp4"
-                if s10.exists() and (BASE / "cards" / date_iso / "shorts10_meta.json").exists():
-                    log("10초판 이미 존재 — 건너뜀")
-                else:
+            # 20초 압축판도 매일 만든다 — 유튜브 쇼츠용. 실패해도 95초판은 이미 있으므로
+            # 스레드·틱톡 발행에는 지장이 없다(경보만 남기고 계속 간다).
+            s10 = BASE / "reels" / f"{date_iso}_10s.mp4"
+            if s10.exists() and (BASE / "cards" / date_iso / "shorts10_meta.json").exists():
+                log("20초판 이미 존재 — 건너뜀")
+            else:
+                try:
                     zodiac_shorts.make_shorts_10s(date_iso)
-            log(f"A/B 변종: {variant} ({'10초 압축판' if variant == 'A' else '95초판'}) → 유튜브")
+                except Exception as e:
+                    alerts.append(f"20초판 생성 실패({date_iso}): {e}")
+                    variant = "B"   # 없으면 유튜브엔 95초판으로 대체
+                    log(f"[WARN] 20초판 실패 → 유튜브는 95초판으로 대체: {e}")
+            log(f"영상 2종 준비: 95초판(스레드·틱톡) + 20초판(유튜브, 변종{variant})")
             try:  # G드라이브에 영상도 미러 (틱톡·네이버클립 수동 업로드용 = 95초판)
                 gd = zt.GDRIVE_DIR / date_iso
                 gd.mkdir(parents=True, exist_ok=True)

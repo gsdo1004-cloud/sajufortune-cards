@@ -69,6 +69,13 @@ def _apply_pngtuber_pip(video_path: Path, date: dt.date) -> None:
 # 통째로 못 쓴다. 88초를 목표로 잡아 인코딩 오차·패딩 여유를 둔다.
 CLIP_LIMIT = 90.0
 TARGET_SEC = 84.0
+
+# TTS 말 속도 (1.0 = 기본). 2026-07-26 도입.
+#   LONG  = 95초판(스레드·틱톡·네이버클립). 시니어 시청자를 배려해 +12% 선에서 멈춘다.
+#   SHORT = 20초판(유튜브 쇼츠). 짧고 임팩트가 중요해 더 빠르게 간다.
+# 길이 게이트가 필요하면 여기서 시작해 상한 1.35 까지 자동으로 더 올라간다.
+LONG_TEMPO = 1.12
+SHORT_TEMPO = 1.25
 PAD = 0.7          # 컷당 꼬리 여백
 
 # ── BGM 풀 (한밝님 지정: 구글 에셋폴더 주파수 + 로컬) ────────
@@ -224,7 +231,10 @@ def make_shorts(date_iso: str | None = None) -> Path:
     # 문구 길이가 날마다 달라 고정 설정으론 언젠가 넘는다 → 재서 넘치면 속도를 올린다.
     voice_used = None
     mp3s = [tmp / f"n{i}.mp3" for i in range(len(narrs))]
-    tempo = 1.0
+    # 2026-07-26: 시작 속도를 1.12 로 올렸다. 쇼츠는 템포가 빠를수록 이탈이 줄고,
+    # 길이가 짧아져 시청 완료율이 올라간다. 다만 타겟이 30대~시니어라 과속은 금물이라
+    # 긴판은 +12% 선에서 멈춘다(짧은판은 LONG 대비 더 빠른 SHORT_TEMPO 사용).
+    tempo = LONG_TEMPO
     for attempt in range(3):
         for mp3, narr in zip(mp3s, narrs):
             info = typecast_tts.synth(narr, mp3, d, log=log, tempo=tempo)
@@ -436,7 +446,7 @@ def make_shorts_10s(date_iso: str | None = None) -> Path:
     # (긴 훅 "…요일, 오늘의 띠별 운세. 내 띠 확인하세요."는 4초를 먹어 12.1초가 됐음)
     hook = f"{d.month}월 {d.day}일 오늘의 띠별 운세!"
     mp3 = tmp / "hook.mp3"
-    info = typecast_tts.synth(hook, mp3, d, log=log)
+    info = typecast_tts.synth(hook, mp3, d, log=log, tempo=SHORT_TEMPO)
     hook_len = max(HOOK_SEC, round(_dur(mp3) + 0.3, 2))
 
     clips = []
