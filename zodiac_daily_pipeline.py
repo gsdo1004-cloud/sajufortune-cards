@@ -377,6 +377,16 @@ def main():
     # 4-b) G드라이브 누락분 보충 (틱톡·릴스 = 휴대폰 업로드라 여기 없으면 못 올린다)
     backfill_gdrive()
 
+    # 4-c) 오래된 산출물은 E드라이브로 (C 87% 사용 중). 최근 45일은 건드리지 않는다 —
+    #      카드뉴스·릴스 발행이 raw.githubusercontent.com 으로 읽어가기 때문이다.
+    try:
+        r = _run([sys.executable, "archive_old.py"], cwd=BASE, timeout=300)
+        for line in (r.stdout or "").splitlines():
+            if "완료:" in line or "[WARN]" in line:
+                log(line.strip())
+    except Exception as e:
+        log(f"[WARN] 아카이브 실패(무시하고 계속): {e}")
+
     # 5) repo 푸시 (Actions 05:35 발행이 Topview분을 쓰도록)
     if do_push:
         git_push([date_iso, tomorrow], alerts)
