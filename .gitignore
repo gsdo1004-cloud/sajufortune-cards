@@ -16,3 +16,4 @@ cards/*/_shorts/
 cards/*/_reel/
 .env
 credentials.json
+promo/*/_tmp/

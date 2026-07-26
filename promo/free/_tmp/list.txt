@@ -1,6 +1,0 @@
-file 'C:/cardnews/_push/promo/free/_tmp/c00.mp4'
-file 'C:/cardnews/_push/promo/free/_tmp/c01.mp4'
-file 'C:/cardnews/_push/promo/free/_tmp/c02.mp4'
-file 'C:/cardnews/_push/promo/free/_tmp/c03.mp4'
-file 'C:/cardnews/_push/promo/free/_tmp/c04.mp4'
-file 'C:/cardnews/_push/promo/free/_tmp/c05.mp4'
