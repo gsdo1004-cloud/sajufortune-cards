@@ -125,6 +125,39 @@ SET_CHANNEL = {
     ],
 }
 
+# ── 네이버 블로그 삽화 (월 1회 · 일요일 07시) ────────────────────
+# 카드와 달리 글자를 넣지 않는다. 본문을 읽는 흐름을 끊지 않는 순수 삽화다.
+BLOG_STYLE = (
+    "Korean traditional ink-wash painting blended with soft modern illustration, "
+    "muted indigo and warm ivory palette, delicate gold line accents, "
+    "serene and dignified mood, generous negative space, no text, no letters, "
+    "no watermark, no human faces in close-up, 4:3 landscape"
+)
+
+BLOG_IMAGES = [
+    {
+        "file": "blog_01_dawn",
+        "alt": "새벽 산사에 해가 드는 풍경",
+        "prompt": f"{BLOG_STYLE}. Dawn light spreading over a quiet Korean mountain "
+                  f"temple, pine trees in mist, a single lantern still lit, "
+                  f"the first sun touching tiled roofs.",
+    },
+    {
+        "file": "blog_02_manseryeok",
+        "alt": "만세력 서책과 붓, 먹",
+        "prompt": f"{BLOG_STYLE}. An old Korean almanac book opened on a low wooden desk, "
+                  f"brush and ink stone beside it, faint grid of celestial stems and branches "
+                  f"on the page, warm afternoon light from a paper window.",
+    },
+    {
+        "file": "blog_03_evening",
+        "alt": "저녁 창가에서 하루를 돌아보는 자리",
+        "prompt": f"{BLOG_STYLE}. A quiet evening scene by a traditional paper window, "
+                  f"a cup of tea and a small notebook on the floor desk, "
+                  f"moonlight and soft shadow, sense of looking back on the day calmly.",
+    },
+]
+
 SETS = [SET_FREE, SET_PASS, SET_CHANNEL]
 BY_KEY = {s["key"]: s for s in SETS}
 

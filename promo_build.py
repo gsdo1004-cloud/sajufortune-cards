@@ -130,8 +130,31 @@ def build_shorts(key: str) -> Path:
     return out
 
 
+# ── 네이버 블로그 삽화 3장 ──────────────────────────────────
+def build_blog_images(quality: str = "medium") -> Path:
+    import zodiac_topview as ztv
+
+    outdir = OUT / "blog"
+    outdir.mkdir(parents=True, exist_ok=True)
+    client = ztv.make_client()
+    for spec in pc.BLOG_IMAGES:
+        dst = outdir / f"{spec['file']}.png"
+        if dst.exists() and ztv.validate_image(dst) is None:
+            log(f"{dst.name} 이미 있음 — 건너뜀")
+            continue
+        log(f"{dst.name} 생성: {spec['alt']}")
+        ztv.generate_rest(client, spec["prompt"], dst, quality=quality)
+        if ztv.validate_image(dst):
+            log(f"[WARN] {dst.name} 검증 실패 — 그대로 사용")
+    log(f"블로그 삽화 완료 → {outdir}")
+    return outdir
+
+
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "all"
+    if mode == "blog":
+        build_blog_images()
+        return
     key = sys.argv[2] if len(sys.argv) > 2 else "free"
     if key not in pc.BY_KEY:
         raise SystemExit(f"사용법: python promo_build.py [cards|shorts|all] [{'|'.join(pc.BY_KEY)}]")
