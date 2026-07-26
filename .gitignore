@@ -17,3 +17,10 @@ cards/*/_reel/
 .env
 credentials.json
 promo/*/_tmp/
+# 20초판(유튜브 전용) — raw URL 로 참조되지 않는다. 업로더가 로컬 파일을 직접 올린다.
+# 95초판(_tts.mp4)과 cards/*.png 는 릴스·카드뉴스 발행이 raw.githubusercontent.com 으로
+# 읽어가므로 **절대 빼면 안 된다**.
+reels/*_10s.mp4
+
+# 로그·임시
+zodiac_task.log
