@@ -40,9 +40,10 @@ def _log(m: str):
     print(f"[llm] {m}", flush=True)
 
 
-def _gemini(prompt: str, max_tokens: int, temperature: float) -> tuple[str | None, bool]:
+def _gemini(prompt: str, max_tokens: int, temperature: float,
+            key: str | None = None) -> tuple[str | None, bool]:
     """(결과, 재시도할_가치_있음) — 429 면 잠시 뒤 다시 칠 가치가 있다."""
-    key = os.environ.get("GEMINI_API_KEY")
+    key = key or os.environ.get("GEMINI_API_KEY")
     if not key:
         return None, False
     try:
@@ -104,7 +105,17 @@ def ask(prompt: str, *, max_tokens: int = 700, temperature: float = 0.8,
     if out:
         return out
 
-    # 429 는 분당 한도라 잠깐 쉬면 풀린다. 단 로컬이 살아 있으면 기다릴 이유가 없다.
+    # 무료키가 쿼터를 다 쓰면 **유료키로 넘어간다.** 무료키 하나를 AI뉴스·블로그·대본·
+    # 사주가 공유하는 구조라, 남이 먼저 쓰면 내 차례에 429 가 난다(러너에서 실측).
+    # flash 는 매우 저렴해서 하루 몇 건이면 비용이 사실상 무시된다.
+    paid = os.environ.get("GEMINI_API_KEY_PAID")
+    if retryable and paid and paid != os.environ.get("GEMINI_API_KEY"):
+        out, _ = _gemini(prompt, max_tokens, temperature, key=paid)
+        if out:
+            _log("유료키로 처리(무료 쿼터 소진)")
+            return out
+
+    # 그래도 안 되면 잠깐 쉬고 재시도. 단 로컬이 살아 있으면 기다릴 이유가 없다.
     if retryable and retry_gemini and not ollama_available():
         time.sleep(35)
         out, _ = _gemini(prompt, max_tokens, temperature)

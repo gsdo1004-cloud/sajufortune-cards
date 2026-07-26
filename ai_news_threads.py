@@ -49,28 +49,46 @@ BASE = Path(__file__).resolve().parent
 STATE = BASE / "ai_news_posted.json"
 GRAPH = "https://graph.threads.net/v1.0"
 
-# ⚠️ 구글 뉴스 RSS 는 **GitHub 러너(해외 IP)에서 XML 이 아닌 응답**을 준다
-# (실측: "not well-formed (invalid token): line 1, column 252" — 동의 페이지 추정).
-# 로컬(한국 IP)에서는 멀쩡해서 안 걸린다. 그래서 국내 언론사 RSS 를 정본으로 쓰고
-# 구글 뉴스는 보조로만 둔다 — 실패해도 나머지로 발행이 굴러간다.
-# (name, url, ai_filter) — ai_filter=True 면 AI 관련 기사만 골라낸다(종합 매체).
+# ── 소스 (2026-07-27 전면 교체) ───────────────────────────────
+# 처음엔 국내 종합 언론 RSS 를 썼는데, 나오는 게 "수원시 플랫폼 구축", "OO기업 투자 유치"
+# 같은 **지역 행정·기업 재무 뉴스**였다. 사람들이 스레드에서 보고 싶은 건 그게 아니다.
+# **내가 지금 쓰는 도구의 새 소식** — 새 모델, 새 오픈소스, 새 기능이다.
+#
+# 그래서 개발자·AI 실사용자가 실제로 보는 곳으로 바꿨다. 셋 다 **인기순**이라
+# 그 자체가 "사람들이 관심 있는 것"의 신호가 된다(우리가 인기도를 따로 계산할 필요가 없다).
+#   긱뉴스   = 한국 개발자 커뮤니티. 한국어. 추천 많은 순
+#   HN       = 해커뉴스 100점 이상만. 영어지만 업계 최대 신호
+#   깃허브   = 그날 뜬 저장소(영상자동화·AI 도구가 여기서 먼저 뜬다)
+#   공식블로그 = OpenAI·HuggingFace 1차 출처
+# (name, url, need_ai_filter, is_english)
 FEEDS = [
-    ("AI타임스", "https://www.aitimes.com/rss/allArticle.xml", False),
-    ("전자신문", "https://rss.etnews.com/Section901.xml", True),
-    ("전자신문", "https://rss.etnews.com/Section902.xml", True),
-    ("블로터", "https://www.bloter.net/rss/allArticle.xml", True),
+    ("긱뉴스", "https://feeds.feedburner.com/geeknews-feed", False, False),
+    ("Hacker News", "https://hnrss.org/frontpage?points=100", False, True),
+    ("Hacker News", "https://hnrss.org/show?points=50", False, True),
+    ("GitHub 트렌딩", "https://mshibanami.github.io/GitHubTrendingRSS/daily/python.xml",
+     False, True),
+    ("OpenAI", "https://openai.com/blog/rss.xml", False, True),
+    ("Hugging Face", "https://huggingface.co/blog/feed.xml", False, True),
 ]
-# 보조 소스(있으면 좋고 없어도 그만)
-QUERIES = ["인공지능", "생성형 AI", "AI 규제"]
+QUERIES: list[str] = []      # 구글 뉴스 보조 소스는 폐지(러너에서 XML 이 아닌 응답)
 
 AI_WORDS = ["AI", "에이아이", "인공지능", "생성형", "챗GPT", "GPT", "LLM", "언어모델",
             "제미나이", "클로드", "오픈AI", "딥러닝", "로봇", "반도체", "데이터센터"]
+
+# 관심 축 — 이 단어가 들어간 글을 우선한다. 도구·모델·오픈소스가 핵심이다.
+BOOST_WORDS = ["오픈소스", "출시", "공개", "무료", "모델", "에이전트", "agent", "LLM",
+               "Claude", "클로드", "GPT", "Gemini", "제미나이", "코딩", "자동화",
+               "영상", "video", "이미지", "음성", "TTS", "API", "release", "open source",
+               "launch", "free", "self-hosted", "로컬"]
 FRESH_HOURS = 48          # 이보다 오래된 기사는 '최신'이 아니다
 MAX_TEXT = 480            # 스레드 본문 상한 500자 — 여유 20자
 
-# 관심을 끌지 못하는 축은 뺀다(주가·인사·단순 협약은 공감이 안 된다).
+# 사람들이 안 궁금해하는 축은 뺀다. 지역 행정·기업 재무 뉴스가 특히 그렇다
+# ("수원시 플랫폼 구축", "네이버 100억달러 유치" 류 — 실제로 이런 게 뽑혀 나왔다).
 DROP_WORDS = ["주가", "코스닥", "코스피", "인사", "부고", "협약식", "MOU", "수주",
-              "컨퍼런스 개최", "세미나 개최", "채용 공고"]
+              "컨퍼런스 개최", "세미나 개최", "채용 공고",
+              "시장", "군수", "구청", "지자체", "시청", "도청", "의회", "국비",
+              "유치", "착공", "준공", "간담회", "출범식", "위원회", "포럼 개최"]
 
 
 def log(m: str):
@@ -94,20 +112,17 @@ def fetch_news() -> list[dict]:
     out, seen = [], set()
     now = dt.datetime.now(dt.timezone.utc)
 
-    sources = [(nm, u, f) for nm, u, f in FEEDS]
-    sources += [("", "https://news.google.com/rss/search?q="
-                 + urllib.parse.quote(q) + "&hl=ko&gl=KR&ceid=KR:ko", False)
-                for q in QUERIES]
-
-    for feed_name, url, ai_filter in sources:
+    for feed_name, url, ai_filter, is_en in FEEDS:
         try:
             r = requests.get(url, timeout=20,
                              headers={"User-Agent": "Mozilla/5.0"})
             root = ET.fromstring(r.content)
         except Exception as e:
-            log(f"[WARN] 수집 실패({feed_name or 'google'}): {str(e)[:70]}")
+            log(f"[WARN] 수집 실패({feed_name}): {str(e)[:70]}")
             continue
+        rank = 0
         for it in root.iter("item"):
+            rank += 1
             title = (it.findtext("title") or "").strip()
             link = (it.findtext("link") or "").strip()
             src = (it.findtext("source") or "").strip()
@@ -128,16 +143,21 @@ def fetch_news() -> list[dict]:
             t = _parse_pub(pub, now)
             if (now - t).total_seconds() > FRESH_HOURS * 3600:
                 continue
-            if any(w in title for w in DROP_WORDS) or not good_title(title):
+            if any(w in title for w in DROP_WORDS) or not good_title(title, is_en):
                 continue
             if ai_filter and not any(w in title for w in AI_WORDS):
                 continue          # 종합 매체는 AI 기사만 골라낸다
             seen.add(key)
+            low = title.lower()
             out.append({"title": title, "link": link,
                         "source": feed_name or html.unescape(src) or "언론 보도",
-                        "at": t.isoformat()})
-    out.sort(key=lambda x: x["at"], reverse=True)
-    log(f"수집 {len(out)}건 (최근 {FRESH_HOURS}시간)")
+                        "at": t.isoformat(), "rank": rank, "is_en": is_en,
+                        "boost": sum(1 for w in BOOST_WORDS if w.lower() in low)})
+    # 소스가 전부 인기순이라 **RSS 순서 자체가 사람들의 관심 신호**다.
+    # 시간순으로 재정렬하면 그 신호를 버리게 된다 — 관심축 가점 → 원래 순위 순으로 본다.
+    out.sort(key=lambda x: (-x["boost"], x["rank"]))
+    log(f"수집 {len(out)}건 (최근 {FRESH_HOURS}시간, 관심축 매칭 "
+        f"{sum(1 for x in out if x['boost'])}건)")
     return out
 
 
@@ -169,29 +189,37 @@ def _key(n: dict) -> str:
 
 # ── 문구 만들기 ───────────────────────────────────────────────
 # 마무리 한 줄 — 매번 같으면 봇으로 보인다. 날짜로 회전시킨다.
+# 마무리 한 줄도 반말. 매번 같으면 봇 티가 나니 날짜로 돌린다.
 CLOSERS = [
-    "저는 사주를 보는 사람이지만, 요즘은 이 흐름도 같이 봅니다.",
-    "기술이 바뀌어도 사람 사는 결은 크게 다르지 않더군요.",
-    "이런 변화가 우리 일상에 닿기까지는 시간이 좀 걸릴 겁니다.",
-    "저도 매일 들여다보는 쪽이라, 눈에 밟혀 남겨 둡니다.",
-    "당장 내 일은 아니어도, 알아두면 언젠가 쓰입니다.",
-    "새 도구가 나올수록 결국 쓰는 사람의 몫이 커집니다.",
+    "사주 보는 사람인데 요즘은 이런 것도 같이 본다.",
+    "일단 저장. 주말에 만져봐야지.",
+    "이런 거 나올 때마다 손이 근질근질하다.",
+    "쓸 데가 바로 떠오르는 건 오랜만이네.",
+    "매일 들여다보는 쪽이라 그냥 넘기기가 아깝다.",
+    "당장 안 써도 알아두면 언젠가 쓰게 되더라.",
+    "도구가 좋아질수록 결국 쓰는 사람 몫이 커진다.",
 ]
 
 # 사실은 **원문 제목에서만** 온다. LLM에게는 사실 요약을 시키지 않고 '해석'만 시킨다.
 # 처음엔 제목을 다듬게 했더니 잘린 영문 제목을 그대로 뱉거나(실측) 원문과 어긋나
 # 게이트에 걸렸다. 역할을 쪼개니 둘 다 사라졌다 — 제목은 인용, 해석은 생성.
-PROMPT = """아래 기사 제목을 읽고, 한국 독자에게 '그래서 이게 무슨 의미인지'를 설명하는
-한국어 문장 2개를 써라.
+# 말투 — 스레드는 존댓말을 거의 안 쓴다. 블로그 문체로 쓰면 광고처럼 읽히고 반응이 죽는다.
+# 그래서 여기서만 반말을 쓴다(한밝님과의 대화·블로그·유튜브는 그대로 존댓말).
+PROMPT = """아래 소식을 스레드(SNS)에 올릴 짧은 글로 바꿔라.
 
-기사 제목: {title}
+제목: {title}
 
-규칙:
-- 제목에 없는 사실·숫자·회사명·날짜를 절대 만들어내지 마라. 확실하지 않으면 일반적인 설명만 해라.
-- 정확히 2문장. 첫 문장은 이 소식이 왜 나왔는지 맥락, 둘째 문장은 우리 일상에 닿는 지점.
-- 30대~시니어가 읽는다. 존댓말, 쉬운 말, 전문용어는 풀어 쓴다.
-- 과장 금지("충격", "폭발적", "판도가 바뀐다" 같은 말 쓰지 마라).
-- 제목을 그대로 반복하지 마라. 해시태그·이모지·링크 금지.
+말투 규칙 (가장 중요):
+- **반말로 쓴다.** "~다", "~네", "~더라", "~인 듯" 처럼. 존댓말("~습니다", "~세요") 절대 금지.
+- 혼잣말하듯, 친구에게 툭 던지듯. 뉴스 앵커 말투 금지.
+- 광고·홍보 문구 금지. "주목받고 있다", "기대된다", "전망이다" 같은 기사체 금지.
+
+내용 규칙:
+- 제목에 없는 사실·숫자·회사명·날짜를 지어내지 마라. 모르면 일반적인 얘기만 해라.
+- 2문장. 첫 문장은 뭐가 나왔는지, 둘째 문장은 이게 나한테 왜 쓸모 있는지.
+- 영어 제목이면 한국어로 옮겨 쓰되, 제품·회사 이름은 원문 그대로 둔다.
+- 읽는 사람은 AI 도구를 실제로 쓰는 사람이다. "인공지능이란 무엇인가" 식 설명 금지.
+- 해시태그·이모지·링크 금지.
 - 결과 문장만 출력한다."""
 
 
@@ -207,16 +235,42 @@ def _gemini(title: str, source: str) -> str | None:
     return re.sub(r"[#*`]", "", t).strip() or None if t else None
 
 
-def good_title(t: str) -> bool:
-    """읽을 수 있는 제목인가. 구글 뉴스에는 영문·잘린 제목이 섞여 들어온다
-    (실측: 'Scope: 자동차·로봇 넘어 도시 단위로 (Beyond cars' — 괄호가 안 닫힘)."""
-    if not (12 <= len(t) <= 90):
+def good_title(t: str, is_en: bool = False) -> bool:
+    """읽을 수 있는 제목인가. 잘린 제목·너무 짧거나 긴 제목을 거른다."""
+    if not (10 <= len(t) <= 110):
         return False
-    ko = len(re.findall(r"[가-힣]", t))
-    if ko / max(1, len(t)) < 0.45:        # 한글이 절반 미만이면 국내 독자용이 아니다
-        return False
+    if not is_en:
+        ko = len(re.findall(r"[가-힣]", t))
+        if ko / max(1, len(t)) < 0.3:     # 한국어 소스인데 한글이 거의 없으면 이상하다
+            return False
     if t.count("(") != t.count(")") or t.count("[") != t.count("]"):
         return False                       # 잘린 제목
+    return True
+
+
+def sane_gate(interp: str) -> bool:
+    """생성문 위생 검사 — 사람이 쓴 것처럼 보이는가.
+
+    로컬 폴백(qwen2.5:14b)이 중국 모델이라 한국어 출력에 **한자와 잡음이 샌다.**
+    실측으로 나온 것들:
+      '廉價安全  Camera - Linux용 가벼운 CCTV네'   ← 중국어 혼입
+      '쉬워질 듯nego'                              ← 꼬리에 잡음 문자
+    이런 게 그대로 나가면 자동 생성물 티가 가장 크게 난다.
+    """
+    if re.search(r"[一-鿿]", interp):          # 한자
+        log("[GATE] 한자 혼입 — 폐기")
+        return False
+    if re.search(r"[぀-ヿЀ-ӿ]", interp):   # 일본어 가나·키릴
+        log("[GATE] 외국 문자 혼입 — 폐기")
+        return False
+    if "\t" in interp or re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", interp):
+        log("[GATE] 제어문자 — 폐기")
+        return False
+    # 한글이 너무 적으면 번역이 덜 된 것이다(제품명은 영어로 남아도 되니 여유를 둔다)
+    ko = len(re.findall(r"[가-힣]", interp))
+    if ko / max(1, len(interp)) < 0.35:
+        log("[GATE] 한글 비율 부족 — 폐기")
+        return False
     return True
 
 
@@ -246,7 +300,7 @@ def build_text(n: dict, date: dt.date, slot: int = 0) -> tuple[str, str]:
     slot = 그날 몇 번째 글인지. 같은 날 2건을 올릴 때 마무리 문장이 겹치지 않게 한다.
     """
     interp = _gemini(n["title"], n["source"])
-    if interp and not fact_gate(interp, n["title"]):
+    if interp and not (sane_gate(interp) and fact_gate(interp, n["title"])):
         interp = None
     closer = CLOSERS[(date.toordinal() + slot * 2) % len(CLOSERS)]
     head = f"[{n['source']}] {n['title']}"
