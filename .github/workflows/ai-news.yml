@@ -35,15 +35,38 @@ jobs:
           python-version: '3.11'
 
       - name: 의존성 설치
-        run: pip install requests
+        run: |
+          pip install requests pillow
+          # 인포그래픽 카드용 한글 폰트. 러너에는 한글 폰트가 없어 안 깔면 네모로 나온다.
+          sudo apt-get update -qq && sudo apt-get install -y -qq fonts-nanum
 
-      - name: AI 뉴스 발행
+      # 1단계 — 뉴스 선정 + 인포그래픽 생성(발행하지 않음).
+      # 카드를 스레드에 붙이려면 이미지가 **먼저 레포에 올라가 있어야** raw URL 이 산다.
+      - name: 뉴스 선정 + 카드 생성
         run: |
           FLAG=""
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             FLAG="--dry-run"
+          else
+            FLAG="--prepare"
           fi
           python ai_news_threads.py --count "${{ github.event.inputs.count || 2 }}" $FLAG
+
+      # 2단계 — 카드를 먼저 올린다. 이게 끝나야 raw URL 이 200 을 준다.
+      - name: 카드 커밋
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add cards/ai_news 2>/dev/null || true
+          git diff --staged --quiet || git commit -m "chore: AI 뉴스 인포그래픽"
+          git push
+          sleep 15   # raw.githubusercontent 반영 대기
+
+      # 3단계 — 실제 발행.
+      - name: 스레드 발행
+        if: github.event.inputs.dry_run != 'true'
+        run: python ai_news_threads.py --publish
 
       # 같은 기사를 다시 올리지 않도록 발행 기록을 레포에 남긴다.
       # 이게 없으면 러너가 매번 새 환경이라 중복 발행이 난다.
@@ -51,8 +74,6 @@ jobs:
         if: github.event.inputs.dry_run != 'true'
         run: |
           if [ -f ai_news_posted.json ]; then
-            git config user.name  "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
             git add ai_news_posted.json
             git diff --staged --quiet || git commit -m "chore: AI 뉴스 발행 기록"
             git push

@@ -240,8 +240,8 @@ def fact_gate(interp: str, title: str) -> bool:
     return core not in re.sub(r"\W+", "", interp)
 
 
-def build_text(n: dict, date: dt.date, slot: int = 0) -> str | None:
-    """사실(제목 인용) + 해석(생성) + 마무리 + 출처.
+def build_text(n: dict, date: dt.date, slot: int = 0) -> tuple[str, str]:
+    """(발행문, 해석문) 반환. 해석문은 인포그래픽 카드에도 쓰인다.
 
     slot = 그날 몇 번째 글인지. 같은 날 2건을 올릴 때 마무리 문장이 겹치지 않게 한다.
     """
@@ -251,18 +251,43 @@ def build_text(n: dict, date: dt.date, slot: int = 0) -> str | None:
     closer = CLOSERS[(date.toordinal() + slot * 2) % len(CLOSERS)]
     head = f"[{n['source']}] {n['title']}"
     if interp:
-        return f"{head}\n\n{interp}\n\n{closer}"[:MAX_TEXT]
+        return f"{head}\n\n{interp}\n\n{closer}"[:MAX_TEXT], interp
     # 해석 생성에 실패하면 사실만 남긴다 — 지어내느니 짧게 간다.
-    return f"{head}\n\n{closer}"[:MAX_TEXT]
+    return f"{head}\n\n{closer}"[:MAX_TEXT], ""
 
 
 # ── 발행 ─────────────────────────────────────────────────────
-def publish(text: str) -> str:
+# ── 인포그래픽 A/B (2026-07-27) ──────────────────────────────
+# 스레드는 원래 텍스트 중심 플랫폼이라 이미지가 도달에 유리한지 **확인된 바 없다.**
+# 그래서 하루 2건 중 1건에만 카드를 붙여 같은 날·같은 계정에서 비교한다.
+# 카드는 로컬 PIL 렌더(ai_news_card) — Topview 로 뽑으면 한글이 깨진다(7/30얼 실측).
+# 뉴스는 회사명·금액이 틀리면 허위정보가 되므로 AI 렌더를 쓰지 않는다.
+CARD_ENABLED = os.environ.get("AI_NEWS_CARD", "1") != "0"
+GH_RAW = "https://raw.githubusercontent.com/gsdo1004-cloud/sajufortune-cards/main"
+
+
+def build_card(n: dict, body: str, date_iso: str, slot: int) -> str | None:
+    """인포그래픽을 만들고 raw URL 을 돌려준다. 실패하면 None(텍스트만 발행)."""
+    try:
+        import ai_news_card
+        rel = f"cards/ai_news/{date_iso}_{slot}.png"
+        ai_news_card.render(n["title"], body, n["source"], BASE / rel,
+                            dt.date.fromisoformat(date_iso))
+        return f"{GH_RAW}/{rel}"
+    except Exception as e:
+        log(f"[WARN] 카드 생성 실패({type(e).__name__}: {str(e)[:70]}) — 텍스트만 발행")
+        return None
+
+
+def publish(text: str, image_url: str | None = None) -> str:
     tok = os.environ["THREADS_ACCESS_TOKEN"]
     uid = os.environ["THREADS_USER_ID"]
     base = f"{GRAPH}/{uid}"
-    j = requests.post(f"{base}/threads", timeout=30, data={
-        "media_type": "TEXT", "text": text, "access_token": tok}).json()
+    payload = {"media_type": "TEXT", "text": text, "access_token": tok}
+    if image_url:
+        payload = {"media_type": "IMAGE", "image_url": image_url,
+                   "text": text, "access_token": tok}
+    j = requests.post(f"{base}/threads", timeout=30, data=payload).json()
     cid = j.get("id")
     if not cid:
         raise SystemExit(f"[FAIL] container: {j}")
@@ -275,11 +300,22 @@ def publish(text: str) -> str:
     return pid
 
 
+PLAN = BASE / "ai_news_plan.json"
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--count", type=int, default=1)
+    # 카드를 붙이려면 이미지가 **먼저 레포에 올라가 있어야** raw URL 이 산다.
+    # 그래서 Actions 에서는 두 단계로 나눈다: prepare(카드 생성) → 커밋·푸시 → publish.
+    # 옵션 없이 실행하면(로컬) 카드 없이 텍스트만 발행한다 — 로컬 파일은 raw URL 이 없다.
+    ap.add_argument("--prepare", action="store_true", help="카드 생성 + 계획 저장(발행 안 함)")
+    ap.add_argument("--publish", action="store_true", help="저장된 계획으로 발행")
     a = ap.parse_args()
+
+    if a.publish:
+        return _publish_planned()
 
     today = dt.date.today()
     done = _posted()
@@ -297,27 +333,58 @@ def main():
             used_src.add(n["source"])
     picked += [n for n in news if n not in picked]
 
-    sent = 0
+    plan, sent = [], 0
     for n in picked:
         if sent >= a.count:
             break
-        text = build_text(n, today, sent)
+        text, interp = build_text(n, today, sent)
         if not text:
             continue
+        # A/B: 같은 날 2건 중 1건에만 카드를 붙인다. 날짜에 따라 첫/둘째가 번갈아
+        # 카드를 받아서, 하루 1건만 나가는 날에도 절반은 카드가 붙는다.
+        # 카드는 prepare 단계에서만 만든다(로컬 단독 실행은 raw URL 이 없어 텍스트만).
+        use_card = CARD_ENABLED and interp and a.prepare \
+            and (today.toordinal() + sent) % 2 == 0
+        img = build_card(n, interp, today.isoformat(), sent) if use_card else None
         print("-" * 52)
         print(text)
+        print(f"[카드] {img or '없음(텍스트만)'}")
         print("-" * 52)
-        if a.dry_run:
-            sent += 1
-            continue
-        pid = publish(text)
-        _mark(_key(n), text, pid)
-        log(f"발행 완료: {pid}")
+        plan.append({"key": _key(n), "text": text, "image_url": img})
         sent += 1
-        if sent < a.count:
+        if sent < a.count and not a.dry_run:
             time.sleep(25)      # Gemini 분당 한도 회피 + 연속 발행처럼 안 보이게
+
     if a.dry_run:
         log(f"[DRY-RUN] {sent}건 미리보기 — 발행하지 않았습니다")
+        return
+    if a.prepare:
+        PLAN.write_text(json.dumps(plan, ensure_ascii=False, indent=1), encoding="utf-8")
+        log(f"계획 저장: {len(plan)}건 (카드 {sum(1 for p in plan if p['image_url'])}건) "
+            f"→ 커밋 후 --publish 로 발행")
+        return
+    for p in plan:                       # 로컬 단독 실행 경로
+        pid = publish(p["text"], p["image_url"])
+        _mark(p["key"], p["text"], pid)
+        log(f"발행 완료: {pid}")
+
+
+def _publish_planned():
+    """prepare 로 만든 계획을 발행한다. 카드가 이미 레포에 올라간 뒤에 호출해야 한다."""
+    if not PLAN.exists():
+        log("계획 파일이 없습니다 — prepare 단계가 실패했을 수 있습니다")
+        return
+    plan = json.loads(PLAN.read_text(encoding="utf-8"))
+    done = _posted()
+    for p in plan:
+        if p["key"] in done:
+            log(f"이미 발행됨 — 건너뜀: {p['text'][:24]}")
+            continue
+        pid = publish(p["text"], p.get("image_url"))
+        _mark(p["key"], p["text"], pid)
+        log(f"발행 완료: {pid}{' (카드 첨부)' if p.get('image_url') else ''}")
+        time.sleep(5)
+    PLAN.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":
