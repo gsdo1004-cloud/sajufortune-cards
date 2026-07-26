@@ -47,15 +47,27 @@ _REG = ["GmarketSansTTFMedium.ttf", "malgun.ttf", "NanumGothic.ttf",
         "DejaVuSans.ttf"]
 
 
+_font_reported = False
+
+
 def _font(names: list[str], size: int):
+    global _font_reported
     for d in FONT_DIRS:
         for n in names:
             p = d / n
             if p.exists():
                 try:
-                    return ImageFont.truetype(str(p), size)
+                    f = ImageFont.truetype(str(p), size)
+                    if not _font_reported:
+                        # 러너에 한글 폰트가 없으면 글자가 네모로 나온다. 어떤 폰트가
+                        # 실제로 잡혔는지 로그로 남겨야 사후에 원인을 찾을 수 있다.
+                        print(f"[card] 폰트: {p}", flush=True)
+                        _font_reported = True
+                    return f
                 except OSError:
                     continue
+    print("[card] ⚠️ 한글 폰트를 못 찾았습니다 — 기본 폰트로 대체(한글 깨질 수 있음)",
+          flush=True)
     return ImageFont.load_default()
 
 

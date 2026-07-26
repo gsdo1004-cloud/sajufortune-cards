@@ -343,7 +343,9 @@ def main():
         # A/B: 같은 날 2건 중 1건에만 카드를 붙인다. 날짜에 따라 첫/둘째가 번갈아
         # 카드를 받아서, 하루 1건만 나가는 날에도 절반은 카드가 붙는다.
         # 카드는 prepare 단계에서만 만든다(로컬 단독 실행은 raw URL 이 없어 텍스트만).
-        use_card = CARD_ENABLED and interp and a.prepare \
+        # dry-run 에서도 카드를 만든다 — 러너의 한글 폰트가 제대로 잡히는지
+        # 실제 발행 전에 확인하려면 만들어 봐야 한다(로그에 폰트 경로가 찍힌다).
+        use_card = CARD_ENABLED and interp and (a.prepare or a.dry_run) \
             and (today.toordinal() + sent) % 2 == 0
         img = build_card(n, interp, today.isoformat(), sent) if use_card else None
         print("-" * 52)
