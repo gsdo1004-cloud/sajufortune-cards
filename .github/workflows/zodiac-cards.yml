@@ -87,11 +87,15 @@ jobs:
         continue-on-error: true
         run: python zodiac_reels.py publish
 
-      # [2026-07-21] 인스타 계정 제재로 정지 → 발행 중단(주석 처리). 복구 시 주석 해제.
-      # - name: 인스타 카드뉴스 캐러셀 발행
-      #   continue-on-error: true
-      #   run: python zodiac_instagram.py carousel
-      #
-      # - name: 인스타 릴스 영상 발행
+      # [2026-07-27] 주석 대신 **날짜 게이트**로 전환했다.
+      # zodiac_instagram.py 의 IG_RESUME_DATE(2026-08-15) 전에는 스스로 SKIP 하고 끝난다.
+      # 주석으로 막아두면 해제일에 사람이 기억해서 풀어야 하는데, 그게 잊혀진다.
+      # ⚠️ 재개는 캐러셀 하나로 시작한다. 릴스까지 같이 켜면 재개 직후 자동화 신호가
+      #    두 배로 뛴다 — 제재 이력이 있는 계정이라 2주 지켜보고 아래 릴스를 켠다.
+      - name: 인스타 카드뉴스 캐러셀 발행 (8/15 자동 재개)
+        continue-on-error: true
+        run: python zodiac_instagram.py carousel
+
+      # - name: 인스타 릴스 영상 발행   ← 캐러셀 2주 무사고 확인 후 해제
       #   continue-on-error: true
       #   run: python zodiac_instagram.py reel

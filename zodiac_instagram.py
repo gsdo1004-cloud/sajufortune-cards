@@ -25,12 +25,23 @@ SITE = "sajufortune.kr"
 IG = "https://graph.instagram.com/v21.0"
 N_CARDS = 6   # 레거시 HTML 구성(표지1+본문4+요약1). Topview 5장이면 자동 감지.
 
-# ⚠️ 인스타 자동발행 킬스위치 (2026-07-12) --------------------------------------
-# gsdo10042026(김산) 계정 링크제한(~2026.8.10) 기간 동안 인스타 발행+첫댓글 링크를
-# 전면 차단한다. 제재 사유가 "링크 자동댓글 대량 살포"라, 링크제한 기간에 계속 발행하면
-# 영구정지 위험. 스레드 발행·카드/릴스 생성 스텝은 별도라 영향 없음.
-# 재개: 8/10 제한 해제 확인 후 False로. (재개 시 첫댓글 링크 → 프로필 링크 유도로 전환 권장)
-IG_PUBLISH_DISABLED = True
+# ⚠️ 인스타 자동발행 게이트 (2026-07-12 차단 → 2026-07-27 날짜 게이트로 전환) -------
+# gsdo10042026(김산) 계정이 링크제한을 받았다. 제재 사유는 **"링크 자동댓글 대량 살포"**
+# 였다 — 게시 자체가 아니라 첫 댓글에 링크를 반복해 뿌린 것이 문제였다.
+# 그래서 두 가지를 바꿨다:
+#   ① 첫 댓글에서 **URL 을 영구 제거**했다(아래 CTA_COMMENT). 제재 사유를 구조적으로 없앤다.
+#   ② 사람이 스위치를 끄고 켜는 대신 **날짜 게이트**로 바꿨다. 잊어버려도 알아서 재개된다.
+#
+# 해제일이 정확히 언제인지 통보 기록이 남아 있지 않다(7/12 무렵 "한 달"로 이해했을 뿐).
+# 그래서 여유를 두고 8/15 로 잡았다. 앞당기려면 이 날짜만 고치면 된다.
+#
+# 재개 후 관찰 포인트: 링크제한이 실제로 풀렸는지(프로필 링크 클릭 가능 여부),
+# 그리고 재개 2주 안에 경고가 오지 않는지. 이상 있으면 이 날짜를 미래로 밀어 다시 막는다.
+IG_RESUME_DATE = dt.date(2026, 8, 15)
+
+# 첫 댓글 CTA — **URL 을 넣지 않는다.** 제재 사유가 링크 살포였다.
+# 프로필 링크로 유도하는 문구만 남긴다(스레드에서 쓰는 방식과 같다).
+CTA_COMMENT = "내 띠 오늘 운세는 프로필 링크에서 무료로 보실 수 있어요 🔮"
 
 
 def date_full(di):
@@ -121,8 +132,7 @@ def do_carousel(date_iso):
                f"내 띠는 오늘 어떤 흐름일까요?\n\n"
                f"#오늘의운세 #띠별운세 #사주 #운세 #12띠 #데일리운세")
     pid = publish_carousel(urls, caption)
-    add_comment(pid, "오늘 내 사주 점수는 몇 점일까요? 생년월일만 넣으면 무료 → "
-                     f"https://{SITE}/unse/today?utm_source=instagram&utm_medium=carousel")
+    add_comment(pid, CTA_COMMENT)
 
 
 def do_reel(date_iso):
@@ -131,14 +141,15 @@ def do_reel(date_iso):
                f"오늘 나의 흐름, 영상으로 확인하세요\n\n"
                f"#오늘의운세 #띠별운세 #릴스 #사주 #운세")
     pid = publish_reel(url, caption)
-    add_comment(pid, "오늘 내 사주 점수는 몇 점일까요? 생년월일만 넣으면 무료 → "
-                     f"https://{SITE}/unse/today?utm_source=instagram&utm_medium=reel")
+    add_comment(pid, CTA_COMMENT)
 
 
 if __name__ == "__main__":
-    if IG_PUBLISH_DISABLED:
-        print("[SKIP] 인스타 자동발행 비활성화됨 (IG_PUBLISH_DISABLED=True). "
-              "링크제한 해제(2026-08-10) 후 재개.")
+    today = dt.date.today()
+    if today < IG_RESUME_DATE:
+        left = (IG_RESUME_DATE - today).days
+        print(f"[SKIP] 인스타 자동발행 대기 중 — 링크제한 회복 기간. "
+              f"{IG_RESUME_DATE} 부터 자동 재개(D-{left}).")
         sys.exit(0)
     mode = sys.argv[1] if len(sys.argv) > 1 else "carousel"
     di = sys.argv[2] if len(sys.argv) > 2 else zs.today_iso()
