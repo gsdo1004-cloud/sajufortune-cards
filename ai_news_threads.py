@@ -43,6 +43,8 @@ from pathlib import Path
 
 import requests
 
+import llm_fallback as llm
+
 BASE = Path(__file__).resolve().parent
 STATE = BASE / "ai_news_posted.json"
 GRAPH = "https://graph.threads.net/v1.0"
@@ -194,47 +196,15 @@ PROMPT = """아래 기사 제목을 읽고, 한국 독자에게 '그래서 이�
 
 
 def _gemini(title: str, source: str) -> str | None:
-    key = os.environ.get("GEMINI_API_KEY")
-    if not key:
-        return None
-    # 무료 티어는 분당 호출 제한이 있어 연속 호출 시 429 가 난다. 한 번 쉬고 재시도한다.
-    for attempt in (1, 2):
-        body = _gemini_once(key, title, source)
-        if body is not None:
-            return body
-        if attempt == 1:
-            # 429 는 분당 한도라 12초로는 안 풀린다(실측). 한 텀 쉬고 다시 친다.
-            time.sleep(35)
-    return None
+    """해석문 생성. Gemini 가 429 로 막히면 로컬 Ollama 로 넘어간다(llm_fallback).
 
-
-def _gemini_once(key: str, title: str, source: str) -> str | None:
-    try:
-        r = requests.post(
-            "https://generativelanguage.googleapis.com/v1beta/models/"
-            "gemini-3.5-flash:generateContent",
-            timeout=40, headers={"x-goog-api-key": key},
-            json={"contents": [{"parts": [{"text": PROMPT.format(
-                title=title, source=source)}]}],
-                # ⚠️ thinkingBudget=0 필수. 3.5 Flash는 기본으로 사고에 토큰을 쓰는데,
-                # maxOutputTokens가 작으면 사고에 다 쓰고 **본문이 빈 채로 200**이 온다
-                # (실측: 예외도 안 나서 조용히 폴백됐다). 두 줄짜리 해석에 사고는 불필요.
-                "generationConfig": {"temperature": 0.8, "maxOutputTokens": 700,
-                                     "thinkingConfig": {"thinkingBudget": 0}}})
-        j = r.json()
-        cands = j.get("candidates")
-        if not cands:
-            # 원인이 429(쿼터)인지 안전필터인지 응답을 봐야 안다. 예전에 여기서
-            # KeyError 만 찍혀 원인 추적이 안 됐다.
-            log(f"[WARN] Gemini 응답에 candidates 없음 (HTTP {r.status_code}): "
-                f"{json.dumps(j, ensure_ascii=False)[:180]}")
-            return None
-        parts = cands[0].get("content", {}).get("parts") or []
-        t = "".join(p.get("text", "") for p in parts).strip()
-        return re.sub(r"[#*`]", "", t).strip() or None
-    except Exception as e:
-        log(f"[WARN] Gemini 호출 실패({type(e).__name__}: {str(e)[:80]})")
-        return None
+    2026-07-27: 무료 쿼터 429 로 2건째부터 해석문이 통째로 빠지는 일이 있었다.
+    집 PC 의 Ollama 는 쿼터가 없어 그 구멍을 메운다. 러너에는 Ollama 가 없으니
+    거기서는 Gemini 만 쓰고, 실패하면 아래 build_text 가 사실만 발행한다.
+    """
+    t = llm.ask(PROMPT.format(title=title, source=source),
+                max_tokens=700, temperature=0.8)
+    return re.sub(r"[#*`]", "", t).strip() or None if t else None
 
 
 def good_title(t: str) -> bool:
