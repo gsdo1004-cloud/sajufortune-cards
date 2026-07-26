@@ -52,6 +52,9 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add threads_reply_drafts.md threads_replied.json 2>/dev/null || true
+          # ⚠️ `git add A B` 는 B 가 없으면 A 까지 통째로 실패한다(실측: 초안 파일이
+          #    안 올라왔다). 파일마다 따로 건다.
+          [ -f threads_reply_drafts.md ] && git add threads_reply_drafts.md || true
+          [ -f threads_replied.json ] && git add threads_replied.json || true
           git diff --staged --quiet || git commit -m "chore: 스레드 답글 초안/기록"
           git push || true
