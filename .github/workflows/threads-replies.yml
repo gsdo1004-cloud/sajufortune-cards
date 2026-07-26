@@ -43,15 +43,15 @@ jobs:
           fi
           python threads_replies.py --limit "${{ github.event.inputs.limit || 10 }}" $FLAG
 
-      # 발송한 댓글은 기록해 둔다. 러너는 매번 새 환경이라 이게 없으면 같은 댓글에
-      # 두 번 답글을 단다(같은 사람에게 두 번 답하면 봇 티가 가장 크게 난다).
-      - name: 발송 기록 커밋
-        if: github.event.inputs.send == 'true'
+      # 초안 파일과 발송 기록을 레포에 남긴다.
+      #  - 초안(threads_reply_drafts.md): Actions 로그를 뒤지지 않고 휴대폰에서 바로 본다
+      #  - 기록(threads_replied.json): 러너는 매번 새 환경이라 이게 없으면 같은 댓글에
+      #    두 번 답글을 단다(같은 사람에게 두 번 답하면 봇 티가 가장 크게 난다)
+      - name: 초안·발송 기록 커밋
+        if: always()
         run: |
-          if [ -f threads_replied.json ]; then
-            git config user.name  "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add threads_replied.json
-            git diff --staged --quiet || git commit -m "chore: 스레드 답글 기록"
-            git push
-          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add threads_reply_drafts.md threads_replied.json 2>/dev/null || true
+          git diff --staged --quiet || git commit -m "chore: 스레드 답글 초안/기록"
+          git push || true

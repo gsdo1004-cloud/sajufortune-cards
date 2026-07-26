@@ -36,6 +36,7 @@ import llm_fallback as llm
 
 BASE = Path(__file__).resolve().parent
 STATE = BASE / "threads_replied.json"
+DRAFTS = BASE / "threads_reply_drafts.md"   # 초안 확인용(레포에 커밋 → 휴대폰에서도 열람)
 GRAPH = "https://graph.threads.net/v1.0"
 
 DAILY_CAP = 10          # 하루 상한. 이걸 넘기면 자동화 신호가 커진다
@@ -51,7 +52,8 @@ PROMPT = """스레드(SNS)에서 내 글에 달린 댓글에 답글을 단다. �
 받은 댓글: {comment}
 
 규칙:
-- **반말.** 존댓말("~습니다", "~세요") 쓰지 마라. 친근하게 툭 던지듯.
+- **말투는 상대에 맞춘다: {tone}**
+  스레드가 반말 문화여도, 존댓말로 말 건 사람에게 반말로 답하면 무례하게 읽힌다.
 - 한 문장, 길어도 두 문장. 길면 영업 티가 난다.
 - 댓글 내용에 실제로 반응해라. "감사합니다" 같은 복사붙여넣기 답변 금지.
 - 운세를 단정하지 마라("무조건 잘 된다" 금지). 그날 흐름 정도로만.
@@ -110,8 +112,21 @@ def replies_of(media_id: str, tok: str) -> list[dict]:
     return j.get("data", [])
 
 
+POLITE_MARKS = ["습니다", "습니까", "세요", "예요", "에요", "네요",
+                "십니다", "시네요", "인가요", "나요", "군요", "겠어요", "해요"]
+
+
+def _tone_of(comment: str) -> str:
+    """상대가 존댓말이면 존댓말로 받는다. 이걸 안 맞추면 답글이 무례해진다."""
+    if any(m in comment for m in POLITE_MARKS):
+        return "상대가 존댓말을 썼다. **존댓말로 답해라.** 다만 딱딱한 문어체 말고 " \
+               "부드러운 구어체('~네요', '~해요')로."
+    return "상대가 반말이거나 짧게 썼다. **반말로 답해라.** 친근하게 툭 던지듯."
+
+
 def draft(post_text: str, comment: str) -> str | None:
-    t = llm.ask(PROMPT.format(post=post_text[:180], comment=comment[:180]),
+    t = llm.ask(PROMPT.format(post=post_text[:180], comment=comment[:180],
+                              tone=_tone_of(comment)),
                 max_tokens=300, temperature=0.9)
     if not t:
         return None
@@ -150,7 +165,7 @@ def main():
     posts = my_posts(uid, tok)
     log(f"최근 글 {len(posts)}개 확인")
 
-    n = 0
+    n, drafts = 0, []
     for p in posts:
         if n >= a.limit:
             break
@@ -171,6 +186,9 @@ def main():
             print("-" * 52)
             print(f"@{c.get('username','?')}: {ctext[:70]}")
             print(f"  → {d}")
+            drafts.append({"user": c.get("username", "?"), "comment": ctext,
+                           "draft": d, "post": (p.get("text") or "")[:60],
+                           "reply_id": rid})
             if a.send:
                 pid = send_reply(uid, tok, rid, d)
                 _mark(rid, d)
@@ -178,6 +196,19 @@ def main():
                 time.sleep(8)
             n += 1
     print("-" * 52)
+    # 초안을 파일로도 남긴다 — Actions 로그를 뒤지는 건 불편하다.
+    # 레포에 커밋되므로 휴대폰에서도 GitHub 앱으로 바로 볼 수 있다.
+    if drafts:
+        md = [f"# 스레드 답글 초안 — {dt.date.today()}", "",
+              f"{'발송 완료' if a.send else '**초안만. 보내려면 send=true 로 다시 실행**'}", ""]
+        for d in drafts:
+            md += [f"### @{d['user']}",
+                   f"- 내 글: {d['post']}…",
+                   f"- 댓글: {d['comment']}",
+                   f"- **답글안: {d['draft']}**", ""]
+        DRAFTS.write_text("\n".join(md), encoding="utf-8")
+        log(f"초안 파일: {DRAFTS.name}")
+
     if not a.send:
         log(f"[초안] {n}건 — 발송하지 않았습니다. 실제로 보내려면 --send")
     else:
