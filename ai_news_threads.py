@@ -47,14 +47,22 @@ BASE = Path(__file__).resolve().parent
 STATE = BASE / "ai_news_posted.json"
 GRAPH = "https://graph.threads.net/v1.0"
 
-# 수집 축 — 한 축만 쓰면 같은 기사가 반복된다. 축을 섞어 화제를 분산시킨다.
-QUERIES = [
-    "인공지능",
-    "AI 서비스 출시",
-    "생성형 AI",
-    "AI 일자리",
-    "AI 규제",
+# ⚠️ 구글 뉴스 RSS 는 **GitHub 러너(해외 IP)에서 XML 이 아닌 응답**을 준다
+# (실측: "not well-formed (invalid token): line 1, column 252" — 동의 페이지 추정).
+# 로컬(한국 IP)에서는 멀쩡해서 안 걸린다. 그래서 국내 언론사 RSS 를 정본으로 쓰고
+# 구글 뉴스는 보조로만 둔다 — 실패해도 나머지로 발행이 굴러간다.
+# (name, url, ai_filter) — ai_filter=True 면 AI 관련 기사만 골라낸다(종합 매체).
+FEEDS = [
+    ("AI타임스", "https://www.aitimes.com/rss/allArticle.xml", False),
+    ("전자신문", "https://rss.etnews.com/Section901.xml", True),
+    ("전자신문", "https://rss.etnews.com/Section902.xml", True),
+    ("블로터", "https://www.bloter.net/rss/allArticle.xml", True),
 ]
+# 보조 소스(있으면 좋고 없어도 그만)
+QUERIES = ["인공지능", "생성형 AI", "AI 규제"]
+
+AI_WORDS = ["AI", "에이아이", "인공지능", "생성형", "챗GPT", "GPT", "LLM", "언어모델",
+            "제미나이", "클로드", "오픈AI", "딥러닝", "로봇", "반도체", "데이터센터"]
 FRESH_HOURS = 48          # 이보다 오래된 기사는 '최신'이 아니다
 MAX_TEXT = 480            # 스레드 본문 상한 500자 — 여유 20자
 
@@ -68,19 +76,34 @@ def log(m: str):
 
 
 # ── 수집 ─────────────────────────────────────────────────────
+def _parse_pub(pub: str, now: dt.datetime) -> dt.datetime:
+    """RFC822. 국내 매체는 '+0900' 오프셋을, 구글은 'GMT' 약어를 쓴다 — 둘 다 받는다."""
+    for fmt in ("%a, %d %b %Y %H:%M:%S %z", "%a, %d %b %Y %H:%M:%S %Z"):
+        try:
+            t = dt.datetime.strptime(pub.strip(), fmt)
+            return t if t.tzinfo else t.replace(tzinfo=dt.timezone.utc)
+        except Exception:
+            continue
+    return now
+
+
 def fetch_news() -> list[dict]:
-    """구글 뉴스 RSS(한국어)에서 최근 기사를 모은다. 링크·제목·언론사·시각."""
+    """국내 IT 매체 RSS + (보조)구글 뉴스에서 최근 기사를 모은다."""
     out, seen = [], set()
     now = dt.datetime.now(dt.timezone.utc)
-    for q in QUERIES:
-        url = ("https://news.google.com/rss/search?q="
-               + urllib.parse.quote(q) + "&hl=ko&gl=KR&ceid=KR:ko")
+
+    sources = [(nm, u, f) for nm, u, f in FEEDS]
+    sources += [("", "https://news.google.com/rss/search?q="
+                 + urllib.parse.quote(q) + "&hl=ko&gl=KR&ceid=KR:ko", False)
+                for q in QUERIES]
+
+    for feed_name, url, ai_filter in sources:
         try:
             r = requests.get(url, timeout=20,
                              headers={"User-Agent": "Mozilla/5.0"})
             root = ET.fromstring(r.content)
         except Exception as e:
-            log(f"[WARN] 수집 실패({q}): {e}")
+            log(f"[WARN] 수집 실패({feed_name or 'google'}): {str(e)[:70]}")
             continue
         for it in root.iter("item"):
             title = (it.findtext("title") or "").strip()
@@ -96,22 +119,21 @@ def fetch_news() -> list[dict]:
                 if len(tail) > 20 or not head:
                     break
                 title, src = head.strip(), src or tail.strip()
+            title = html.unescape(title)
             key = re.sub(r"\W+", "", title)[:40]
             if key in seen:
                 continue
-            try:
-                t = dt.datetime.strptime(pub, "%a, %d %b %Y %H:%M:%S %Z")
-                t = t.replace(tzinfo=dt.timezone.utc)
-            except Exception:
-                t = now
+            t = _parse_pub(pub, now)
             if (now - t).total_seconds() > FRESH_HOURS * 3600:
                 continue
             if any(w in title for w in DROP_WORDS) or not good_title(title):
                 continue
+            if ai_filter and not any(w in title for w in AI_WORDS):
+                continue          # 종합 매체는 AI 기사만 골라낸다
             seen.add(key)
-            out.append({"title": html.unescape(title), "link": link,
-                        "source": html.unescape(src) or "언론 보도",
-                        "at": t.isoformat(), "query": q})
+            out.append({"title": title, "link": link,
+                        "source": feed_name or html.unescape(src) or "언론 보도",
+                        "at": t.isoformat()})
     out.sort(key=lambda x: x["at"], reverse=True)
     log(f"수집 {len(out)}건 (최근 {FRESH_HOURS}시간)")
     return out
@@ -175,6 +197,18 @@ def _gemini(title: str, source: str) -> str | None:
     key = os.environ.get("GEMINI_API_KEY")
     if not key:
         return None
+    # 무료 티어는 분당 호출 제한이 있어 연속 호출 시 429 가 난다. 한 번 쉬고 재시도한다.
+    for attempt in (1, 2):
+        body = _gemini_once(key, title, source)
+        if body is not None:
+            return body
+        if attempt == 1:
+            # 429 는 분당 한도라 12초로는 안 풀린다(실측). 한 텀 쉬고 다시 친다.
+            time.sleep(35)
+    return None
+
+
+def _gemini_once(key: str, title: str, source: str) -> str | None:
     try:
         r = requests.post(
             "https://generativelanguage.googleapis.com/v1beta/models/"
@@ -187,10 +221,19 @@ def _gemini(title: str, source: str) -> str | None:
                 # (실측: 예외도 안 나서 조용히 폴백됐다). 두 줄짜리 해석에 사고는 불필요.
                 "generationConfig": {"temperature": 0.8, "maxOutputTokens": 700,
                                      "thinkingConfig": {"thinkingBudget": 0}}})
-        t = (r.json()["candidates"][0]["content"]["parts"][0]["text"]).strip()
+        j = r.json()
+        cands = j.get("candidates")
+        if not cands:
+            # 원인이 429(쿼터)인지 안전필터인지 응답을 봐야 안다. 예전에 여기서
+            # KeyError 만 찍혀 원인 추적이 안 됐다.
+            log(f"[WARN] Gemini 응답에 candidates 없음 (HTTP {r.status_code}): "
+                f"{json.dumps(j, ensure_ascii=False)[:180]}")
+            return None
+        parts = cands[0].get("content", {}).get("parts") or []
+        t = "".join(p.get("text", "") for p in parts).strip()
         return re.sub(r"[#*`]", "", t).strip() or None
     except Exception as e:
-        log(f"[WARN] Gemini 실패({e}) — 규칙 기반으로 씁니다")
+        log(f"[WARN] Gemini 호출 실패({type(e).__name__}: {str(e)[:80]})")
         return None
 
 
@@ -302,7 +345,7 @@ def main():
         log(f"발행 완료: {pid}")
         sent += 1
         if sent < a.count:
-            time.sleep(5)
+            time.sleep(25)      # Gemini 분당 한도 회피 + 연속 발행처럼 안 보이게
     if a.dry_run:
         log(f"[DRY-RUN] {sent}건 미리보기 — 발행하지 않았습니다")
 
