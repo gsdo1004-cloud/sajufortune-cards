@@ -154,13 +154,40 @@ def send_reply(uid: str, tok: str, reply_to_id: str, text: str) -> str:
     return pid
 
 
+def _inspect(uid: str, tok: str):
+    """답글이 실제로 존재하는데 화면에 안 보이는 경우가 있다(카운트 2, 목록 0).
+    숨김(hide_status)인지, 아예 없는지, permalink 는 뭔지를 그대로 찍어 본다."""
+    for p in my_posts(uid, tok)[:3]:
+        print("=" * 56)
+        print(f"[내 글] {(p.get('text') or '')[:60]}")
+        r = requests.get(f"{GRAPH}/{p['id']}/replies", timeout=30, params={
+            "fields": "id,text,username,timestamp,hide_status,has_replies,"
+                      "is_reply_owned_by_me,permalink",
+            "reverse": "false", "access_token": tok})
+        j = r.json()
+        if "error" in j:
+            print(f"  [ERR] {json.dumps(j['error'], ensure_ascii=False)[:200]}")
+            continue
+        data = j.get("data", [])
+        print(f"  답글 {len(data)}건")
+        for c in data:
+            print(f"   - @{c.get('username')} | hide={c.get('hide_status')} "
+                  f"| mine={c.get('is_reply_owned_by_me')}")
+            print(f"     {(c.get('text') or '')[:70]}")
+            print(f"     {c.get('permalink','')}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--send", action="store_true", help="실제 발송(기본은 초안만)")
     ap.add_argument("--limit", type=int, default=DAILY_CAP)
+    ap.add_argument("--inspect", action="store_true",
+                    help="최근 글의 답글 상태를 그대로 출력(숨김 여부 진단)")
     a = ap.parse_args()
 
     uid, tok = _env()
+    if a.inspect:
+        return _inspect(uid, tok)
     done = _done()
     posts = my_posts(uid, tok)
     log(f"최근 글 {len(posts)}개 확인")

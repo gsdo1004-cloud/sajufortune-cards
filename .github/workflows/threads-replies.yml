@@ -10,6 +10,10 @@ on:
         description: 'true 면 실제 발송. 비워두면 초안만 출력(권장)'
         required: false
         default: 'false'
+      inspect:
+        description: 'true 면 답글 상태만 진단(숨김 여부 확인). 발송하지 않음'
+        required: false
+        default: 'false'
       limit:
         description: '최대 처리 건수(기본 10)'
         required: false
@@ -37,6 +41,10 @@ jobs:
 
       - name: 댓글 확인 + 답글 초안
         run: |
+          if [ "${{ github.event.inputs.inspect }}" = "true" ]; then
+            python threads_replies.py --inspect
+            exit 0
+          fi
           FLAG=""
           if [ "${{ github.event.inputs.send }}" = "true" ]; then
             FLAG="--send"
