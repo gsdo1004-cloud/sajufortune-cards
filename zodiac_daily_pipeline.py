@@ -142,6 +142,37 @@ def _record_upload(date_iso: str, variant: str = "B") -> str:
     return vid
 
 
+def backfill_gdrive(days: int = 4) -> int:
+    """최근 며칠 중 G드라이브에 빠진 영상·카드를 메운다.
+
+    틱톡·릴스는 휴대폰에서 올리므로 G드라이브에 없으면 업로드 자체가 불가능하다.
+    실제로 2026-07-27치 95초판이 빠져 있었다(D+1→D+2 오프셋 전환기에 그날치가
+    정규 실행 밖에서 조립돼 미러 단계를 안 거쳤다). 사람이 눈치채기 전엔 모르는
+    종류의 누락이라 매 실행마다 훑어서 자동으로 채운다.
+    """
+    today = dt.date.fromisoformat(zs.today_iso())
+    n = 0
+    for i in range(days):
+        di = (today + dt.timedelta(days=i - 1)).isoformat()
+        gd = zt.GDRIVE_DIR / di
+        pairs = [(BASE / "reels" / f"{di}_tts.mp4", "07_영상.mp4"),
+                 (BASE / "reels" / f"{di}_10s.mp4", "10_쇼츠20초.mp4"),
+                 (BASE / "cards" / di / "card_07.png", "08_지목3띠.png"),
+                 (BASE / "cards" / di / "card_08.png", "09_표형12띠.png")]
+        for src, name in pairs:
+            if not src.exists():
+                continue
+            try:
+                if not (gd / name).exists():
+                    gd.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(src, gd / name)
+                    log(f"G미러 보충: {di}/{name}")
+                    n += 1
+            except OSError as e:
+                log(f"[WARN] G미러 보충 실패({di}/{name}): {e}")
+    return n
+
+
 def queue_youtube_shorts(date_iso: str, alerts: list[str],
                          do_upload: bool = True, variant: str = "B") -> bool:
     """쇼츠를 운명과학TV 업로드 큐에 적재 후 멀티업로더 실행.
@@ -176,18 +207,31 @@ def queue_youtube_shorts(date_iso: str, alerts: list[str],
         return False
     meta_src = (BASE / "cards" / date_iso /
                 ("shorts10_meta.json" if variant == "A" else "shorts_meta.json"))
-    voice = ""
+    voice, fmt, theme_title = "", "", ""
     try:
         m = json.loads(meta_src.read_text(encoding="utf-8"))
         voice = m.get("voice", {}).get("voice", "")
+        fmt = m.get("format", "")      # 20초판 포맷(pick3/table12/없으면 기존 ai12)
+        theme_title = m.get("theme_title", "")   # 지목형 주제(오늘/이번주/이달 × 축)
     except Exception:
         pass
 
     d = dt.date.fromisoformat(date_iso)
     wd = ["월", "화", "수", "목", "금", "토", "일"][d.weekday()]
-    title = f"{d.month}월 {d.day}일 {wd}요일 오늘의 띠별운세 🔮 12띠 총정리 #shorts"
-    desc = (f"{d.year}년 {d.month}월 {d.day}일 {wd}요일, 12띠 오늘의 운세를 1분에 정리했습니다.\n"
-            f"내 띠의 오늘 흐름, 금전운·연애운·건강운까지 확인해 보세요.\n\n"
+    # 2026-07-26: 제목도 포맷을 따라간다. 지목형인데 "12띠 총정리"라고 달면
+    # 제목과 내용이 어긋나 이탈을 부른다. 지목형 제목은 **띠 이름을 밝히지 않는다** —
+    # "내가 해당되나?"를 남겨야 끝까지 본다(벤치마크 실측의 핵심).
+    # ⚠️ 과장 화법 금지(수익정지 이력) — `운 폭발`류 대신 `흐름이 좋은` 수준으로.
+    if fmt == "pick3":
+        subj = theme_title or "오늘 흐름이 좋은 띠"
+        title = f"{subj} 세 개 🍀 {d.month}월 {d.day}일 {wd}요일 #shorts"
+        lead = (f"{d.year}년 {d.month}월 {d.day}일 {wd}요일, {subj} 세 개를 짚어 "
+                f"드립니다.\n혹시 내 띠, 우리 가족 띠가 들어 있는지 확인해 보세요.")
+    else:
+        title = f"{d.month}월 {d.day}일 {wd}요일 오늘의 띠별운세 🔮 12띠 총정리 #shorts"
+        lead = (f"{d.year}년 {d.month}월 {d.day}일 {wd}요일, 12띠 오늘의 운세를 정리했습니다.\n"
+                f"내 띠의 오늘 흐름, 금전운·연애운·건강운까지 확인해 보세요.")
+    desc = (f"{lead}\n\n"
             f"매일 아침 새로운 띠별운세가 올라옵니다. 구독하시면 놓치지 않아요.\n\n"
             f"#띠별운세 #오늘의운세 #12띠 #사주 #운세 #shorts\n\n"
             f"※ 본 콘텐츠는 전통 명리의 일진 풀이를 바탕으로 한 재미와 참고용입니다. "
@@ -308,10 +352,20 @@ def main():
                     variant = "B"   # 없으면 유튜브엔 95초판으로 대체
                     log(f"[WARN] 20초판 실패 → 유튜브는 95초판으로 대체: {e}")
             log(f"영상 2종 준비: 95초판(스레드·틱톡) + 20초판(유튜브, 변종{variant})")
-            try:  # G드라이브에 영상도 미러 (틱톡·네이버클립 수동 업로드용 = 95초판)
+            # G드라이브 미러 — 틱톡·릴스·네이버클립은 **휴대폰에서 업로드**하므로
+            # G드라이브에 없는 파일은 올릴 수가 없다. 그래서 두 판본을 다 올린다.
+            # 3단계 미러는 이 시점보다 앞서 돌아 20초판·표형카드가 아직 없다
+            # (표형 카드는 조립 중에 로컬 렌더된다) → 여기서 따로 붙인다.
+            try:
                 gd = zt.GDRIVE_DIR / date_iso
                 gd.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(out, gd / "07_영상.mp4")
+                shutil.copy2(out, gd / "07_영상.mp4")            # 95초판
+                extra = [(BASE / "reels" / f"{date_iso}_10s.mp4", "10_쇼츠20초.mp4"),
+                         (BASE / "cards" / date_iso / "card_08.png", "09_표형12띠.png")]
+                for src, name in extra:
+                    if src.exists():
+                        shutil.copy2(src, gd / name)
+                        log(f"G미러 추가: {name}")
             except OSError as e:
                 log(f"[WARN] 영상 G미러 실패: {e}")
         except BaseException as e:
@@ -319,6 +373,9 @@ def main():
     else:
         alerts.append(f"오늘({date_iso}) 이미지 미완성 {r_today['failed']} — "
                       f"쇼츠·발행은 Actions 레거시 폴백에 맡김")
+
+    # 4-b) G드라이브 누락분 보충 (틱톡·릴스 = 휴대폰 업로드라 여기 없으면 못 올린다)
+    backfill_gdrive()
 
     # 5) repo 푸시 (Actions 05:35 발행이 Topview분을 쓰도록)
     if do_push:

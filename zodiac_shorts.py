@@ -379,16 +379,47 @@ def _zone_is_empty(im, top: int, bot: int) -> bool:
     return total > 0 and whites / total < 0.35
 
 
+def _find_empty_band(im, min_h: int) -> tuple[int, int] | None:
+    """카드에서 글자가 없는 가로 여백 띠를 찾는다(위에서부터 가장 먼저 맞는 것).
+
+    12띠 요약 카드는 CTA_ZONE 실측값이 맞지만, 신포맷(지목3띠·표형)은 레이아웃이
+    달라 그 좌표가 카드 내용 위에 떨어진다 → 그대로 두면 CTA가 매번 스킵되고
+    사주 유입 통로가 사라진다(실측: pick3·table12 둘 다 스킵됐다).
+    아래·위 끝은 피한다 — 하단은 YouTube Shorts UI가 덮고, 최상단은 제목 자리다.
+    """
+    px, (w, h) = im.load(), im.size
+    lo, hi = int(h * 0.06), int(h * 0.88)
+    xs = range(0, w, 12)
+    run_s, best = None, None
+    for y in range(lo, hi, 4):
+        # 판정 기준은 '밝다'가 아니라 '글자가 없다'. 그림 배경 카드(지목3띠)는
+        # 여백도 순백이 아니라 밝기 기준으로는 아무 줄도 안 잡혔다(실측).
+        dark = sum(1 for x in xs if sum(px[x, y][:3]) / 3 < 120) / len(xs)
+        if dark <= 0.02:
+            run_s = y if run_s is None else run_s
+            if y - run_s >= min_h and (best is None or y - run_s > best[1] - best[0]):
+                best = (run_s, y)
+        else:
+            run_s = None
+    return best
+
+
 def add_cta_band(src: Path, dst: Path) -> Path:
-    """날짜 배지 아래 여백에 프로필 유입 배지를 얹는다. 실패하면 원본 그대로 쓴다."""
+    """카드 여백에 프로필 유입 배지를 얹는다. 실패하면 원본 그대로 쓴다."""
     try:
         from PIL import Image, ImageDraw, ImageFilter
         im = Image.open(src).convert("RGBA")
         w, h = im.size
         zt, zb = int(h * CTA_ZONE[0]), int(h * CTA_ZONE[1])
         if not _zone_is_empty(im, zt, zb):
-            log("  [!] CTA 자리에 카드 내용이 있어 건너뜁니다(레이아웃 변경 의심)")
-            return src
+            band = _find_empty_band(im, int(h * 0.035))
+            if band is None:
+                log("  [!] CTA 얹을 여백을 못 찾아 건너뜁니다")
+                return src
+            zt, zb = band
+            if zb - zt > h * 0.075:      # 너무 넓으면 위쪽만 쓴다(배지가 뚱뚱해짐 방지)
+                zb = zt + int(h * 0.075)
+            log(f"  CTA 자리 자동 탐색: y {zt}~{zb}")
 
         cy, ph, pw = (zt + zb) // 2, int((zb - zt) * 0.82), int(w * 0.90)
         box = [w // 2 - pw // 2, cy - ph // 2, w // 2 + pw // 2, cy + ph // 2]
@@ -426,13 +457,233 @@ def add_cta_band(src: Path, dst: Path) -> Path:
         return src
 
 
+# ── 소수 지목형 20초판 (2026-07-26 신포맷) ───────────────────
+# 벤치마크 실측(별빛 운세 정원): 12띠 전부 보여준 13초 7,579뷰 < 소수만 지목한 19초
+# 13,247뷰. 길이 가설은 기각됐고(더 긴 쪽이 이겼다) 실제 변수는 "내가 해당되나?"였다.
+# 그래서 두 가지를 바꾼다.
+#   ① 표지 컷 제거 — 쇼츠에서 첫 1~2초를 표지에 쓰는 건 순손실이다(표지는 롱폼 문법).
+#   ② 12띠 나열 → 3띠 지목 — 자기 띠를 보면 이탈하던 구조를 없앤다.
+# 길이는 20초를 유지한다. 단축은 근거가 없다(위 실측).
+# 롤백: ZODIAC_PICK3=0 → 기존 표지+12띠 20초판으로 즉시 복귀.
+PICK3_ENABLED = os.environ.get("ZODIAC_PICK3", "1") != "0"
+PICK3_MIN_SEC, PICK3_MAX_SEC = 17.0, 24.0
+
+# 훅·CTA는 날짜 결정론 로테이션(재조립해도 안 바뀜). 과장 화법 금지 —
+# 벤치마크 채널의 `운 폭발`류는 쓰지 않는다(운명과학TV 수익정지 이력).
+PICK3_HOOKS = [
+    "오늘 흐름이 좋은 띠, 세 띠만 짚어 드립니다.",
+    "오늘 하루, 유독 기운이 순한 띠가 셋 있습니다.",
+    "혹시 우리 집에 이 띠 계신가요. 세 띠만 알려 드립니다.",
+    "오늘 운이 조용히 도와주는 띠, 딱 세 띠입니다.",
+    "지금부터 이십 초, 오늘 흐름 좋은 세 띠를 짚어 봅니다.",
+]
+PICK3_CTAS = [
+    "내일은 어느 띠일지, 구독해 두시면 아침마다 이어집니다.",
+    "우리 가족 띠가 나왔다면, 지금 공유해 보세요.",
+    "화면을 두 번 누르시면 좋아요가 눌러집니다.",
+    "내 띠는 언제 나오는지, 내일 이 시간에 확인해 보세요.",
+    "매일 이 시간, 오늘의 띠 흐름으로 찾아옵니다.",
+]
+# 3위→1위 역순 공개. 순위를 거꾸로 풀어야 마지막까지 볼 이유가 남는다.
+PICK3_RANKS = ["먼저 세 번째", "두 번째", "그리고 오늘 첫 번째"]
+
+# 포맷 로테이션 정본은 zodiac_prompt_engine(이미지 생성 단계에서도 필요하다).
+# 유튜브 20초판은 짝수일만 올라가므로 실제 노출은 6일 주기로 3종이 순환한다.
+SHORTS_FORMATS = zpe.SHORTS_FORMATS
+shorts_format = zpe.shorts_format
+
+
+def pick3_narration(date_iso: str, picks: list[str], rows: dict,
+                    pt: dict | None = None, scores: dict | None = None) -> str:
+    """주제(오늘/이번주/이달 × 총운·재물·인연·건강)에 맞춘 대본.
+
+    기간형 주제에서 오늘치 일진 한 줄을 읽으면 제목과 내용이 어긋난다
+    ("이달 흐름 좋은 띠"인데 오늘 운세를 읽는 격). 기간형은 대신 **그 기간 중
+    가장 좋은 날**을 짚어 준다 — 같은 데이터에서 나오고, 시청자에게 더 쓸모 있다.
+    """
+    d = dt.date.fromisoformat(date_iso)
+    wd = ["월", "화", "수", "목", "금", "토", "일"][d.weekday()]
+    pt = pt or zpe.pick3_theme(d)
+    hook = pt.get("hook") or PICK3_HOOKS[d.toordinal() % len(PICK3_HOOKS)]
+    cta = PICK3_CTAS[(d.toordinal() + 2) % len(PICK3_CTAS)]
+    parts = [f"{d.month}월 {d.day}일 {wd}요일. {hook}"]
+    # 3띠는 서로 다른 그룹에서 뽑히는데 build_rows의 중복 회피는 그룹(3띠) 안에서만
+    # 돈다 → 지목형에선 같은 문구가 그대로 샌다(실측: 용띠·쥐띠가 같은 문장).
+    # 여기서 한 번 더 막는다.
+    used: set[str] = set()
+    for i, ko in enumerate(reversed(picks)):
+        if pt["scope"] == "day":
+            tail = (rows.get(ko) or {}).get("line") or "좋은 기운이 함께하는 날"
+            if tail in used:
+                import zodiac_topview as zt
+                tone = (rows.get(ko) or {}).get("tone", "평온")
+                for alt in zt.ALT_LINES.get(tone, []):
+                    if alt not in used:
+                        tail = alt
+                        break
+        else:
+            bd = ((scores or {}).get(ko) or {}).get("best_day")
+            if not bd:
+                tail = "기간 내내 흐름이 순합니다"
+            elif bd == d:
+                tail = "오늘부터 바로 흐름이 열립니다"
+            else:
+                tail = f"특히 {bd.month}월 {bd.day}일 무렵이 좋습니다"
+            if tail in used:      # 같은 날이 겹치면 표현을 바꿔 반복을 지운다
+                tail = (f"{bd.month}월 {bd.day}일, 이 띠도 같이 좋습니다" if bd
+                        else "이 띠도 흐름이 순합니다")
+        used.add(tail)
+        parts.append(f"{PICK3_RANKS[i]}, {ko}. {tail}.")
+    parts.append(cta)
+    return " ".join(parts)
+
+
+# ── 표형 12띠 (2026-07-26, 한밝님 레퍼런스 포맷) ──────────────
+# 12띠를 다 보여주되 **로컬 PIL 렌더**로 그린다(zodiac_table_card). AI 생성은 이
+# 밀도에서 한글이 깨지는데, 표는 오타가 바로 티가 난다. 크레딧 0·실패율 0도 덤.
+# 성격: 지목형이 완주율용이라면 이쪽은 '일시정지해서 읽는' 정보형이다.
+TABLE12_HOOKS = [
+    "열두 띠 오늘 흐름, 한 화면에 담았습니다.",
+    "오늘 내 띠는 어떤 하루일지 같이 보시겠습니다.",
+    "열두 띠 모두, 오늘의 기운을 한눈에 정리했습니다.",
+    "우리 가족 띠까지 같이 확인해 보세요.",
+    "오늘 하루 어떻게 흘러갈지, 띠별로 짚어 드립니다.",
+]
+
+
+def table12_narration(date_iso: str, top3: list[str]) -> str:
+    d = dt.date.fromisoformat(date_iso)
+    wd = ["월", "화", "수", "목", "금", "토", "일"][d.weekday()]
+    hook = TABLE12_HOOKS[d.toordinal() % len(TABLE12_HOOKS)]
+    cta = PICK3_CTAS[(d.toordinal() + 2) % len(PICK3_CTAS)]
+    return " ".join([
+        f"{d.month}월 {d.day}일 {wd}요일. {hook}",
+        "화면을 잠깐 멈추시면 내 띠를 천천히 보실 수 있습니다.",
+        f"오늘 흐름이 특히 좋은 띠는 {', '.join(top3)}입니다.",
+        "해당되는 띠는 미뤄둔 일을 오늘 매듭지어 보셔도 좋습니다.",
+        cta,
+    ])
+
+
+def _still_shorts(date_iso: str, card: Path, text: str, fmt: str,
+                  extra: dict | None = None, overlay_cta: bool = False) -> Path:
+    """정지 이미지 1장 + 전 구간 내레이션 ≈ 20초. **표지 컷 없음**.
+
+    출력 경로와 표식은 기존 20초판과 **같게 유지한다**(reels/{date}_10s.mp4,
+    shorts10_meta.json). 업로드 큐·중복 업로드 가드가 이 두 경로를 보고 있어서,
+    이름을 바꾸면 업로드가 조용히 멈춘다(2026-07-17 오업로드 사고의 반대 방향 위험).
+    """
+    d = dt.date.fromisoformat(date_iso)
+    cdir = BASE / "cards" / date_iso
+    tmp = cdir / "_still"
+    tmp.mkdir(exist_ok=True)
+    # 신포맷 카드(지목3띠·표형)는 CTA를 카드 안에 이미 품고 있다 → 얹으면 두 개가 된다
+    # (실측: 지목형 카드 첫 셀과 둘째 셀 사이 여백에 배지가 하나 더 붙었다).
+    img = add_cta_band(card, tmp / "card_cta.png") if (overlay_cta and CTA_ENABLED) else card
+    mp3 = tmp / "narr.mp3"
+    info = typecast_tts.synth(text, mp3, d, log=log, tempo=SHORT_TEMPO)
+    L = max(PICK3_MIN_SEC, round(_dur(mp3) + 0.8, 2))
+
+    out = BASE / "reels" / f"{date_iso}_10s.mp4"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    frames = int(L * FPS)
+    # 줌은 최소로 — 글씨를 읽는 화면이라 흔들리면 안 된다.
+    vf = (f"scale={W*3}:{H*3}:flags=lanczos,"
+          f"zoompan=z='min(1.0+0.0002*on,1.03)':x='iw/2-(iw/zoom/2)':"
+          f"y='ih/2-(ih/zoom/2)':d={frames}:s={W}x{H}:fps={FPS},format=yuv420p")
+    _run(["ffmpeg", "-y", "-loop", "1", "-i", str(img), "-i", str(mp3),
+          "-af", "apad", "-t", str(L), "-vf", vf, "-r", str(FPS),
+          "-c:v", "libx264", "-preset", "veryfast",
+          "-c:a", "aac", "-b:a", "128k", "-ar", "44100", "-ac", "2",
+          "-pix_fmt", "yuv420p", str(out)])
+
+    _apply_pngtuber_pip(out, d)
+    if L > PICK3_MAX_SEC:            # 대본이 길어진 날은 잘라내지 말고 살짝 배속
+        _fit_max_duration(out, PICK3_MAX_SEC)
+
+    bgm = pick_bgm(d)
+    if bgm:
+        dur = _dur(out)
+        tmp_b = out.with_name(out.stem + "_b.mp4")
+        try:
+            _run(["ffmpeg", "-y", "-i", str(out), "-stream_loop", "-1", "-i", str(bgm),
+                  "-filter_complex",
+                  f"[1:a]loudnorm=I=-20:TP=-2,volume=0.13,afade=t=in:d=0.8,"
+                  f"afade=t=out:st={max(0.0, dur-1.5):.2f}:d=1.5[bg];"
+                  f"[0:a][bg]amix=inputs=2:duration=first:normalize=0[a]",
+                  "-map", "0:v", "-map", "[a]", "-c:v", "copy",
+                  "-c:a", "aac", "-b:a", "128k", "-t", f"{dur:.2f}", str(tmp_b)])
+            tmp_b.replace(out)
+        except subprocess.CalledProcessError as e:
+            log(f"[WARN] {fmt} BGM 실패: {e.stderr[-200:] if e.stderr else e}")
+            if tmp_b.exists():
+                tmp_b.unlink()
+
+    meta = {"date": date_iso, "variant": "A_10s", "format": fmt,
+            "voice": info, "bgm": bgm.name if bgm else None,
+            "duration": round(_dur(out), 1), "narration": text}
+    meta.update(extra or {})
+    (cdir / "shorts10_meta.json").write_text(
+        json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
+    for f in tmp.glob("*"):
+        f.unlink()
+    tmp.rmdir()
+    log(f"✅ {fmt} 20초판 완성 → {out} ({_dur(out):.1f}초, "
+        f"{info['engine']}:{info['voice']})")
+    return out
+
+
+def make_shorts_pick3(date_iso: str | None = None) -> Path:
+    """3띠 지목형 — 오늘 흐름이 좋은 띠 셋만. 표지 없음."""
+    date_iso = date_iso or zs.today_iso()
+    card = BASE / "cards" / date_iso / "card_07.png"
+    if not card.exists():
+        raise SystemExit(f"[FAIL] 지목형 재료 없음: card_07.png ({date_iso})")
+    import zodiac_topview as zt      # 카드를 만든 것과 같은 데이터로 대본을 쓴다
+    d = dt.date.fromisoformat(date_iso)
+    rows = zt.build_rows(date_iso)
+    pt = zpe.pick3_theme(d)
+    sc = zpe.theme_scores(d, pt)
+    picks = zpe.pick3_signs(rows, date=d, theme=pt)
+    text = pick3_narration(date_iso, picks, rows, pt, sc)
+    log(f"지목형 대본({len(text)}자): 주제={pt['title']}, 지목={', '.join(picks)}")
+    return _still_shorts(date_iso, card, text, "pick3",
+                         {"picks": picks, "theme": pt["key"],
+                          "theme_title": pt["title"]})
+
+
+def make_shorts_table12(date_iso: str | None = None) -> Path:
+    """표형 12띠 — 로컬 렌더 카드 한 장. 표지 없음."""
+    date_iso = date_iso or zs.today_iso()
+    import zodiac_topview as zt
+    import zodiac_table_card as ztc
+    rows = zt.build_rows(date_iso)
+    card = ztc.render(date_iso, BASE / "cards" / date_iso / "card_08.png", rows)
+    top3 = zpe.pick3_signs(rows)
+    text = table12_narration(date_iso, top3)
+    log(f"표형 대본({len(text)}자): 강조={', '.join(top3)}")
+    return _still_shorts(date_iso, card, text, "table12", {"top3": top3})
+
+
 def make_shorts_10s(date_iso: str | None = None) -> Path:
     """표지 2초(훅 TTS) + 12띠 요약 18초 = 20초. 출력: reels/{date}_10s.mp4
 
     함수명과 파일명의 '10s'는 처음 만들 때의 이름이 남은 것이다. 실제 길이는 20초다.
     파이프라인·업로드 큐가 이 경로를 참조하고 있어 이름은 그대로 두었다.
+
+    2026-07-26부터 이 함수는 **포맷 분배기**다. 아래 본문(표지+12띠 AI카드)은
+    3종 로테이션의 한 갈래이자, 다른 포맷이 실패한 날의 폴백으로 남는다.
     """
     date_iso = date_iso or zs.today_iso()
+    if PICK3_ENABLED:
+        fmt = shorts_format(date_iso)
+        if fmt != "ai12":
+            try:
+                return (make_shorts_pick3(date_iso) if fmt == "pick3"
+                        else make_shorts_table12(date_iso))
+            except BaseException as e:
+                log(f"[WARN] {fmt} 포맷 실패({type(e).__name__}: {e}) — "
+                    f"기존 표지+12띠 20초판으로 폴백합니다")
     d = dt.date.fromisoformat(date_iso)
     cdir = BASE / "cards" / date_iso
     cover, summary = cdir / "card_01.png", cdir / "card_06.png"

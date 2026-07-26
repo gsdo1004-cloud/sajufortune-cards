@@ -257,6 +257,185 @@ def summary12_prompt(date: dt.date, rows_by_ko: dict[str, dict],
     )
 
 
+# ── 소수 지목형 카드 (2026-07-26) ────────────────────────────
+# 근거: 벤치마크 채널 `별빛 운세 정원` 실측 — 12띠를 다 보여준 13초 영상 7,579뷰 vs
+# 출생년을 **소수만 지목**한 19초 영상 13,247뷰(구독 1,170 대비 11.3배, 좋아요율 7.0%).
+# 이긴 쪽은 길이가 더 길다 → 변수는 길이가 아니라 "내가 해당되나?"였다.
+# 12띠를 한 화면에 다 띄우면 시청자는 자기 띠만 보고 이탈한다(평균 1/12 지점).
+# 3띠만 담으면 셀이 커져 글씨도 커진다 = "글자를 못 읽는다"(7/25 시청자 피드백)도 같이 해결.
+# ⚠️ 화법: 벤치마크 채널의 `운 폭발`류 과장은 쓰지 않는다. 운명과학TV는 허위콘텐츠
+#    수익정지 이력이 있어 `오늘 흐름이 좋은 띠` 수준으로 낮춘다.
+PICK3_TITLE = "오늘 흐름이 좋은 띠"
+PICK3_N = 3
+
+# 주제 로테이션 — "오늘 흐름 좋은 띠" 하나만 매일 반복하면 후크가 닳는다.
+# 기간(오늘·이번주·이달)과 축(총운·재물·인연·건강)을 섞어 매번 다른 질문을 던진다.
+# scope=week/month는 그 기간의 일별 점수를 **평균**해 뽑는다 → 같은 주·같은 달 안에서는
+# 결과가 안정적이라 "이달의 띠"가 날마다 바뀌는 이상한 일이 생기지 않는다.
+PICK3_THEMES = [
+    {"key": "day_overall", "scope": "day", "axis": "overall",
+     "title": "오늘 흐름이 좋은 띠",
+     "hook": "오늘 흐름이 좋은 띠, 세 띠만 짚어 드립니다."},
+    {"key": "day_money", "scope": "day", "axis": "money",
+     "title": "오늘 재물 기운이 좋은 띠",
+     "hook": "오늘 재물 쪽으로 기운이 도는 띠가 셋 있습니다."},
+    {"key": "week_overall", "scope": "week", "axis": "overall",
+     "title": "이번 주 흐름이 좋은 띠",
+     "hook": "이번 주 남은 날들을 놓고 보면, 흐름이 좋은 띠가 셋 있습니다."},
+    {"key": "day_love", "scope": "day", "axis": "love",
+     "title": "오늘 인연 기운이 좋은 띠",
+     "hook": "오늘 사람 인연이 반가운 띠, 세 띠입니다."},
+    {"key": "month_overall", "scope": "month", "axis": "overall",
+     "title": "이달 흐름이 좋은 띠",
+     "hook": "이번 달 남은 흐름이 좋은 띠를 뽑아 봤습니다."},
+    {"key": "day_health", "scope": "day", "axis": "health",
+     "title": "오늘 몸이 가벼운 띠",
+     "hook": "오늘 몸과 마음이 가벼운 띠를 짚어 드립니다."},
+]
+_AXIS_FIELD = {"overall": "overall_score", "money": "money_score",
+               "love": "love_score", "health": "health_score"}
+
+
+# ── 20초판 포맷 로테이션 (2026-07-26) ────────────────────────
+# 한 가지만 매일 반복하면 유튜브 정책 필터에 양산물로 잡히기 쉽다 → 성격이 다른 3종.
+#   pick3   = 3띠 지목형   — 완주율용. "내가 해당되나?"로 끝까지 붙잡는다
+#   table12 = 표형 12띠    — 일시정지해 읽는 정보형. 로컬 렌더라 한글이 100% 정확
+#   ai12    = 기존 AI 12띠 — 그림 카드. 화풍이 매일 바뀌어 비주얼 변주 담당
+# 여기(프롬프트 엔진)에 두는 이유: 이미지 생성 단계에서 "오늘 지목 카드가 필요한가"를
+# 알아야 필요 없는 날 Topview 크레딧을 안 태운다. zodiac_shorts가 이걸 그대로 쓴다.
+SHORTS_FORMATS = ["pick3", "table12", "ai12"]
+
+
+def shorts_format(date_iso: str) -> str:
+    """그날 20초판 포맷. 날짜 결정론 — 재조립해도 같은 포맷이 나온다."""
+    import os
+    forced = os.environ.get("ZODIAC_SHORTS_FORMAT")
+    if forced in SHORTS_FORMATS:
+        return forced
+    return SHORTS_FORMATS[dt.date.fromisoformat(date_iso).toordinal() % len(SHORTS_FORMATS)]
+
+
+def pick3_theme(date: dt.date) -> dict:
+    """그날 지목형 주제. 날짜 결정론 — 카드(D+2에 생성)와 영상·제목이 어긋나면 안 된다."""
+    import os
+    forced = os.environ.get("ZODIAC_PICK3_THEME")
+    for t in PICK3_THEMES:
+        if t["key"] == forced:
+            return t
+    t = PICK3_THEMES[date.toordinal() % len(PICK3_THEMES)]
+    # 월말·주말엔 기간이 며칠 안 남아 "이달 흐름"이 사실상 하루가 된다(7/31 실측:
+    # 3띠 모두 "특히 7월 31일 무렵" — 말이 안 된다). 4일 미만이면 오늘 총운으로 뺀다.
+    if t["scope"] != "day" and len(_theme_days(date, t["scope"])) < 4:
+        return PICK3_THEMES[0]
+    return t
+
+
+def _theme_days(date: dt.date, scope: str) -> list[dt.date]:
+    """기간형 주제의 대상 날짜 = **오늘부터 기간 끝까지**(지난 날은 뺀다).
+
+    지난 날을 넣으면 7월 31일 영상이 "이달은 7월 1일 무렵이 좋습니다"라고 말한다
+    (실측으로 나왔다). 시청자에게 쓸모 있으려면 남은 기간이어야 한다. 기간 끝날엔
+    자연히 그날 하루만 남아 오늘 기준과 같아진다.
+    """
+    if scope == "week":
+        end = date + dt.timedelta(days=6 - date.weekday())
+    elif scope == "month":
+        s = date.replace(day=1)
+        nxt = (s.replace(year=s.year + 1, month=1) if s.month == 12
+               else s.replace(month=s.month + 1))
+        end = nxt - dt.timedelta(days=1)
+    else:
+        return [date]
+    return [date + dt.timedelta(days=i) for i in range((end - date).days + 1)]
+
+
+def theme_scores(date: dt.date, theme: dict) -> dict[str, dict]:
+    """띠별 {score, best_day}. score=기간 평균, best_day=기간 중 가장 좋은 날."""
+    import zodiac_seo as zs
+    field = _AXIS_FIELD[theme["axis"]]
+    days = _theme_days(date, theme["scope"])
+    out: dict[str, dict] = {}
+    for ko in ZODIAC12:
+        slug = zs.KO_TO_SLUG[ko]
+        vals = [(getattr(zs.make_reading(slug, dd.isoformat()), field), dd) for dd in days]
+        out[ko] = {"score": sum(v for v, _ in vals) / len(vals),
+                   "best_day": max(vals, key=lambda t: (t[0], -t[1].toordinal()))[1]}
+    return out
+
+
+def pick3_signs(rows_by_ko: dict[str, dict] | None = None, n: int = PICK3_N,
+                date: dt.date | None = None, theme: dict | None = None) -> list[str]:
+    """지목할 띠 상위 n개.
+
+    점수는 날짜 시드로 정해져 있어(zodiac_seo.make_reading) 같은 날 몇 번을 다시
+    돌려도 같은 띠가 나온다 = 파이프라인 멱등성 유지. 동점은 12지 표준 순서로 끊는다
+    (무작위 금지 — 재실행 때 카드와 내레이션이 어긋난다).
+
+    date를 주면 주제 로테이션(기간·축)을 적용하고, 안 주면 예전처럼 rows_by_ko의
+    '전체' 별점으로 오늘 총운 top3를 뽑는다.
+    """
+    order = {ko: i for i, ko in enumerate(ZODIAC12)}
+    if date is not None:
+        sc = theme_scores(date, theme or pick3_theme(date))
+        return sorted(ZODIAC12, key=lambda ko: (-sc[ko]["score"], order[ko]))[:n]
+
+    rows_by_ko = rows_by_ko or {}
+
+    def key(ko: str):
+        st = (rows_by_ko.get(ko) or {}).get("stars") or {}
+        return (-int(st.get("전체", 3)), order[ko])
+
+    return sorted(ZODIAC12, key=key)[:n]
+
+
+def pick3_prompt(date: dt.date, rows_by_ko: dict[str, dict],
+                 picks: list[str] | None = None,
+                 theme: dict | None = None, simple: bool = False,
+                 pick_theme: dict | None = None) -> str:
+    """지목된 3띠만 크게 담은 카드 (20초 유튜브판 전용, 표지 없이 이 한 장으로 간다).
+
+    12띠 요약 카드(summary12_prompt)와 반대 설계다. 저쪽은 '일시정지해서 읽는' 밀도,
+    이쪽은 '끝까지 보게 하는' 여백 — 셀 3개뿐이라 글씨를 크게 쓸 수 있다.
+    """
+    t = theme or daily_theme(date)
+    pt = pick_theme or pick3_theme(date)
+    picks = picks or pick3_signs(rows_by_ko, date=date, theme=pt)
+    animals = ", ".join(ZODIAC_EN.get(ko, ko) for ko in picks)
+    cells = ""
+    for rank, ko in enumerate(picks, 1):
+        r = rows_by_ko.get(ko) or {}
+        n = max(1, min(5, int((r.get("stars") or {}).get("전체", 4))))
+        cells += (f"Card {rank} — big cute {ZODIAC_EN.get(ko, 'animal')} on the left; "
+                  f"on the right the name '{ko}' in LARGE bold Korean, below it "
+                  f"'{r.get('advice') or r.get('line', '')}' in clearly readable Korean "
+                  f"(2 short lines), then '행운 {r.get('lucky', '')}' and "
+                  f"'운세지수 {'★' * n}{'☆' * (5 - n)}'. ")
+    deco = (f"Background: {t['bg'][1]}. " if not simple else
+            "Background: soft plain auspicious gradient. ")
+    guard = _SNAKE_GUARD + " " if any(ko == "뱀띠" for ko in picks) else ""
+    return (
+        f"Vertical 9:16 Korean daily fortune card featuring ONLY THREE zodiac signs "
+        f"({animals}) — exactly three, no other animals anywhere in the image. "
+        # 날짜는 넣지 않는다 — 2026-07-30 실물에서 '7월 30일'이 '7월 30얼'로 깨졌다.
+        # 날짜는 영상 제목·설명에 이미 있고, 벤치마크 영상도 카드에 날짜가 없다.
+        # 글자를 하나라도 덜 그리게 하는 게 오타 확률을 줄이는 가장 확실한 방법이다.
+        f"Top title '{pt['title']}' in large bold Korean, centered, with NO date "
+        f"anywhere in the image and no other heading text. "
+        f"Then THREE generously spaced rounded cards stacked vertically, one per sign, "
+        f"each card filling about a quarter of the height so the Korean text is LARGE "
+        f"and easy to read on a phone. Exact contents: {cells}"
+        # 쇼츠는 설명란·댓글 링크가 눌리지 않는다 → 유입 통로는 프로필뿐이라 화면에
+        # 적어 준다. 12띠 카드처럼 나중에 얹을 여백이 없어 카드 안에 그리게 한다.
+        # ⚠️ 금액은 넣지 않는다 — AI가 숫자를 한 자라도 틀리면 가격 오표기가 된다.
+        f"At the very bottom, one slim rounded banner in deep wine red with a cream "
+        f"border, containing exactly this Korean line in clean bold cream type: "
+        f"'무료 오늘의 운세 · 프로필 링크 확인'. "
+        f"Characters {t['concept'][1]}. {guard}{deco}"
+        f"Bright clean editorial layout, generous padding, soft card shadows, "
+        f"{t['palette'][1]}. Art style: {t['style'][1]}. {_NEG}"
+    )
+
+
 def daily_set(date: dt.date, rows_by_ko: dict[str, dict]) -> dict:
     """하루 5장 프롬프트 전체.
 
@@ -286,7 +465,21 @@ def daily_set(date: dt.date, rows_by_ko: dict[str, dict]) -> dict:
         "prompt": summary12_prompt(date, rows_by_ko, t),
         "simple_prompt": summary12_prompt(date, rows_by_ko, t, simple=True),
     })
-    return {"theme": t, "images": images}
+    # 7번째 = 소수 지목형 카드 (2026-07-26 신포맷, 20초 유튜브판 전용).
+    # optional=True: 이 장이 실패해도 하루 발행을 막지 않는다. 20초판은 6번 카드로
+    # 자동 폴백하고 95초판·스레드·틱톡은 애초에 1~5번만 쓴다.
+    # 지목형 차례인 날에만 만든다 — 3일에 하루 쓸 카드를 매일 뽑으면 크레딧이 샌다.
+    if shorts_format(date.isoformat()) != "pick3":
+        return {"theme": t, "images": images, "picks": [], "pick_theme": None}
+    pt = pick3_theme(date)
+    picks = pick3_signs(rows_by_ko, date=date, theme=pt)
+    images.append({
+        "name": "지목3띠", "file": "07_지목3띠", "signs": picks, "optional": True,
+        "prompt": pick3_prompt(date, rows_by_ko, picks, t, pick_theme=pt),
+        "simple_prompt": pick3_prompt(date, rows_by_ko, picks, t, simple=True,
+                                      pick_theme=pt),
+    })
+    return {"theme": t, "images": images, "picks": picks, "pick_theme": pt}
 
 
 if __name__ == "__main__":

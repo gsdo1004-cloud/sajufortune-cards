@@ -49,7 +49,11 @@ CREDIT_PATH = "/user/credit/detail"
 MODEL = "GPT Image 2"          # 한글 텍스트 렌더링 실증 유일 (2026-07-17)
 ASPECT = "9:16"
 RESOLUTION = "1K"              # 0.2크레딧/장 → 하루 6장 = 1.2크레딧 (월 36, 잔액 418 = 11개월)
-N_CARDS = 6                    # 표지1 + 띠별4 + 12띠요약1(A/B 10초판용)
+N_CARDS = 6                    # 필수: 표지1 + 띠별4 + 12띠요약1(20초판 폴백용)
+# 2026-07-26 신포맷: 7번째 = 소수 지목형 카드(20초 유튜브판). **선택 카드**로 둔다 —
+# 이걸 필수로 세면 이 한 장이 실패한 날 r_today["ok"]=False가 되어 쇼츠·발행 전체가
+# 멈춘다(파이프라인 4단계 게이트). 실패 시엔 경보만 남기고 20초판이 6번 카드로 폴백.
+N_CARDS_OPT = 1
 POLL_TIMEOUT = 300
 MIN_BYTES = 60_000             # 1K 9:16 정상물은 수백 KB — 60KB 미만은 깨진 파일
 RATIO_RANGE = (0.50, 0.63)     # 9:16 = 0.5625
@@ -444,26 +448,36 @@ def ensure_daily_images(date_iso: str | None = None) -> dict:
     log(f"오늘 조합: [{t['style'][0]}] 배경={t['bg'][0]} 컨셉={t['concept'][0]} "
         f"색={t['palette'][0]} 구도={t['composition'][0]}")
 
-    files, failed = [], []
+    files, failed, skipped = [], [], []
     dead_paths: set[str] = set()
     for i, spec in enumerate(ds["images"], 1):
         out = out_dir / f"card_{i:02d}.png"
         if ensure_one(client, spec, out, alerts, dead_paths):
             files.append(str(out))
+        elif spec.get("optional"):
+            # 선택 카드 실패는 발행을 막지 않는다 — 경보만 남기고 폴백에 맡긴다.
+            skipped.append(spec["file"])
+            alerts.append(f"선택 카드 실패(발행엔 지장 없음): {spec['file']} — "
+                          f"20초판은 12띠 요약 카드로 폴백합니다")
         else:
             failed.append(spec["file"])
-            if dead_paths >= {"rest", "mcp"}:
-                break   # 두 경로 다 죽음(401/4100) → 나머지도 무의미
+        if failed and dead_paths >= {"rest", "mcp"}:
+            break   # 두 경로 다 죽음(401/4100) → 나머지도 무의미
 
     ok = not failed
-    log(f"=== 결과: {len(files)}/{N_CARDS} 성공"
-        f"{' | 실패: ' + ', '.join(failed) if failed else ''} ===")
+    log(f"=== 결과: {len(files)}/{N_CARDS + N_CARDS_OPT} 성공"
+        f"{' | 실패: ' + ', '.join(failed) if failed else ''}"
+        f"{' | 선택 미생성: ' + ', '.join(skipped) if skipped else ''} ===")
     return {"date": date_iso, "ok": ok, "files": files,
             "failed": failed, "alerts": alerts}
 
 
 # ── G드라이브 미러 (틱톡·blog-auto 소스) ─────────────────────
-KOREAN_NAMES = ["01_표지", "02_띠별A", "03_띠별B", "04_띠별C", "05_띠별D", "06_12띠요약"]
+# 번호는 card_NN이 아니라 **G드라이브에서 사람이 보는 순서**다. 07번은 이미
+# 95초판 영상(07_영상.mp4)이 쓰고 있어 지목 카드는 08번부터 이어 붙인다.
+# 09_표형12띠.png·10_쇼츠20초.mp4는 조립 뒤에 생겨서 파이프라인 4단계가 따로 올린다.
+KOREAN_NAMES = ["01_표지", "02_띠별A", "03_띠별B", "04_띠별C", "05_띠별D", "06_12띠요약",
+                "08_지목3띠"]
 
 
 def mirror_to_gdrive(date_iso: str | None = None) -> bool:
@@ -479,8 +493,8 @@ def mirror_to_gdrive(date_iso: str | None = None) -> bool:
             if s.exists() and validate_image(s) is None:
                 shutil.copy2(s, dst / f"{name}.png")
                 n += 1
-        log(f"G드라이브 미러: {n}/{N_CARDS}장 → {dst}")
-        return n == N_CARDS
+        log(f"G드라이브 미러: {n}/{N_CARDS + N_CARDS_OPT}장 → {dst}")
+        return n >= N_CARDS   # 7번(지목3띠)은 선택 카드 — 없어도 미러는 성공으로 본다
     except OSError as e:
         log(f"[WARN] G드라이브 미러 실패(파이프라인 지속): {e}")
         return False

@@ -1,0 +1,55 @@
+name: AI 뉴스 쓰레드 (낮)
+
+# 같은 계정에서 시간대를 나눈다 — 아침 08시 운세 유령글 / 낮 13시 AI 뉴스 /
+# 저녁 21시 카드뉴스. 한 계정이 하루 종일 같은 주제만 밀지 않게 하는 배치다.
+on:
+  schedule:
+    - cron: '0 4 * * *'     # KST 13:00 (Actions cron 은 0~1시간 지연될 수 있음)
+  workflow_dispatch:
+    inputs:
+      count:
+        description: '발행 건수(기본 1)'
+        required: false
+        default: '1'
+      dry_run:
+        description: 'true 면 문구만 출력하고 발행하지 않음'
+        required: false
+        default: 'false'
+
+jobs:
+  ai-news:
+    runs-on: ubuntu-latest
+    env:
+      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+      THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 의존성 설치
+        run: pip install requests
+
+      - name: AI 뉴스 발행
+        run: |
+          FLAG=""
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            FLAG="--dry-run"
+          fi
+          python ai_news_threads.py --count "${{ github.event.inputs.count || 1 }}" $FLAG
+
+      # 같은 기사를 다시 올리지 않도록 발행 기록을 레포에 남긴다.
+      # 이게 없으면 러너가 매번 새 환경이라 중복 발행이 난다.
+      - name: 발행 기록 커밋
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          if [ -f ai_news_posted.json ]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add ai_news_posted.json
+            git diff --staged --quiet || git commit -m "chore: AI 뉴스 발행 기록"
+            git push
+          fi
