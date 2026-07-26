@@ -42,6 +42,15 @@ GRAPH = "https://graph.threads.net/v1.0"
 DAILY_CAP = 10          # 하루 상한. 이걸 넘기면 자동화 신호가 커진다
 LOOKBACK_POSTS = 8      # 최근 글 몇 개까지 훑을지
 
+# 🚨 발송 정지 (2026-07-27)
+# reply_to_id 로 특정 댓글에 답글을 달았는데 **엉뚱한 글 아래에 달렸다.**
+# API 는 성공(post 18107137718081744)을 돌려줬지만, 실제로는 @majest7 의 댓글이 아니라
+# 그날 발행된 띠별운세 글에 붙었다(--inspect 로 확인).
+# 원인을 찾고 **발송 후 위치 검증**을 붙이기 전까지 발송을 막는다.
+# 초안 생성(--inspect / 기본 모드)은 안전하므로 그대로 쓸 수 있다.
+# 해제 조건: ① reply_to_id 동작 재확인 ② 발송 직후 replied_to 조회로 위치 검증 ③ 1건 수동 확인
+SEND_DISABLED = True
+
 # 답하지 않는 댓글 — 정치·종교·비방·광고는 건드리지 않는다. 잘못 답하면 계정이 다친다.
 SKIP_WORDS = ["정치", "대통령", "좌파", "우파", "종교", "교회", "절에", "목사", "스님",
               "사기", "환불", "고소", "신고", "광고", "홍보", "디엠", "DM", "http"]
@@ -188,6 +197,10 @@ def main():
     uid, tok = _env()
     if a.inspect:
         return _inspect(uid, tok)
+    if a.send and SEND_DISABLED:
+        log("[정지] 발송이 막혀 있습니다 — 답글이 엉뚱한 글에 달리는 문제 미해결. "
+            "초안만 출력합니다. (해제: SEND_DISABLED = False)")
+        a.send = False
     done = _done()
     posts = my_posts(uid, tok)
     log(f"최근 글 {len(posts)}개 확인")
