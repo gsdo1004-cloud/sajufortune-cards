@@ -1,0 +1,6 @@
+file 'C:/cardnews/_push/promo/pass/_tmp/c00.mp4'
+file 'C:/cardnews/_push/promo/pass/_tmp/c01.mp4'
+file 'C:/cardnews/_push/promo/pass/_tmp/c02.mp4'
+file 'C:/cardnews/_push/promo/pass/_tmp/c03.mp4'
+file 'C:/cardnews/_push/promo/pass/_tmp/c04.mp4'
+file 'C:/cardnews/_push/promo/pass/_tmp/c05.mp4'
