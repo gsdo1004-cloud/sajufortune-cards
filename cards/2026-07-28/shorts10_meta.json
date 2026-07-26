@@ -1,0 +1,11 @@
+{
+ "date": "2026-07-28",
+ "variant": "A_10s",
+ "voice": {
+  "engine": "typecast",
+  "voice": "서현(여)",
+  "tempo": 1.25
+ },
+ "bgm": "스트레스 & 불안 해소 + 432Hz (Stress & Anxiety Relief + 432Hz) (6).wav",
+ "duration": 20.5
+}
