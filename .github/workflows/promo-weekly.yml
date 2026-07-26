@@ -1,0 +1,44 @@
+name: 대박운세 홍보 발행 (주 1회 · 토요일)
+
+on:
+  schedule:
+    # 매주 토요일 오전. 띠별운세(저녁 21시)·유령 게시물(아침 8시)과 시각을 어긋나게 둔다.
+    # GitHub Actions cron 은 0~1시간 지연될 수 있어 12~13시 사이 발행된다.
+    - cron: '0 3 * * 6'    # KST 토요일 12:00
+  workflow_dispatch:
+    inputs:
+      set_key:
+        description: '발행할 세트 (free / pass / channel). 비우면 주차로 자동 선택'
+        required: false
+        default: ''
+      mode:
+        description: 'all / carousel / reel'
+        required: false
+        default: 'all'
+
+jobs:
+  promo:
+    runs-on: ubuntu-latest
+    env:
+      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+      THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 의존성 설치
+        run: pip install requests
+
+      - name: raw URL 전파 대기
+        run: sleep 20
+
+      - name: 홍보 발행
+        run: |
+          ARGS="${{ github.event.inputs.mode || 'all' }}"
+          if [ -n "${{ github.event.inputs.set_key }}" ]; then
+            ARGS="$ARGS ${{ github.event.inputs.set_key }}"
+          fi
+          python promo_publish.py $ARGS
