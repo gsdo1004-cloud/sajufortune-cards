@@ -1,12 +1,24 @@
 {
  "keys": [
-  "인터뷰김유경대구소마고교장AI에대체되는개발자아닌AI리딩하는풀스택엔지니어양성"
+  "인터뷰김유경대구소마고교장AI에대체되는개발자아닌AI리딩하는풀스택엔지니어양성",
+  "ShowHNWritemarkadependencyfreewebcompone",
+  "ComposioHQawesomeclaudeskills"
  ],
  "log": [
   {
    "at": "2026-07-27T04:55:10",
    "post_id": "18085528958416287",
    "text": "[전자신문] [인터뷰]김유경 대구소마고 교장, “AI에 대체되는 개발자 아닌, AI 리딩하는 풀스택 엔지니어 양성”"
+  },
+  {
+   "at": "2026-07-27T07:36:19",
+   "post_id": "18087170432157537",
+   "text": "[Hacker News] Show HN: Writemark, a dependency free web component for inline Markdown editing\n\nWritemark라는 인라인 마크다운 편집용 웹 컴포넌트가 새로 나왔네. 의존성 없는 가벼운 도구라 내 웹 프로젝트에 갖다 붙여 쓰기 딱 좋을 듯.\n\n일단 저장. 주말에 만져봐야지."
+  },
+  {
+   "at": "2026-07-27T07:36:31",
+   "post_id": "18128461036647072",
+   "text": "[GitHub 트렌딩] ComposioHQ/awesome-claude-skills\n\nComposioHQ에서 클로드 스킬 모음집인 awesome-claude-skills를 공개했네.\n\n내가 원하는 기능을 클로드에 바로 적용해서 작업 생산성 올릴 때 참고하기 딱 좋다.\n\n쓸 데가 바로 떠오르는 건 오랜만이네."
   }
  ]
 }
