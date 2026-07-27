@@ -108,7 +108,7 @@ def _pill(d, cx, cy, pw, ph, fill, text, tsize, tcolor, w):
     d.text((cx - (bb[2] - bb[0]) / 2, cy - (bb[3] - bb[1]) / 2 - bb[1] / 2), text, font=f, fill=tcolor)
 
 
-CTA_TEXT = "무료 운세 · 사주풀이 990원 · 프로필 링크"
+CTA_TEXT = "무료 운세 · 이용권 1,000원 · 프로필 링크"
 
 
 def _cta(d, w, h, y=None, pw_ratio=0.74, ph=78, tsize=34):

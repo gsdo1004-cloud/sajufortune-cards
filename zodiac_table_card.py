@@ -168,7 +168,7 @@ def render(date_iso: str, out: Path, rows_by_ko: dict | None = None) -> Path:
     cta_box = [pad + 40, 196, W - pad - 40, 252]
     dr.rounded_rectangle(cta_box, radius=28, fill=(138, 30, 62), outline=(255, 248, 235), width=3)
     f_cta = bold(27)
-    head, gold = "무료 운세 · ", "사주풀이 990원 · 프로필 링크"
+    head, gold = "무료 운세 · ", "이용권 1,000원 · 프로필 링크"
     tw = dr.textlength(head, font=f_cta) + dr.textlength(gold, font=f_cta)
     cx0 = (W - tw) / 2
     dr.text((cx0, 224), head, font=f_cta, fill=(255, 248, 235), anchor="lm")

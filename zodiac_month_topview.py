@@ -134,7 +134,7 @@ def month_set(year: int, month: int) -> dict:
 
 
 # ── 프로필 유입 배지 (AI가 그린 그림 위에 사람이 얹는다) ──────────
-CTA_TEXT = "무료 운세 · 사주풀이 990원 · 프로필 링크"
+CTA_TEXT = "무료 운세 · 이용권 1,000원 · 프로필 링크"
 
 
 def _find_clean_band(im, lo: float = 0.06, hi: float = 0.78, band: float = 0.058) -> float:
