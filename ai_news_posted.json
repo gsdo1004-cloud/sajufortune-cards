@@ -2,7 +2,9 @@
  "keys": [
   "인터뷰김유경대구소마고교장AI에대체되는개발자아닌AI리딩하는풀스택엔지니어양성",
   "ShowHNWritemarkadependencyfreewebcompone",
-  "ComposioHQawesomeclaudeskills"
+  "ComposioHQawesomeclaudeskills",
+  "ShowHNLetsSealLetsEncryptfordocumentsign",
+  "bradautomatesclaudevideo"
  ],
  "log": [
   {
@@ -19,6 +21,16 @@
    "at": "2026-07-27T07:36:31",
    "post_id": "18128461036647072",
    "text": "[GitHub 트렌딩] ComposioHQ/awesome-claude-skills\n\nComposioHQ에서 클로드 스킬 모음집인 awesome-claude-skills를 공개했네.\n\n내가 원하는 기능을 클로드에 바로 적용해서 작업 생산성 올릴 때 참고하기 딱 좋다.\n\n쓸 데가 바로 떠오르는 건 오랜만이네."
+  },
+  {
+   "at": "2026-07-28T06:30:31",
+   "post_id": "18048193229793299",
+   "text": "[Hacker News] Show HN: Let's Seal – Let's Encrypt for document signing, free and self-hosted\n\n무료에다가 셀프 호스팅까지 지원하는 문서 서명 툴인 Let's Seal이 새로 나왔다.\n\n비용 걱정 없이 서버에 직접 올려서 마음대로 문서에 서명할 때 쓰면 딱 좋겠네.\n\n이런 거 나올 때마다 손이 근질근질하다."
+  },
+  {
+   "at": "2026-07-28T06:30:43",
+   "post_id": "17909315925443765",
+   "text": "[GitHub 트렌딩] bradautomates/claude-video\n\n매일 들여다보는 쪽이라 그냥 넘기기가 아깝다."
   }
  ]
 }
