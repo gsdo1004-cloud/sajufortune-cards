@@ -4,7 +4,9 @@
   "ShowHNWritemarkadependencyfreewebcompone",
   "ComposioHQawesomeclaudeskills",
   "ShowHNLetsSealLetsEncryptfordocumentsign",
-  "bradautomatesclaudevideo"
+  "bradautomatesclaudevideo",
+  "ScientificcomputingintheageofagenticAI",
+  "microsoftagentgovernancetoolkit"
  ],
  "log": [
   {
@@ -31,6 +33,16 @@
    "at": "2026-07-28T06:30:43",
    "post_id": "17909315925443765",
    "text": "[GitHub 트렌딩] bradautomates/claude-video\n\n매일 들여다보는 쪽이라 그냥 넘기기가 아깝다."
+  },
+  {
+   "at": "2026-07-29T06:34:25",
+   "post_id": "17947414935036620",
+   "text": "[OpenAI] Scientific computing in the age of agentic AI\n\n에이전트 AI 시대의 과학적 컴퓨팅이라는 글이 나왔네. \n\n코딩이나 복잡한 계산 작업할 때 워크플로우를 어떻게 자동화해야 할지 감 잡는 데 꽤나 도움 되겠어.\n\n쓸 데가 바로 떠오르는 건 오랜만이네."
+  },
+  {
+   "at": "2026-07-29T06:34:38",
+   "post_id": "17980285959021263",
+   "text": "[GitHub 트렌딩] microsoft/agent-governance-toolkit\n\nMicrosoft에서 agent-governance-toolkit이라는 AI 에이전트 거버넌스 툴킷이 새로 나왔다.\n에이전트가 멋대로 행동하지 않게 통제하고 모니터링할 때 유용하게 쓰겠네.\n\n당장 안 써도 알아두면 언젠가 쓰게 되더라."
   }
  ]
 }
