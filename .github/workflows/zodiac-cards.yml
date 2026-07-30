@@ -24,13 +24,16 @@ jobs:
       THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
       INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
       INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
-      # 21시 실행이 '이틀 뒤(D+2)'치를 올린다. 그날치를 밤 10시에 올리면 아침엔 늘
-      # 전날 글만 보였고(2026-07-26 확인), D+1 이면 하루라도 실패하면 곧장 빈다.
-      # D+2 면 하루치 여유가 생겨 문제를 발견하고 손볼 시간이 있다.
-      # 재료는 집PC 파이프라인(매일 18:00)이 같은 D+2 기준으로 만들어 커밋한다.
+      # 21시 실행은 '다음날(D+1)' 운세를 올린다 (2026-07-30 한밝님 지시로 D+2 → D+1).
+      # 자정이 지나면 그날 운세가 이미 계정에 있고, 계정에 뜬 날짜가 실제 날짜와 하루만
+      # 어긋난다. D+2 는 "하루치 여유" 목적이었지만 대가가 컸다 — 21시에 올라간 글이
+      # 모레 운세라 독자가 보는 날짜와 이틀 벌어졌고, 7/28~29 push 장애 때는 그 여유가
+      # 오히려 '어느 날짜가 비었는지' 파악을 어렵게 했다.
+      # 재고 여유는 그대로다: 집PC 파이프라인(18:00)이 D+2 기준으로 만들어 두므로
+      # D+1 치는 이미 이틀 전에 생성돼 커밋된 상태다.
       # 수동 실행(workflow_dispatch)에서 offset_days 를 주면 그 값이 우선한다.
-      # 예: 오늘치를 한 번 더 올려야 하면 0 을 지정.
-      ZODIAC_PUBLISH_OFFSET_DAYS: ${{ github.event.inputs.offset_days || '2' }}
+      # 예: 오늘치를 메워야 하면 0, 모레치를 미리 올리려면 2.
+      ZODIAC_PUBLISH_OFFSET_DAYS: ${{ github.event.inputs.offset_days || '1' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -86,6 +89,24 @@ jobs:
       - name: 스레드 릴스 영상 발행
         continue-on-error: true
         run: python zodiac_reels.py publish
+
+      # [2026-07-30] 멱등 마커를 원격에 남긴다.
+      # zodiac_cardnews/reels 는 발행 후 cards/{날짜}/threads_pub_*.json 을 쓰고,
+      # 다음 실행에서 그 파일이 있으면 스킵한다. 그런데 위의 커밋 스텝은 발행 '전'에만
+      # 돌기 때문에 마커가 커밋되지 않았고, runner 는 매번 새로 체크아웃하므로
+      # 가드가 사실상 무효였다(원격 마커가 2026-07-21 까지만 남아 있던 이유).
+      # 재실행·중복 발행을 진짜로 막으려면 발행 뒤에 한 번 더 커밋해야 한다.
+      - name: 발행 마커 커밋 (재실행 중복 방지)
+        if: always()
+        continue-on-error: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cards/*/threads_pub_*.json || true
+          git diff --cached --quiet && echo "마커 변경 없음" && exit 0
+          git commit -m "chore: 발행 마커 $(TZ=Asia/Seoul date +%F)"
+          git pull --rebase --autostash origin main || true
+          git push
 
       # [2026-07-27] 주석 대신 **날짜 게이트**로 전환했다.
       # zodiac_instagram.py 의 IG_RESUME_DATE(2026-08-15) 전에는 스스로 SKIP 하고 끝난다.
