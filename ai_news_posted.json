@@ -6,7 +6,9 @@
   "ShowHNLetsSealLetsEncryptfordocumentsign",
   "bradautomatesclaudevideo",
   "ScientificcomputingintheageofagenticAI",
-  "microsoftagentgovernancetoolkit"
+  "microsoftagentgovernancetoolkit",
+  "ShowHNBullshitDetectoragentskillsthatfac",
+  "AcceleratingscientificdiscoverywithChatG"
  ],
  "log": [
   {
@@ -43,6 +45,16 @@
    "at": "2026-07-29T06:34:38",
    "post_id": "17980285959021263",
    "text": "[GitHub 트렌딩] microsoft/agent-governance-toolkit\n\nMicrosoft에서 agent-governance-toolkit이라는 AI 에이전트 거버넌스 툴킷이 새로 나왔다.\n에이전트가 멋대로 행동하지 않게 통제하고 모니터링할 때 유용하게 쓰겠네.\n\n당장 안 써도 알아두면 언젠가 쓰게 되더라."
+  },
+  {
+   "at": "2026-07-30T06:32:04",
+   "post_id": "18071153849408298",
+   "text": "[Hacker News] Show HN: Bullshit Detector – agent skills that fact-check videos and articles\n\n영상이나 글의 팩트를 체크해 주는 Bullshit Detector라는 에이전트 기능이 새로 나왔다.\n\n인터넷에 헛소리가 너무 많아서 피곤할 때 필터링용으로 쓰기 딱 좋을 듯하다.\n\n매일 들여다보는 쪽이라 그냥 넘기기가 아깝다."
+  },
+  {
+   "at": "2026-07-30T06:32:17",
+   "post_id": "17876738796684963",
+   "text": "[OpenAI] Accelerating scientific discovery with ChatGPT for Academic Researchers\n\n도구가 좋아질수록 결국 쓰는 사람 몫이 커진다."
   }
  ]
 }
