@@ -68,24 +68,74 @@ def _run(cmd, cwd=None, timeout=600):
 
 
 def git_push(dates: list[str], alerts: list[str]) -> bool:
-    """cards/{dates}, reels 커밋·푸시. Actions와의 경합은 pull --rebase로 해소."""
+    """cards/{dates}, reels 커밋·푸시. Actions와의 경합은 pull --rebase로 해소.
+
+    2026-07-30 수리 — 7/28·7/29 이틀 연속 발행이 죽은 실제 원인:
+    인덱스에 미해결 병합(cards/ai_news/2026-07-27_0.png, 3-way)이 남아 있어
+    git pull 과 git commit 이 "unmerged files" 로 계속 거부됐다. 그런데 옛 코드는
+      ① pull 의 종료코드를 안 봤고,
+      ② commit 실패도 "nothing to commit" 이 아니면 그냥 통과시켜 push 로 넘어갔다.
+    그래서 로그에는 non-fast-forward push 실패만 남아 원인이 가려졌고, 원격에
+    카드·릴스가 없는 상태로 Actions 가 "[FAIL] 카드 없음" 을 내며 죽었다.
+    → 이제 각 단계의 실패를 로그·경보로 드러내고, 커밋이 안 됐으면 push 하지 않는다.
+    미해결 병합은 자동 해결하지 않는다(어느 쪽이 정본인지는 사람이 판단할 일).
+    """
+    def _unmerged() -> list[str]:
+        u = _run(["git", "diff", "--name-only", "--diff-filter=U"], cwd=BASE)
+        return [ln for ln in u.stdout.splitlines() if ln.strip()]
+
+    def _pull(tag: str) -> bool:
+        p = _run(["git", "pull", "--rebase", "--autostash", "origin", "main"], cwd=BASE)
+        if p.returncode != 0:
+            log(f"git pull 실패({tag}): {(p.stderr or p.stdout)[-300:]}")
+            return False
+        return True
+
     try:
-        _run(["git", "pull", "--rebase", "--autostash", "origin", "main"], cwd=BASE)
+        # 0) 미해결 병합이 남아 있으면 여기서 끊는다 — 그대로 두면 pull·commit 이
+        #    전부 거부되고 push 만 non-FF 로 실패해 원인이 안 보인다.
+        stuck = _unmerged()
+        if stuck:
+            msg = ("git 인덱스에 미해결 병합 잔존 → 커밋·푸시 불가. "
+                   "수동 해결 필요: " + ", ".join(stuck[:5]))
+            log(msg)
+            alerts.append(msg)
+            return False
+
+        if not _pull("사전"):
+            alerts.append("git pull 실패 — 원격 반영 없이 진행하면 발행이 깨진다")
+            return False
+
         _run(["git", "add", "-A", "--"] +
              [f"cards/{d}" for d in dates] + ["reels"], cwd=BASE)
         r = _run(["git", "commit", "-m",
                   f"topview cards+shorts {dates[0]} (+D+1 buffer)"], cwd=BASE)
-        if r.returncode != 0 and "nothing to commit" in (r.stdout + r.stderr):
-            log("커밋할 변경 없음")
-            return True
-        for attempt in (1, 2):
+        if r.returncode != 0:
+            out = r.stdout + r.stderr
+            # "변경 없음" 판정은 문자열로 하지 않는다 — git 은 미추적 파일이 있으면
+            # "nothing to commit" 대신 "no changes added to commit" 을 쓰고, 로케일에
+            # 따라 문구가 또 달라진다(옛 코드가 여기서 새는 것을 이번에 확인).
+            # 스테이지가 비어 있으면 올릴 게 없는 정상 상황이다.
+            staged = _run(["git", "diff", "--cached", "--name-only"], cwd=BASE)
+            if not staged.stdout.strip():
+                log("커밋할 변경 없음")
+                return True
+            # 커밋이 안 된 상태로 push 해도 non-FF 로만 실패한다 → 여기서 끊는다.
+            msg = f"git commit 실패 → 푸시 중단: {out[-300:]}"
+            log(msg)
+            alerts.append(msg)
+            return False
+
+        for attempt in (1, 2, 3):
             p = _run(["git", "push", "origin", "main"], cwd=BASE)
             if p.returncode == 0:
                 log("repo 푸시 완료")
                 return True
-            log(f"push 실패(시도{attempt}): {p.stderr[-200:]}")
-            _run(["git", "pull", "--rebase", "--autostash", "origin", "main"], cwd=BASE)
-        alerts.append("git push 2회 실패 — 쓰레드 발행이 레거시 카드로 나갈 수 있음")
+            log(f"push 실패(시도{attempt}): {(p.stderr or p.stdout)[-300:]}")
+            if attempt < 3 and not _pull(f"재시도{attempt}"):
+                break
+        alerts.append("git push 실패 — 원격에 오늘치 카드·릴스가 없어 "
+                      "쓰레드 발행(21시 Actions)이 '카드 없음'으로 죽는다")
         return False
     except Exception as e:
         alerts.append(f"git 단계 예외: {e}")
