@@ -247,7 +247,7 @@ def collect_account(tok: str, uid: str) -> None:
 AUTO_TARGETS = BASE / "reply_targets_auto.txt"
 
 
-def harvest_targets(tok: str) -> None:
+def harvest_targets(tok: str, uid: str = "") -> None:
     """내 글에 답글을 단 사람의 핸들을 모은다 — 답글 코치의 타깃 후보가 된다.
 
     왜 이 사람들인가: **이미 나에게 반응한 사람**이라 전환이 가장 잘 된다.
@@ -263,14 +263,28 @@ def harvest_targets(tok: str) -> None:
     if not recent:
         return
 
+    # 내 핸들은 API 로 직접 가져온다. 처음엔 환경변수(THREADS_HANDLE)로 걸렀는데
+    # 러너에 그 변수가 없어서 **내 계정이 타깃 1번으로 수집됐다**(실측 2026-07-31).
+    me = ""
+    if uid:
+        j = _get(uid, {"fields": "username", "access_token": tok})
+        me = (j.get("username") or "").strip().lstrip("@")
+    if not me:
+        log("[WARN] 내 핸들 확인 실패 — 자기 제외가 안 걸립니다")
+
     known: dict[str, str] = {}
+    purged = False
     if AUTO_TARGETS.exists():
         for ln in AUTO_TARGETS.read_text(encoding="utf-8").splitlines():
             ln = ln.strip()
             if ln and not ln.startswith("#"):
                 u = ln.split("#")[0].strip().lstrip("@")
-                if u:
-                    known[u] = ln
+                if not u:
+                    continue
+                if u == me:                # 이미 들어간 내 핸들은 여기서 청소한다
+                    purged = True
+                    continue
+                known[u] = ln
     before = len(known)
     today = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d")
 
@@ -280,12 +294,12 @@ def harvest_targets(tok: str) -> None:
             continue
         for c in j.get("data", []):
             u = (c.get("username") or "").strip().lstrip("@")
-            # 내 계정이 단 답글은 뺀다 — 아니면 나 자신이 타깃이 된다.
-            if u and u not in known and u != os.environ.get("THREADS_HANDLE", ""):
+            # 내가 내 글에 단 답글은 뺀다 — 아니면 나 자신이 타깃이 된다.
+            if u and u != me and u not in known:
                 known[u] = f"{u}  # 내 글에 답글 {today}"
 
-    if len(known) == before:
-        return
+    if len(known) == before and not purged and AUTO_TARGETS.exists():
+        return          # 새 계정도 없고 청소할 것도 없으면 파일을 안 건드린다
     head = ["# 자동 수집 — 내 글에 답글을 단 계정(ai_news_insights.py 가 채운다).",
             "# 손으로 고르는 목록은 reply_targets.txt 다. 이 파일은 덮어써진다.",
             "# 🚨 여기 있는 계정에 자동 답글을 달지 않는다. 사람이 앱에서 연다.", ""]
@@ -363,7 +377,7 @@ def main() -> int:
 
     store = collect(tok, dry=a.dry_run)
     if not a.dry_run:
-        harvest_targets(tok)
+        harvest_targets(tok, uid)
     if not a.dry_run and uid:
         collect_account(tok, uid)
     report(store)
