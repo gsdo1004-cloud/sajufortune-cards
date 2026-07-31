@@ -244,9 +244,14 @@ def collect_account(tok: str, uid: str) -> None:
 
 
 # ── 리포트 ───────────────────────────────────────────────────
-def _near(snaps: list, hours: float) -> dict | None:
-    """목표 시각에 가장 가까운 스냅샷. 24h/72h 비교를 위해."""
-    cand = [s for s in snaps if s.get("age_h") is not None]
+def _near(snaps: list, hours: float, floor_h: float = 12.0) -> dict | None:
+    """목표 시각에 가장 가까운 스냅샷.
+
+    ⚠️ 아직 어린 글(발행 3시간)을 24시간 칸에 넣으면 평균이 통째로 깎인다.
+    실측 첫 회에 3.7h 글 2건이 섞여 ai_news 평균을 끌어내렸다 — floor 로 막는다.
+    """
+    cand = [s for s in snaps
+            if s.get("age_h") is not None and s["age_h"] >= floor_h]
     return min(cand, key=lambda s: abs(s["age_h"] - hours)) if cand else None
 
 
