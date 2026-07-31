@@ -39,7 +39,7 @@ TARGETS = BASE / "reply_targets.txt"
 STORE = BASE / "threads_insights.json"
 ACCOUNT = BASE / "threads_account.json"
 OUT = BASE / "threads_reply_coach.md"
-GH_RAW = "https://raw.githubusercontent.com/gsdo1004-cloud/sajufortune-cards/main"
+GH_API = "https://api.github.com/repos/gsdo1004-cloud/sajufortune-cards"
 
 # 앱 검색창에 그대로 넣을 말. 사주·AI 교집합을 노린다.
 # 날짜로 회전시켜 매일 다른 물을 판다 — 같은 검색어만 보면 같은 사람만 만난다.
@@ -126,8 +126,13 @@ def _targets() -> list[str]:
     auto: list[str] = []
     try:
         import urllib.request
-        req = urllib.request.Request(f"{GH_RAW}/reply_targets_auto.txt",
-                                     headers={"User-Agent": "Mozilla/5.0"})
+        # ⚠️ raw.githubusercontent.com 은 쓰지 않는다. 몇 분간 CDN 캐시를 주는데
+        # **쿼리스트링 캐시버스터로도 안 깨졌다**(실측: 러너가 내 계정을 지운 뒤에도
+        # 옛 목록이 계속 왔다). API contents 엔드포인트는 즉시 최신을 준다.
+        req = urllib.request.Request(
+            f"{GH_API}/contents/reply_targets_auto.txt",
+            headers={"User-Agent": "Mozilla/5.0",
+                     "Accept": "application/vnd.github.raw"})
         auto = _parse_handles(urllib.request.urlopen(req, timeout=15)
                               .read().decode("utf-8", "replace"))
     except Exception:
