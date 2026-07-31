@@ -243,6 +243,57 @@ def collect_account(tok: str, uid: str) -> None:
         f"연령분포={'있음' if 'demo_age' in out else '없음(팔로워 100명 미만이면 안 나옴)'}")
 
 
+# ── 답글 타깃 자동 수집 ──────────────────────────────────────
+AUTO_TARGETS = BASE / "reply_targets_auto.txt"
+
+
+def harvest_targets(tok: str) -> None:
+    """내 글에 답글을 단 사람의 핸들을 모은다 — 답글 코치의 타깃 후보가 된다.
+
+    왜 이 사람들인가: **이미 나에게 반응한 사람**이라 전환이 가장 잘 된다.
+    낯선 대형 계정에 답글 다는 것보다 여기가 먼저다.
+
+    남의 글을 뒤지는 게 아니다. 내 글에 달린 답글이라 내가 소유자이고,
+    추가 권한 없이 지금 토큰으로 읽힌다(threads_replies.py 와 같은 경로).
+    🚨 여기서 모은 핸들로 **자동 답글을 달지 않는다.** 사람이 앱에서 연다.
+    """
+    posts = (load_store().get("posts") or {})
+    recent = [pid for pid, r in posts.items()
+              if any((s.get("age_h") or 999) <= 24 * 30 for s in r.get("snapshots", []))]
+    if not recent:
+        return
+
+    known: dict[str, str] = {}
+    if AUTO_TARGETS.exists():
+        for ln in AUTO_TARGETS.read_text(encoding="utf-8").splitlines():
+            ln = ln.strip()
+            if ln and not ln.startswith("#"):
+                u = ln.split("#")[0].strip().lstrip("@")
+                if u:
+                    known[u] = ln
+    before = len(known)
+    today = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d")
+
+    for pid in recent[:40]:
+        j = _get(f"{pid}/replies", {"fields": "username", "access_token": tok})
+        if "error" in j:
+            continue
+        for c in j.get("data", []):
+            u = (c.get("username") or "").strip().lstrip("@")
+            # 내 계정이 단 답글은 뺀다 — 아니면 나 자신이 타깃이 된다.
+            if u and u not in known and u != os.environ.get("THREADS_HANDLE", ""):
+                known[u] = f"{u}  # 내 글에 답글 {today}"
+
+    if len(known) == before:
+        return
+    head = ["# 자동 수집 — 내 글에 답글을 단 계정(ai_news_insights.py 가 채운다).",
+            "# 손으로 고르는 목록은 reply_targets.txt 다. 이 파일은 덮어써진다.",
+            "# 🚨 여기 있는 계정에 자동 답글을 달지 않는다. 사람이 앱에서 연다.", ""]
+    AUTO_TARGETS.write_text("\n".join(head + sorted(known.values())) + "\n",
+                            encoding="utf-8")
+    log(f"[타깃] 답글 단 계정 {len(known)}명 (신규 {len(known) - before})")
+
+
 # ── 리포트 ───────────────────────────────────────────────────
 def _near(snaps: list, hours: float, floor_h: float = 12.0) -> dict | None:
     """목표 시각에 가장 가까운 스냅샷.
@@ -311,6 +362,8 @@ def main() -> int:
         return 1
 
     store = collect(tok, dry=a.dry_run)
+    if not a.dry_run:
+        harvest_targets(tok)
     if not a.dry_run and uid:
         collect_account(tok, uid)
     report(store)

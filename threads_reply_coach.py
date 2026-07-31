@@ -39,6 +39,7 @@ TARGETS = BASE / "reply_targets.txt"
 STORE = BASE / "threads_insights.json"
 ACCOUNT = BASE / "threads_account.json"
 OUT = BASE / "threads_reply_coach.md"
+GH_RAW = "https://raw.githubusercontent.com/gsdo1004-cloud/sajufortune-cards/main"
 
 # 앱 검색창에 그대로 넣을 말. 사주·AI 교집합을 노린다.
 # 날짜로 회전시켜 매일 다른 물을 판다 — 같은 검색어만 보면 같은 사람만 만난다.
@@ -101,12 +102,46 @@ def _yesterday_replies() -> int | None:
     return total
 
 
+def _parse_handles(text: str) -> list[str]:
+    out = []
+    for ln in text.splitlines():
+        ln = ln.strip()
+        if not ln or ln.startswith("#"):
+            continue
+        u = ln.split("#")[0].strip().lstrip("@")     # 꼬리 주석(수집일) 제거
+        if u:
+            out.append(u)
+    return out
+
+
 def _targets() -> list[str]:
-    if not TARGETS.exists():
-        return []
-    return [ln.strip().lstrip("@") for ln in
-            TARGETS.read_text(encoding="utf-8").splitlines()
-            if ln.strip() and not ln.startswith("#")]
+    """손으로 고른 목록 + 자동 수집 목록을 합친다. 손으로 고른 게 앞에 온다.
+
+    자동 목록(`reply_targets_auto.txt`)은 **러너가 채워 레포에 커밋**한다.
+    집 PC 클론은 자동으로 pull 되지 않으므로 raw URL 로 직접 읽는다
+    (카드 이미지를 스레드에 넘기는 것과 같은 경로라 공개돼 있다).
+    """
+    manual = _parse_handles(TARGETS.read_text(encoding="utf-8")) if TARGETS.exists() else []
+
+    auto: list[str] = []
+    try:
+        import urllib.request
+        req = urllib.request.Request(f"{GH_RAW}/reply_targets_auto.txt",
+                                     headers={"User-Agent": "Mozilla/5.0"})
+        auto = _parse_handles(urllib.request.urlopen(req, timeout=15)
+                              .read().decode("utf-8", "replace"))
+    except Exception:
+        # 네트워크가 막히면 로컬 클론에 있는 것만 쓴다. 코치 카드는 계속 나온다.
+        p = BASE / "reply_targets_auto.txt"
+        if p.exists():
+            auto = _parse_handles(p.read_text(encoding="utf-8"))
+
+    seen, out = set(), []
+    for u in manual + auto:
+        if u not in seen:
+            seen.add(u)
+            out.append(u)
+    return out
 
 
 def build(today: dt.date) -> str:
@@ -135,8 +170,9 @@ def build(today: dt.date) -> str:
         for i in range(min(3, len(tg))):
             L.append(f"- @{tg[(idx + i) % len(tg)]}")
     else:
-        L += ["", "> `reply_targets.txt` 에 자주 보는 계정을 한 줄에 하나씩 적어두면",
-              "> 매일 3개씩 돌아가며 띄워드립니다. (아직 비어 있습니다)"]
+        L += ["", "> 아직 타깃이 없습니다. 두 경로로 채워집니다:",
+              "> ① 자동 — 내 글에 답글을 단 계정이 매일 쌓입니다(지금은 0명)",
+              "> ② 손 — `reply_targets.txt` 에 한 줄에 하나씩 적으면 바로 반영됩니다"]
 
     L += ["", "---", "", f"## 오늘의 각도 — {angle[0]}", "",
           f"{angle[1]}", "", f"> 예: {angle[2]}", "",
