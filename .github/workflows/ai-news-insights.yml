@@ -1,0 +1,59 @@
+name: 쓰레드 성과 수집 (측정)
+
+# 발행 잡과 **분리**한다. 측정이 발행을 죽이면 안 되고, 측정만 따로 돌려보고 싶을 때도 있다.
+#
+# 시각: AI 뉴스는 명목 13시(cron 0 4)지만 Actions 지연으로 실제 KST 15:30 에 나간다.
+# 그로부터 약 24시간 뒤에 재려고 cron 0 6(명목 KST 15시)에 둔다. 지연이 얹혀도
+# 스크립트가 실제 age_h 를 같이 기록하므로 비교는 age 기준으로 맞춰진다.
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'true 면 대상만 나열하고 API 를 치지 않음'
+        required: false
+        default: 'false'
+
+jobs:
+  insights:
+    runs-on: ubuntu-latest
+    # 수집 결과(threads_insights.json)를 레포에 되돌려 커밋해야 다음 실행이 이어서 잰다.
+    # 러너는 매번 새 환경이라 커밋하지 않으면 매일 처음부터가 된다.
+    permissions:
+      contents: write
+    env:
+      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+      THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 의존성 설치
+        run: pip install requests
+
+      - name: 성과 수집
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            python ai_news_insights.py --dry-run
+          else
+            python ai_news_insights.py
+          fi
+
+      - name: 결과 커밋
+        if: always()
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add threads_insights.json threads_account.json 2>/dev/null || true
+          # "변경 없음"을 문자열로 판정하지 않는다 — exit code 로만 본다.
+          if git diff --cached --quiet; then
+            echo "변경 없음 — 커밋 생략"
+          else
+            git commit -m "chore: 쓰레드 성과 수집 $(date -u +%Y-%m-%d)"
+            # 다른 잡(발행·마커)이 먼저 밀어넣었을 수 있다 — rebase 후 push.
+            git pull --rebase && git push
+          fi
