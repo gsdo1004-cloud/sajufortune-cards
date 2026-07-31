@@ -1,12 +1,56 @@
-# 답글 코치가 매일 3개씩 돌아가며 띄워줄 계정 목록.
-# 한 줄에 하나씩. @ 는 있어도 되고 없어도 된다. # 로 시작하는 줄은 무시한다.
+# 답글 코치가 매일 3개씩 돌아가며 띄우는 계정 목록(손으로 고른 것).
+# 자동 수집분은 reply_targets_auto.txt 에 따로 쌓인다.
 #
-# 넣을 계정 고르는 법
-#  - 사주·타로·운세 계정 (내 주제와 같은 물)
-#  - AI 를 일상 언어로 풀어 쓰는 계정 (내 차별점과 같은 물)
-#  - 팔로워 1천~5만 사이가 제일 낫다. 10만 넘으면 답글이 묻히고,
-#    500 미만이면 그쪽 팔로워에게 노출돼 봐야 얻는 게 적다.
+# 2026-07-31 수집: 쓰레드 검색 '사주' / '챗GPT' 프로필 탭에서 직접 확인.
+# 기준 = 팔로워 1천~5만(10만 넘으면 답글이 묻히고, 500 미만은 노출 이득이 적다).
+# 상담 영업 계정이 많은데 상관없다 — 거기 팔로워가 곧 사주에 관심 있는 사람이다.
 #
-# 예시 형식:
-# some_saju_account
-# @some_ai_account
+# 🚨 자동 답글 금지. 여기 있는 계정은 앱에서 사람이 열어 직접 답글을 단다.
+# ⚠️ 같은 계정에 하루 2개 이상 달지 않는다. 링크·홍보 절대 금지.
+
+# ── 사주·운세 (팔로워 확인됨) ──────────────────────────
+saju.pharmacy        # 사주약방 1.5만
+saju.myungdang       # 사주 명당 9,049
+unmaji_saju          # 운맞이 사주 9,011
+allday_saju          # 올데이 사주 7,554
+saju_byeolha         # 사주별하 6,722
+tarot_hwarin         # 사주타로 화린 3,192
+sini_saju_tarot      # 시니 사주타로 2,608
+ssfortuneclub        # 성수 사주클럽 2,497
+rpsaju__             # 리푸쉬마인 사주 2,129
+goldoryun_saju       # 금도련사주 2,115
+saju_tarot_charlotte # 사주 타로 샬롯 1,933
+sajudosa_            # 사주도사 1,821
+seoa.notes           # 서아 사주 1,628
+lovedemer_           # 드메르 1,550
+saju.note_           # 사주노트 1,483
+k.s.h119             # 긔쎈언니 사주 1,355
+jewelmom.note        # DreamJewel 사주기질·교육 1,219
+saju_myeongon        # 명온사주 1,117
+saju_hacker          # 사주해커 1,107
+saju_haeundam        # 해운담 1,056
+
+# ── 사주·운세 (검색 상위였으나 팔로워 미확인) ──────────
+taebaek_saju         # 사주장인
+saju_talktalk_       # 사주톡톡
+the.myeongri         # 명리 장인
+jamione_saju         # 자미원
+saju_jindan          # 사주진단
+saju.yunhwa          # 윤화사주·심리상담가
+is_saju              # 사주정원
+mara.saju            # 마라 사주
+
+# ── AI (팔로워 미확인 — 대부분 챗GPT 강사·교육 계정) ────
+# 이쪽은 'AI를 배우려는 30~50대'가 모여 있어 우리 교집합과 겹친다.
+upgle_i              # 챗GPT·생성형AI 교육전문가 업글아이
+kaicampus            # 한국AI교육진흥원
+korea.gpt.association # 한국GPT협회
+promppy_com          # 프롬프트 프롬피
+ai_marketinglab      # AI마케팅전략연구소
+darum_ai_lab         # 다름AI연구소
+mapilnyeo            # 매필녀 챗GPT 자동화
+good_lucky_guy       # 리레 (챗GPT·노션·부동산·주식)
+
+# ── 제외한 것 (기록용) ────────────────────────────────
+# strong_ceo_kim  = "밥 잘 사주는 스타트업 누나" — '사주' 오탐. 주제 무관
+# saju_realstory  = 팔로워 827명. 기준(1천) 미달
