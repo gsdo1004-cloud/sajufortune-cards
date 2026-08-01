@@ -13,6 +13,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-01T08:31:49Z",
+     "age_h": 43.0,
+     "views": 20,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-07-30T13:33:02+0000",
@@ -26,6 +36,16 @@
      "t": "2026-07-31T10:27:12Z",
      "age_h": 21.0,
      "views": 34,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-01T08:31:49Z",
+     "age_h": 43.0,
+     "views": 45,
      "likes": 0,
      "replies": 1,
      "reposts": 0,
@@ -49,6 +69,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-01T08:31:49Z",
+     "age_h": 25.7,
+     "views": 3,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-07-31T06:46:56+0000",
@@ -62,6 +92,16 @@
      "t": "2026-07-31T10:27:12Z",
      "age_h": 3.7,
      "views": 1,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-01T08:31:49Z",
+     "age_h": 25.8,
+     "views": 2,
      "likes": 0,
      "replies": 0,
      "reposts": 0,
@@ -85,6 +125,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-01T08:31:49Z",
+     "age_h": 50.0,
+     "views": 12,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-07-30T06:32:15+0000",
@@ -97,6 +147,16 @@
     {
      "t": "2026-07-31T10:27:12Z",
      "age_h": 27.9,
+     "views": 0,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-01T08:31:49Z",
+     "age_h": 50.0,
      "views": 0,
      "likes": 0,
      "replies": 0,
@@ -121,6 +181,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-01T08:31:49Z",
+     "age_h": 74.0,
+     "views": 2,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-07-29T06:34:36+0000",
@@ -133,6 +203,16 @@
     {
      "t": "2026-07-31T10:27:12Z",
      "age_h": 51.9,
+     "views": 3,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-01T08:31:49Z",
+     "age_h": 74.0,
      "views": 3,
      "likes": 0,
      "replies": 0,
@@ -157,6 +237,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-01T08:31:49Z",
+     "age_h": 98.0,
+     "views": 3,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-07-28T06:30:41+0000",
@@ -169,6 +259,16 @@
     {
      "t": "2026-07-31T10:27:12Z",
      "age_h": 75.9,
+     "views": 3,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-01T08:31:49Z",
+     "age_h": 98.0,
      "views": 3,
      "likes": 0,
      "replies": 0,
@@ -193,6 +293,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-01T08:31:49Z",
+     "age_h": 120.9,
+     "views": 13,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-07-27T07:36:29+0000",
@@ -205,6 +315,16 @@
     {
      "t": "2026-07-31T10:27:12Z",
      "age_h": 98.8,
+     "views": 7,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-01T08:31:49Z",
+     "age_h": 120.9,
      "views": 7,
      "likes": 0,
      "replies": 0,
@@ -229,10 +349,110 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-01T08:31:49Z",
+     "age_h": 132.6,
+     "views": 15,
+     "likes": 2,
+     "replies": 2,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-07-26T19:55:07+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/DbRMFbfGIiO"
+  },
+  "18087917501648834": {
+   "channel": "reels",
+   "head": "",
+   "snapshots": [
+    {
+     "t": "2026-08-01T08:31:49Z",
+     "age_h": 18.8,
+     "views": 18,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-07-31T13:45:50+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DbdZdQlCa0l"
+  },
+  "18126982027591070": {
+   "channel": "carousel",
+   "head": "",
+   "snapshots": [
+    {
+     "t": "2026-08-01T08:31:49Z",
+     "age_h": 18.8,
+     "views": 39,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-07-31T13:42:29+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DbdZaEylumJ"
+  },
+  "17983565985015689": {
+   "channel": "ghost",
+   "head": "정미일. 8월 1일(토)의 기운.\n토끼띠, 말띠, 양띠 — 오늘 이 띠들은 하려던 거 밀어붙여도 되는 날.\n내 띠 안 나왔으면",
+   "snapshots": [
+    {
+     "t": "2026-08-01T08:31:49Z",
+     "age_h": 8.6,
+     "views": 0,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-07-31T23:54:57+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DbefgeSCejQ"
+  },
+  "17973734952095873": {
+   "channel": "ai_news",
+   "head": "ChatGPT 쓰는 사람이 10억 명을 넘었다는데 내 운명은 왜 제자리걸음일까 싶지.\n\n[ZDNet] 오픈AI '챗GPT' 이",
+   "snapshots": [
+    {
+     "t": "2026-08-01T08:31:49Z",
+     "age_h": 3.0,
+     "views": 1,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-01T05:34:42+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DbfGY2njt_t"
+  },
+  "17922069579182798": {
+   "channel": "ai_news",
+   "head": "오픈AI가 기술을 쥐어짜서 AI 가격을 내렸다는데 내 눈엔 사람 몸값 내려가는 소리로 들린다\n\n[AI타임스] [7월31일] 오",
+   "snapshots": [
+    {
+     "t": "2026-08-01T08:31:49Z",
+     "age_h": 3.0,
+     "views": 0,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-01T05:34:28+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DbfGXNnDmc_"
   }
  }
 }
