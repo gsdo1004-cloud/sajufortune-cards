@@ -150,7 +150,8 @@ def _dur(path):
 
 
 def make_reel_tts(date_iso):
-    cards = sorted((BASE / "cards" / date_iso).glob("card_*.png"))
+    _d = BASE / "cards" / date_iso
+    cards = sorted(_d.glob("card_*.png")) or sorted(_d.glob("card_*.jpg"))
     if not cards:
         raise SystemExit(f"[FAIL] 카드 없음: {date_iso} (generate 먼저)")
     narrs = narration_lines(date_iso)

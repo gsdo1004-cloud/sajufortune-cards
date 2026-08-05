@@ -260,7 +260,8 @@ def do_publish():
     if marker.exists():
         print(f"[스킵] {date_iso} 캐러셀 이미 발행됨(멱등 가드)")
         return
-    files = sorted(outdir.glob("card_*.png"))
+    # 2026-08-05 전환기: png(Topview 재고) 우선, 없으면 jpg(템플릿 생성분).
+    files = sorted(outdir.glob("card_*.png")) or sorted(outdir.glob("card_*.jpg"))
     urls = [f"{RAW_BASE}/cards/{date_iso}/{f.name}" for f in files]
     if not urls:
         raise SystemExit("[FAIL] 발행할 카드 PNG가 없습니다 (generate 먼저 실행)")

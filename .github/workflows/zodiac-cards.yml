@@ -52,14 +52,18 @@ jobs:
       # 2026-07-17: 집 PC 새벽 파이프라인이 Topview GPT Image 2 카드 5장 + 타입캐스트
       # 쇼츠를 미리 커밋해둠 → 있으면 그대로 발행(레거시 생성 건너뜀), 없으면(PC 꺼짐·
       # 생성 실패) 기존 HTML 카드 + Edge TTS 릴스로 폴백 — 발행은 어떤 경우에도 나간다.
-      - name: 카드 생성 (Topview 커밋분 있으면 건너뜀)
+      # 2026-08-05 — 카드 생성을 러너 안으로 들여왔다(배경 템플릿 + PIL).
+      # 이전에는 집 PC 18시 스케줄이 Topview 로 만들어 커밋해 뒀고 여기서는 건너뛰기만 했다.
+      # 이제 이미지 생성 API 를 쓰지 않으므로 러너가 직접 만든다 — 크레딧 0, 집 PC 불필요.
+      # 집 PC 가 만들어 둔 재고(png)가 있으면 그대로 존중한다(전환기 안전망).
+      - name: 카드 생성 (기존 커밋분 있으면 건너뜀)
         run: |
           TODAY=$(TZ=Asia/Seoul date +%F)
-          N=$(ls cards/$TODAY/card_*.png 2>/dev/null | wc -l)
+          N=$(ls cards/$TODAY/card_*.png cards/$TODAY/card_*.jpg 2>/dev/null | wc -l)
           if [ "$N" -ge 5 ]; then
-            echo "Topview 카드 ${N}장 존재 — 레거시 생성 건너뜀"
+            echo "카드 ${N}장 존재 — 생성 건너뜀"
           else
-            python zodiac_cardnews.py generate
+            python zodiac_cardnews_tpl.py generate "$TODAY"
           fi
 
       - name: 릴스 영상 생성 (커밋분 있으면 건너뜀)

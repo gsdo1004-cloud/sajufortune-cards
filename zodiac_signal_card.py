@@ -66,7 +66,7 @@ def wrap(dr, text: str, font, max_w: int) -> list[str]:
 
 def bg_for(slug: str, variant: int) -> Image.Image:
     """배경 1장을 줌·이동으로 변주한다. 5장이 같은 그림으로 안 보이게 하는 장치."""
-    src = BG_DIR / f"bg_{slug}.png"
+    src = BG_DIR / f"bg_{slug}.jpg"
     if not src.exists():
         im = Image.new("RGB", (W, H), (226, 236, 247))
     else:
