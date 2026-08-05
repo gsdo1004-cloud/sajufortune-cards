@@ -22,9 +22,13 @@ from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
 GDRIVE = Path(r"G:\내 드라이브\01클로드\작업폴더\띠지목_카드뉴스")
+# 저녁 띠별 카드는 기존 Topview 시절 폴더를 그대로 쓴다 — 한밝님이 이미 그 경로로 찾으신다.
+GDRIVE_ZODIAC = Path(r"G:\내 드라이브\01클로드\작업폴더\띠별운세_이미지")
 
 # 인스타에 올릴 때 순서가 헷갈리지 않게 한글 이름을 붙인다.
 NAMES = ["1_표지", "2_성향", "3_속마음", "4_전환", "5_안내"]
+# 저녁 카드 이름 — zodiac_topview.KOREAN_NAMES 와 같게 맞춘다(기존 파일과 섞여도 헷갈리지 않게).
+ZODIAC_NAMES = ["01_표지", "02_띠별A", "03_띠별B", "04_띠별C", "05_띠별D", "06_12띠요약"]
 
 
 def caption_for(date_iso: str) -> tuple[str, str]:
@@ -63,6 +67,24 @@ def mirror(date_iso: str) -> bool:
     return True
 
 
+def mirror_zodiac(date_iso: str) -> bool:
+    """저녁 띠별 카드(card_01~06) → 띠별운세_이미지/{날짜}/. 인스타 수동 업로드용."""
+    src = BASE / "cards" / date_iso
+    # 전환기라 png(Topview 재고)·jpg(템플릿) 둘 다 올 수 있다.
+    cards = sorted(src.glob("card_*.png")) or sorted(src.glob("card_*.jpg"))
+    if not cards:
+        return False
+    dst = GDRIVE_ZODIAC / date_iso
+    dst.mkdir(parents=True, exist_ok=True)
+    n = 0
+    for i, p in enumerate(cards):
+        name = ZODIAC_NAMES[i] if i < len(ZODIAC_NAMES) else f"{i+1:02d}"
+        shutil.copy2(p, dst / f"{name}{p.suffix}")
+        n += 1
+    print(f"  [OK] 띠별 {dst.name}  이미지 {n}장")
+    return True
+
+
 def main():
     argv = sys.argv[1:]
     if "--pull" in argv:
@@ -76,12 +98,15 @@ def main():
         today = dt.date.today()
         dates = [(today + dt.timedelta(days=d)).isoformat() for d in range(-1, 4)]
 
-    done = 0
+    done = z_done = 0
     for d in dates:
         if mirror(d):
             done += 1
-    print(f"\n스테이징 {done}일치 → {GDRIVE}")
-    if done == 0:
+        if mirror_zodiac(d):
+            z_done += 1
+    print(f"\n띠지목 {done}일치 → {GDRIVE}")
+    print(f"띠별   {z_done}일치 → {GDRIVE_ZODIAC}")
+    if done == 0 and z_done == 0:
         print("복사할 카드가 없습니다. --pull 로 러너 생성분을 먼저 받아보세요.")
 
 
