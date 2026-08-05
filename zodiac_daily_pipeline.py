@@ -326,6 +326,30 @@ def queue_youtube_shorts(date_iso: str, alerts: list[str],
 
 def main():
     args = sys.argv[1:]
+
+    # 🛑 은퇴 예정 — 카드 생성이 배경 템플릿 + PIL 방식으로 바뀌면서 Topview 이미지 생성이
+    # 필요 없어졌고, 전 과정이 GitHub Actions 안에서 끝난다(집 PC 스케줄 불필요).
+    # 그대로 두면 매일 Topview 크레딧만 나간다.
+    #
+    # 다만 **오늘(2026-08-05)까지는 그대로 돈다**(한밝님 지시). 새 파이프라인이 준비되는
+    # 동안 재고를 만들어 두는 안전망이다. 8/6 부터 자동으로 멈춘다.
+    # 날짜로 끊는 이유: 이 스크립트는 커밋 단계에서만 git pull 하므로 "코드가 언제 갱신되나"에
+    # 기대면 정지 시점이 흔들린다. 날짜 기준이면 pull 타이밍과 무관하게 정확히 끊긴다.
+    #
+    # 집 PC 작업 스케줄러의 Zodiac_DailyPipeline 을 직접 끄는 게 정석이지만 회사 PC에서는
+    # 원격으로 끌 수 없어 코드로 막는다. 되살리려면 ZODIAC_LEGACY_PIPELINE=1 또는 --force.
+    CUTOFF = dt.date(2026, 8, 6)
+    if (dt.date.today() >= CUTOFF
+            and os.environ.get("ZODIAC_LEGACY_PIPELINE", "") != "1"
+            and "--force" not in args):
+        log("=" * 66)
+        log(f"이 파이프라인은 {CUTOFF} 부로 중단됐습니다(카드 템플릿 전환).")
+        log("카드 생성·발행은 GitHub Actions 가 담당합니다.")
+        log("집 PC 작업 스케줄러의 'Zodiac_DailyPipeline' 을 꺼주세요.")
+        log("강제 실행: ZODIAC_LEGACY_PIPELINE=1 또는 --force")
+        log("=" * 66)
+        return
+
     date_iso = None
     if "--date" in args:
         date_iso = args[args.index("--date") + 1]
