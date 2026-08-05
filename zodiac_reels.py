@@ -130,12 +130,25 @@ def narration_lines(date_iso):
 # 상한 85초, 목표 80초. 넘치면 말 속도를 올려 다시 합성한다(zodiac_shorts 와 동일 방식).
 CLIP_LIMIT = 85.0
 TARGET_SEC = 80.0
-BASE_RATE_PCT = 12      # 기본 말 속도(+12%)
+BASE_RATE_PCT = 20      # 기본 말 속도(+20% = Supertonic speed 1.2, 2026-08-05 한밝님 확정)
 MAX_RATE_PCT = 35       # 여기까지만 빠르게 — 더 올리면 시니어 시청자가 못 따라온다
 PAD = 0.7               # 클립마다 붙는 여유(아래 클립 생성의 +0.7 과 같은 값)
 
 
 def _tts(text, out_mp3, rate_pct: int = BASE_RATE_PCT):
+    """1순위 Supertonic(로컬 ONNX), 안 되면 Edge TTS 폴백.
+
+    2026-08-05 한밝님 청취 판단으로 Supertonic을 메인으로 올렸다(Edge보다 톤이 낫다).
+    rate_pct 는 Edge 시절의 '+N%' 규약 그대로 둔다 — 위 길이 게이트가 이 값을
+    올려가며 재합성하므로 인터페이스를 바꾸면 게이트가 깨진다.
+    Supertonic 의 speed 는 배율이라 1 + rate_pct/100 으로 환산한다(+20% → 1.2).
+    """
+    try:
+        import tts_supertonic as _st
+        if _st.synth(text, Path(out_mp3), speed=1 + rate_pct / 100):
+            return
+    except ImportError:
+        pass
     async def go():
         await edge_tts.Communicate(text, VOICE, rate=f"+{int(rate_pct)}%").save(str(out_mp3))
     asyncio.run(go())
@@ -209,6 +222,17 @@ def make_reel_tts(date_iso):
         f.unlink()
     tmp.rmdir()
     _mix_bgm(out, date_iso)  # 2026-07-11 일진 오행 BGM (은은하게 11%)
+
+    # PNGTuber 아바타 PIP (2026-08-05) — ZODIAC_AVATAR=1 일 때만.
+    # BGM까지 끝난 최종본에 얹는다. 아바타 자산이 없는 환경(Actions 러너)에서는
+    # 조용히 건너뛴다 — 아바타 때문에 발행을 멈출 이유가 없다.
+    try:
+        import avatar_pip
+        if avatar_pip.enabled():
+            avatar_pip.apply(out)
+    except ImportError:
+        pass
+
     print(f"[OK] reel+TTS → {out} ({n}컷, 약 {round(_dur(out), 1)}초, {W}x{H})")
     return out
 

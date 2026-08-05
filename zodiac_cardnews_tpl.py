@@ -177,6 +177,18 @@ BLOCK_Y = (0.150, 0.435, 0.720)      # 동물 3마리의 세로 중심 비율
 TEXT_X = int(W * 0.335)              # 오른쪽 텍스트 영역 시작
 TEXT_W = W - TEXT_X - 52
 
+# ── 아바타 PIP 안전영역 (2026-08-05) ──────────────────────────
+# 릴스(zodiac_reels)에 PNGTuber 아바타가 **좌하단**에 얹힌다.
+#   가로 3~27%, 세로 52~76% — 유튜브 쇼츠·네이버 클립·틱톡 UI를 피해 잡은 자리라
+#   옮길 여지가 거의 없다(pngtuber_shorts_pip.SHORTS_POSITIONS 주석 참고).
+# 3번 블록(BLOCK_Y=0.72)이 아바타와 세로로 겹치므로, 가로로 비켜서야 글자가 산다.
+# 지금은 패널 좌측이 31.8%라 안전하지만 zoompan 1.10배 확대까지 감안한 실여유는
+# 약 32px뿐이다. TEXT_X 를 더 왼쪽으로 내리면 글자가 아바타에 가려진다.
+AVATAR_SAFE_X = 0.27
+assert TEXT_X - 18 > W * AVATAR_SAFE_X, (
+    f"TEXT_X({TEXT_X})가 아바타 안전영역({int(W * AVATAR_SAFE_X)}px)을 침범한다 — "
+    f"릴스에서 3번째 띠 글자가 아바타에 가려진다")
+
 
 def card_group(set_n: int, date_iso: str, name: str,
                rows: list[tuple[str, dict]]) -> Image.Image:
