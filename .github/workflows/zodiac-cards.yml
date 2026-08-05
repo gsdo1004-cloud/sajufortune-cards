@@ -75,6 +75,11 @@ jobs:
           fi
 
       - name: 릴스 영상 생성 (커밋분 있으면 건너뜀)
+        env:
+          # 2026-08-05: 아바타 자산을 avatar/ 에 번들했으므로 러너에서도 켠다.
+          # 자산이나 ffmpeg가 없으면 avatar_pip 이 알아서 건너뛰므로 발행은 안 멈춘다.
+          ZODIAC_AVATAR: "1"
+          SUPERTONIC_VOICE: "M2"
         run: |
           TODAY=$(TZ=Asia/Seoul date +%F)
           if [ -s "reels/${TODAY}_tts.mp4" ]; then
