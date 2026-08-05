@@ -104,12 +104,18 @@ def card_cover(slug: str, sign_ko: str, years: str, hook: str) -> Image.Image:
     dr.text(((W - tw) / 2, y), sign_ko, font=f_sign, fill=(26, 26, 46),
             stroke_width=10, stroke_fill=(255, 255, 255))
     y += 172
-    yw = dr.textlength(years, font=f_year)
-    dr.rounded_rectangle([(W - yw) / 2 - 34, y - 12, (W + yw) / 2 + 34, y + 74],
+    # 생년이 5개라 한 줄이 길다 — 폭에 맞을 때까지 폰트를 줄인다(잘리는 것보다 낫다).
+    sz = 54
+    for sz in (54, 48, 43, 39, 35):
+        f_year = F("Pretendard-Black.ttf", sz)
+        yw = dr.textlength(years, font=f_year)
+        if yw <= W - 210:
+            break
+    dr.rounded_rectangle([(W - yw) / 2 - 34, y - 12, (W + yw) / 2 + 34, y + sz + 20],
                          radius=42, fill=(232, 75, 138))
     dr.text(((W - yw) / 2, y), years, font=f_year, fill=(255, 255, 255))
 
-    y += 150
+    y += sz + 96
     lines = wrap(dr, hook, f_hook, W - 240)
     panel(dr, y - 34, y + len(lines) * 72 + 26)
     for ln in lines:
