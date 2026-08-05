@@ -325,9 +325,55 @@ def publish(text: str) -> str:
     return pid
 
 
+# ── 카드 캐러셀 발행 ─────────────────────────────────────────
+# 계정 실측(2026-08-04): 캐러셀 조회 중앙값 48 vs 텍스트 0~4. 형식 차이가 10배 이상이라
+# 같은 글이라도 카드로 내보내는 쪽이 맞다. 텍스트는 캡션으로 같이 실어 검색·복사도 살린다.
+RAW_BASE = "https://raw.githubusercontent.com/gsdo1004-cloud/sajufortune-cards/main"
+
+
+def publish_carousel(image_urls: list[str], caption: str) -> str:
+    import requests
+    tok = os.environ["THREADS_ACCESS_TOKEN"]
+    uid = os.environ["THREADS_USER_ID"]
+    base = f"{GRAPH}/{uid}"
+
+    def _post(url, data):
+        r = requests.post(url, timeout=60, data=data)
+        try:
+            return r.json()
+        except Exception:
+            raise SystemExit(f"[FAIL] 비정상 응답 {r.status_code}: {r.text[:200]}")
+
+    children = []
+    for u in image_urls:
+        j = _post(f"{base}/threads", {
+            "media_type": "IMAGE", "image_url": u,
+            "is_carousel_item": "true", "access_token": tok})
+        cid = j.get("id")
+        if not cid:
+            raise SystemExit(f"[FAIL] item container: {j}")
+        children.append(cid)
+        time.sleep(2)
+
+    j = _post(f"{base}/threads", {
+        "media_type": "CAROUSEL", "children": ",".join(children),
+        "text": caption, "access_token": tok})
+    car = j.get("id")
+    if not car:
+        raise SystemExit(f"[FAIL] carousel container: {j}")
+    time.sleep(6)
+    j = _post(f"{base}/threads_publish", {"creation_id": car, "access_token": tok})
+    pid = j.get("id")
+    if not pid:
+        raise SystemExit(f"[FAIL] publish: {j}")
+    return pid
+
+
 def main():
     argv = sys.argv[1:]
     dry = "--dry-run" in argv
+    prepare = "--prepare" in argv      # 카드만 만들고 끝(커밋 스텝이 뒤따른다)
+    text_only = "--text-only" in argv  # 카드 없이 텍스트로만 발행(폴백)
     slug = None
     if "--sign" in argv:
         i = argv.index("--sign")
@@ -341,6 +387,14 @@ def main():
     print(f"----- {date_iso} 띠 지목 게시물 ({used}/{angle_of(date_iso)}) -----")
     print(text)
     print("------------------------")
+
+    # 1단계 — 카드 생성. raw URL 이 살려면 발행 전에 레포에 커밋돼 있어야 한다.
+    if prepare:
+        import zodiac_signal_card as zsc
+        for p in zsc.build(date_iso, slug):
+            print(f"[CARD] {p.name} {p.stat().st_size // 1024}KB")
+        return
+
     if dry:
         print("[DRY-RUN] 발행하지 않았습니다.")
         return
@@ -351,12 +405,22 @@ def main():
         print(f"[스킵] {date_iso} 띠 지목 게시물 이미 발행됨")
         return
 
-    pid = publish(text)
-    print(f"[OK] signal post: {pid}")
+    # 2단계 — 발행. 카드가 있으면 캐러셀, 없으면 텍스트로 떨어진다.
+    # 계정 실측상 캐러셀이 텍스트보다 10배 이상 도달하므로 카드를 우선한다.
+    cards = sorted((BASE / "cards" / date_iso).glob("signal_*.jpg"))
+    if cards and not text_only:
+        urls = [f"{RAW_BASE}/cards/{date_iso}/{p.name}" for p in cards]
+        pid = publish_carousel(urls, text)
+        kind = f"carousel({len(urls)})"
+    else:
+        pid = publish(text)
+        kind = "text"
+    print(f"[OK] signal post: {pid} ({kind})")
+
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.write_text(
         json.dumps({"post_id": pid, "sign": used, "angle": angle_of(date_iso),
-                    "text": text}, ensure_ascii=False), encoding="utf-8")
+                    "kind": kind, "text": text}, ensure_ascii=False), encoding="utf-8")
 
 
 if __name__ == "__main__":

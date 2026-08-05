@@ -45,9 +45,11 @@ jobs:
           python-version: '3.11'
 
       - name: 의존성 설치
-        run: pip install requests
+        run: pip install requests pillow
 
-      - name: 발행
+      # 공통 인자를 한 번만 만들어 세 스텝이 같은 날짜·띠를 보게 한다.
+      - name: 인자 구성
+        id: args
         run: |
           ARGS=""
           if [ -n "${{ github.event.inputs.date }}" ]; then
@@ -56,10 +58,32 @@ jobs:
           if [ -n "${{ github.event.inputs.sign }}" ]; then
             ARGS="$ARGS --sign ${{ github.event.inputs.sign }}"
           fi
+          echo "v=$ARGS" >> $GITHUB_OUTPUT
+
+      # 1단계 — 카드 5장 생성(배경 템플릿 + PIL 텍스트). 이미지 생성 API 를 쓰지 않는다.
+      - name: 카드 생성
+        run: python zodiac_signal.py ${{ steps.args.outputs.v }} --prepare
+
+      # 2단계 — 카드를 먼저 밀어넣는다. raw.githubusercontent 가 200 을 줘야 발행이 된다.
+      - name: 카드 커밋
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add cards/*/signal_*.jpg 2>/dev/null || true
+          git diff --staged --quiet || git commit -m "chore: 띠 지목 카드"
+          git pull --rebase --autostash || true
+          git push
+          sleep 15   # raw 반영 대기
+
+      # 3단계 — 캐러셀 발행. 카드가 없으면 코드가 알아서 텍스트로 떨어진다.
+      - name: 발행
+        run: |
+          FLAG=""
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            ARGS="$ARGS --dry-run"
+            FLAG="--dry-run"
           fi
-          python zodiac_signal.py $ARGS
+          python zodiac_signal.py ${{ steps.args.outputs.v }} $FLAG
 
       # 발행 마커를 남긴다. 발행 '뒤'에 생기므로 이 스텝은 발행 뒤에 와야 하고,
       # 실패해도 남겨야 하므로 always() 다 — 2026-07-30 에 carousel/reels 가 이걸 놓쳐
