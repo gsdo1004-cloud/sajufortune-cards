@@ -1,0 +1,75 @@
+name: 띠 지목 게시물 (낮)
+
+# 2026-08-05 — AI 뉴스가 나가던 낮 자리를 이 글로 교체했다.
+# 계정 편성: 아침 08시 유령글(오늘 일진) / 낮 띠 지목 / 저녁 21시 카드뉴스·릴스.
+# 세 편이 서로 겹치지 않게 아침은 '일진', 낮은 '띠 하나를 생년까지 지목', 저녁은 '12띠 전체'.
+#
+# 왜 AI 뉴스를 뺐나 — 2026-07-31 실측에서 AI 뉴스 24h 평균 조회가 6회로 운세 카드뉴스(34회)의
+# 18% 였다. 운세 계정에 개발자 뉴스가 섞여 주제 신호도 흐려졌다. ai-news.yml 은 지우지 않고
+# cron 만 껐다(수동 실행은 가능) — 성과 비교에 쓸 수 있어서다.
+on:
+  schedule:
+    # AI 뉴스가 쓰던 시각을 그대로 물려받는다. 명목 KST 11시 + Actions 실측 지연 2.5~2.8h
+    # ≈ KST 12~13시 착지 = 점심 피크. 이 지연폭은 2026-07-31 실측값이다.
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: '발행 기준일 (YYYY-MM-DD, 비우면 오늘)'
+        required: false
+        default: ''
+      sign:
+        description: '띠 지정 (rat/ox/tiger/rabbit/dragon/snake/horse/goat/monkey/rooster/dog/pig). 비우면 날짜로 회전'
+        required: false
+        default: ''
+      dry_run:
+        description: 'true 면 문구만 출력하고 발행하지 않음'
+        required: false
+        default: 'false'
+
+jobs:
+  signal:
+    runs-on: ubuntu-latest
+    # 멱등 마커(threads_pub_signal.json)를 레포에 되돌려 커밋해야 한다.
+    # 기본 GITHUB_TOKEN 은 읽기 전용이라 이게 없으면 push 가 403 으로 죽는다.
+    permissions:
+      contents: write
+    env:
+      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+      THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 의존성 설치
+        run: pip install requests
+
+      - name: 발행
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            ARGS="$ARGS ${{ github.event.inputs.date }}"
+          fi
+          if [ -n "${{ github.event.inputs.sign }}" ]; then
+            ARGS="$ARGS --sign ${{ github.event.inputs.sign }}"
+          fi
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          python zodiac_signal.py $ARGS
+
+      # 발행 마커를 남긴다. 발행 '뒤'에 생기므로 이 스텝은 발행 뒤에 와야 하고,
+      # 실패해도 남겨야 하므로 always() 다 — 2026-07-30 에 carousel/reels 가 이걸 놓쳐
+      # 마커가 원격에 안 남고 멱등 가드가 무효였던 전례가 있다.
+      - name: 발행 마커 커밋
+        if: always() && github.event.inputs.dry_run != 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add cards/*/threads_pub_signal.json 2>/dev/null || true
+          git diff --staged --quiet || git commit -m "chore: 띠 지목 게시물 발행 마커"
+          git pull --rebase --autostash || true
+          git push || true
