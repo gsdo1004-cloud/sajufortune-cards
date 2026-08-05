@@ -151,19 +151,21 @@ def card_cover(set_n: int, date_iso: str, name: str, title: str, sub: str) -> Im
     f_s = F("NanumGothic-Regular.ttf", 42)
 
     # 배경 가운데가 비어 있게 뽑았으므로 그 자리에 얹는다.
-    cy = int(H * 0.40)
+    cy = int(H * 0.37)
     tw = dr.textlength(title, font=f_t)
     dr.text(((W - tw) / 2, cy), title, font=f_t, fill=INK,
             stroke_width=11, stroke_fill=(255, 255, 255))
     d = date_full(date_iso)
     dw = dr.textlength(d, font=f_d)
-    y = cy + 150
+    # 제목(118pt)의 실제 높이가 150 가까워서 +150 이면 날짜 배지가 제목에 붙어 보인다.
+    # 제목 아래끝에서 한 숨 띄운다.
+    y = cy + 206
     dr.rounded_rectangle([(W - dw) / 2 - 32, y - 10, (W + dw) / 2 + 32, y + 70],
                          radius=40, fill=ACCENT)
     dr.text(((W - dw) / 2, y), d, font=f_d, fill=(255, 255, 255))
     if sub:
         sw = dr.textlength(sub, font=f_s)
-        dr.text(((W - sw) / 2, y + 108), sub, font=f_s, fill=SUB,
+        dr.text(((W - sw) / 2, y + 120), sub, font=f_s, fill=SUB,
                 stroke_width=6, stroke_fill=(255, 255, 255))
     return im
 
@@ -201,7 +203,7 @@ def card_group(set_n: int, date_iso: str, name: str,
         dr.rounded_rectangle([TEXT_X - 18, top, W - 34, top + blk],
                              radius=34, fill=PANEL)
         y = top + 18
-        ew = draw_emoji(dr, (TEXT_X + 14, y + 4), r.get("emoji", ""), 56)
+        ew = draw_emoji(dr, (TEXT_X + 14, y + 2), r.get("emoji", ""), 66)
         dr.text((TEXT_X + 14 + ew, y), ko, font=f_ko, fill=INK)
         y += 80
         for ln in line_ls:
@@ -219,9 +221,10 @@ def card_group(set_n: int, date_iso: str, name: str,
 def card_summary(set_n: int, date_iso: str, allrows: dict[str, dict]) -> Image.Image:
     im = bg(set_n, "06_12띠요약")
     dr = ImageDraw.Draw(im, "RGBA")
-    f_h = F("Pretendard-Black.ttf", 46)
-    f_ko = F("GowunBatang-Bold.ttf", 42)
-    f_st = F("Pretendard-Black.ttf", 29)
+    f_h = F("Pretendard-Black.ttf", 48)
+    # 셀 높이가 260 인데 내용이 180 밖에 안 차 아래가 비었다 → 전부 키워 채운다(2026-08-05).
+    f_ko = F("GowunBatang-Bold.ttf", 54)
+    f_st = F("Pretendard-Black.ttf", 35)
 
     hd = f"12띠 총정리 · {date_full(date_iso)}"
     hw = dr.textlength(hd, font=f_h)
@@ -236,18 +239,18 @@ def card_summary(set_n: int, date_iso: str, allrows: dict[str, dict]) -> Image.I
     gap_x, gap_y = 16, 12
     cw = (W - 88 - gap_x) // 2
     ch = (bot - top - gap_y * 5) // 6
-    f_ln = F("NanumGothic-Bold.ttf", 29)
+    f_ln = F("NanumGothic-Bold.ttf", 34)
     for i, ko in enumerate(order):
         cx = 44 + (i % 2) * (cw + gap_x)
         cy = top + (i // 2) * (ch + gap_y)
         dr.rounded_rectangle([cx, cy, cx + cw, cy + ch], radius=26, fill=PANEL)
         st = allrows[ko]["stars"]
-        ew = draw_emoji(dr, (cx + 20, cy + 16), allrows[ko].get("emoji", ""), 40)
-        dr.text((cx + 20 + ew, cy + 14), ko, font=f_ko, fill=INK)
-        dr.text((cx + 22, cy + 66), f"전체 {stars(st['전체'])}", font=f_st, fill=ACCENT)
+        ew = draw_emoji(dr, (cx + 20, cy + 18), allrows[ko].get("emoji", ""), 54)
+        dr.text((cx + 20 + ew, cy + 16), ko, font=f_ko, fill=INK)
+        dr.text((cx + 22, cy + 84), f"전체 {stars(st['전체'])}", font=f_st, fill=ACCENT)
         # 한 줄 운세까지 넣어야 셀이 채워지고 저장할 이유가 생긴다.
         for j, ln in enumerate(wrap(dr, allrows[ko]["line"], f_ln, cw - 44)[:2]):
-            dr.text((cx + 22, cy + 108 + j * 36), ln, font=f_ln, fill=SUB)
+            dr.text((cx + 22, cy + 134 + j * 40), ln, font=f_ln, fill=SUB)
     return im
 
 
