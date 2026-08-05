@@ -26,3 +26,6 @@ reels/*_10s.mp4
 zodiac_task.log
 ai_news_plan.json
 cards/ai_news/_preview.png
+
+# 아바타 PIP 위치 로테이션 상태 (실행 시 생성)
+avatar/state/_pip_state.json
