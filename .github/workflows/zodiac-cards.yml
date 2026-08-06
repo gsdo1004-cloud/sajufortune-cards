@@ -128,7 +128,12 @@ jobs:
             echo "유튜브 발행 보류 중(YOUTUBE_UNMYEONG_ENABLED != 1) — 건너뜁니다."
             exit 0
           fi
-          TODAY=$(TZ=Asia/Seoul date +%F)
+          # 쓰레드 발행과 같은 날짜를 봐야 한다. 이 잡은 21시에 '내일치'를 내보내므로
+          # (zodiac_seo 가 ZODIAC_PUBLISH_OFFSET_DAYS 를 읽는다) 여기서도 같은 오프셋을
+          # 적용한다. date +%F 로 오늘을 집으면 하루 지난 운세가 올라간다.
+          OFFSET="${ZODIAC_PUBLISH_OFFSET_DAYS:-0}"
+          TODAY=$(TZ=Asia/Seoul date -d "+${OFFSET} days" +%F)
+          echo "대상 날짜: $TODAY (offset +${OFFSET})"
           VIDEO="reels/${TODAY}_tts.mp4"
           if [ ! -s "$VIDEO" ]; then
             echo "영상 없음($VIDEO) — 유튜브 업로드 건너뜀"; exit 0
@@ -142,11 +147,14 @@ jobs:
           import zodiac_reels as zr
           day = sys.argv[1]
           m = zr.youtube_meta(day)
+          # 대상 날짜의 자정 정각에 공개한다. slot-hours 로만 두면 Actions 가 자정
+          # 가까이 지연됐을 때 "다음 0시"가 하루 뒤로 밀린다.
           r = subprocess.run([sys.executable, "youtube_upload.py",
                               "--file", f"reels/{day}_tts.mp4",
                               "--title", m["title"],
                               "--description", m["description"],
                               "--tags", ",".join(m["tags"]),
+                              "--publish-at", f"{day}T00:00:00+09:00",
                               "--slot-hours", "0"])
           if r.returncode == 0:
               p = Path("cards") / day / "youtube_pub.json"
