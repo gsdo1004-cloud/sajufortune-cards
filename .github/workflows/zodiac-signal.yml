@@ -44,8 +44,18 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: 폰트·ffmpeg 설치
+        run: sudo apt-get update && sudo apt-get install -y fonts-noto-color-emoji ffmpeg
+
+      # Supertonic 모델(약 400MB)은 첫 실행에만 받고 이후 캐시를 쓴다 — cards.yml 과 동일
+      - name: Supertonic 모델 캐시
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/supertonic3
+          key: supertonic3-model-v1
+
       - name: 의존성 설치
-        run: pip install requests pillow
+        run: pip install requests pillow edge-tts supertonic
 
       # 공통 인자를 한 번만 만들어 세 스텝이 같은 날짜·띠를 보게 한다.
       - name: 인자 구성
@@ -85,6 +95,64 @@ jobs:
           fi
           python zodiac_signal.py ${{ steps.args.outputs.v }} $FLAG
 
+      # [2026-08-06] 같은 재료(signal_01..05.jpg)로 9:16 쇼츠를 만들어 유튜브
+      # 운명과학TV 에 예약발행한다. 쓰레드 발행 '뒤'에 두고 continue-on-error 로
+      # 감싼다 — 새 라인이 죽어도 검증된 쓰레드 발행까지 물고 넘어지면 안 된다.
+      # TTS·아바타는 zodiac_reels.make_reel_tts 재사용이라 띠별 영상과 같은 품질이다.
+      - name: 쇼츠 영상 생성 (띠 지목)
+        if: github.event.inputs.dry_run != 'true'
+        continue-on-error: true
+        env:
+          ZODIAC_AVATAR: "1"
+          SUPERTONIC_VOICE: "M2"
+        run: |
+          DATE="${{ github.event.inputs.date }}"
+          [ -z "$DATE" ] && DATE=$(TZ=Asia/Seoul date +%F)
+          SIGN="${{ github.event.inputs.sign }}"
+          python zodiac_signal_reel.py "$DATE" $SIGN
+
+      - name: 유튜브 예약발행 (운명과학TV · 띠 지목)
+        if: github.event.inputs.dry_run != 'true'
+        continue-on-error: true
+        env:
+          YOUTUBE_TOKEN_UNMYEONG: ${{ secrets.YOUTUBE_TOKEN_UNMYEONG }}
+          YOUTUBE_CLIENT_SECRETS: ${{ secrets.YOUTUBE_CLIENT_SECRETS }}
+          YOUTUBE_UNMYEONG_ENABLED: ${{ vars.YOUTUBE_UNMYEONG_ENABLED }}
+        run: |
+          if [ "${YOUTUBE_UNMYEONG_ENABLED}" != "1" ]; then
+            echo "유튜브 발행 보류 중(YOUTUBE_UNMYEONG_ENABLED != 1) — 건너뜁니다."
+            exit 0
+          fi
+          DATE="${{ github.event.inputs.date }}"
+          [ -z "$DATE" ] && DATE=$(TZ=Asia/Seoul date +%F)
+          VIDEO="reels/${DATE}_signal.mp4"
+          if [ ! -s "$VIDEO" ]; then
+            echo "영상 없음($VIDEO) — 유튜브 업로드 건너뜀"; exit 0
+          fi
+          if [ -f "cards/${DATE}/youtube_pub_signal.json" ]; then
+            echo "이미 업로드됨(멱등 가드) — 건너뜀"; exit 0
+          fi
+          python - "$DATE" <<'PY'
+          import json, subprocess, sys
+          from pathlib import Path
+          day = sys.argv[1]
+          meta = json.loads((Path("cards") / day / "signal_youtube_meta.json")
+                            .read_text(encoding="utf-8"))
+          # 잡이 12~13시에 착지하므로 같은 날 18시 공개가 여유 있게 잡힌다.
+          r = subprocess.run([sys.executable, "youtube_upload.py",
+                              "--file", f"reels/{day}_signal.mp4",
+                              "--title", meta["title"],
+                              "--description", meta["description"],
+                              "--tags", ",".join(meta["tags"]),
+                              "--publish-at", f"{day}T18:00:00+09:00",
+                              "--slot-hours", "18"])
+          if r.returncode == 0:
+              p = Path("cards") / day / "youtube_pub_signal.json"
+              p.write_text(json.dumps({"uploaded": True}, ensure_ascii=False),
+                           encoding="utf-8")
+          sys.exit(r.returncode)
+          PY
+
       # 발행 마커를 남긴다. 발행 '뒤'에 생기므로 이 스텝은 발행 뒤에 와야 하고,
       # 실패해도 남겨야 하므로 always() 다 — 2026-07-30 에 carousel/reels 가 이걸 놓쳐
       # 마커가 원격에 안 남고 멱등 가드가 무효였던 전례가 있다.
@@ -93,7 +161,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add cards/*/threads_pub_signal.json 2>/dev/null || true
+          git add cards/*/threads_pub_signal.json cards/*/youtube_pub_signal.json 2>/dev/null || true
           git diff --staged --quiet || git commit -m "chore: 띠 지목 게시물 발행 마커"
           git pull --rebase --autostash || true
           git push || true
