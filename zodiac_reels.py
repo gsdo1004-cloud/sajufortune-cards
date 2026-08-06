@@ -162,15 +162,27 @@ def _dur(path):
     return float(json.loads(r.stdout)["format"]["duration"])
 
 
-def make_reel_tts(date_iso):
+def make_reel_tts(date_iso, card_stem: str = "card_", narrs: list[str] | None = None,
+                  out_name: str | None = None):
+    """카드 + 나레이션 → 9:16 릴스.
+
+    2026-08-06 파라미터 3개를 열었다. 띠 지목(signal_*.jpg) 영상을 만들어야 하는데
+    TTS·길이게이트·ffmpeg 조립을 복제하면 한쪽만 고쳐져 조용히 어긋난다.
+    기본값은 종전 그대로라 띠별운세 호출부는 손댈 필요가 없다.
+      card_stem : 카드 파일 앞머리 ("card_" | "signal_")
+      narrs     : 나레이션 줄. 안 주면 그날 띠별운세에서 뽑는다
+      out_name  : 결과 파일명. 안 주면 {날짜}_tts.mp4
+    """
     _d = BASE / "cards" / date_iso
-    cards = sorted(_d.glob("card_*.png")) or sorted(_d.glob("card_*.jpg"))
+    cards = (sorted(_d.glob(f"{card_stem}*.png"))
+             or sorted(_d.glob(f"{card_stem}*.jpg")))
     if not cards:
-        raise SystemExit(f"[FAIL] 카드 없음: {date_iso} (generate 먼저)")
-    narrs = narration_lines(date_iso)
+        raise SystemExit(f"[FAIL] 카드 없음: {date_iso} ({card_stem}*) — generate 먼저")
+    if narrs is None:
+        narrs = narration_lines(date_iso)
     n = min(len(cards), len(narrs))
 
-    tmp = BASE / "cards" / date_iso / "_reel"
+    tmp = BASE / "cards" / date_iso / f"_reel_{card_stem.strip('_')}"
     tmp.mkdir(exist_ok=True)
 
     # 1) 먼저 나레이션만 합성해 전체 길이를 잰다. 85초를 넘으면 말 속도를 올려 재합성.
@@ -211,7 +223,7 @@ def make_reel_tts(date_iso):
 
     lst = tmp / "list.txt"
     lst.write_text("".join(f"file '{c.as_posix()}'\n" for c in clips), encoding="utf-8")
-    out = BASE / "reels" / f"{date_iso}_tts.mp4"
+    out = BASE / "reels" / (out_name or f"{date_iso}_tts.mp4")
     out.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run(
         ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst),
@@ -290,6 +302,32 @@ def publish_reply(post_id, text):
     time.sleep(3)
     j = _post(f"{base}/threads_publish", {"creation_id": cid, "access_token": tok})
     print(f"[OK] reply: {j.get('id')}")
+
+
+def youtube_meta(date_iso: str) -> dict:
+    """같은 릴스를 유튜브 운명과학TV 에도 올릴 때 쓰는 제목·설명.
+
+    2026-08-06: 집 PC 의 zodiac_daily_pipeline 이 은퇴하면서 유튜브 발행 경로가
+    끊겼다. 영상은 이 모듈이 이미 매일 만들고 있으므로 새로 만들지 않고 그대로 올린다.
+
+    ⚠️ 설명란에 URL 을 넣지 않는다 (2026-08-06 한밝님 지시).
+    쇼츠는 설명란이 접혀 URL 이 눌리지 않는다. 클릭도 안 되는 링크를 적어 두면
+    유입에는 도움이 안 되면서 "외부 유인 목적" 신호만 남는다. 유일하게 살아 있는
+    통로는 채널 프로필 링크이므로 거기로 안내하는 문구만 둔다.
+    """
+    return {
+        "title": f"{date_full(date_iso)} 오늘의 띠별 운세 — 12띠 흐름"[:95],
+        "description": (
+            f"{date_full(date_iso)} 오늘의 띠별 운세입니다.\n"
+            f"열두 띠의 오늘 흐름을 짧게 정리했습니다.\n\n"
+            f"👉 내 사주 기준 오늘 운세와 사주 유형(살림꾼·해결사·재주꾼 …)은\n"
+            f"   채널 프로필 링크에서 무료로 확인하실 수 있습니다.\n"
+            f"   생년월일만 넣으시면 바로 나옵니다.\n\n"
+            f"#오늘의운세 #띠별운세 #사주 #운세 #무료운세\n\n"
+            f"※ 본 콘텐츠는 정통 사주명리학을 바탕으로 한 참고용입니다."
+        ),
+        "tags": ["오늘의운세", "띠별운세", "사주", "운세", "무료운세", "십이지신"],
+    }
 
 
 def do_publish(date_iso):

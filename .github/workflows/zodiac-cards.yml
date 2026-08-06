@@ -107,6 +107,54 @@ jobs:
         continue-on-error: true
         run: python zodiac_reels.py publish
 
+      # [2026-08-06] 유튜브 운명과학TV 예약발행.
+      # 집 PC 의 zodiac_daily_pipeline 이 8/6 부로 은퇴하면서 유튜브 발행 경로가
+      # 통째로 끊겼다. 영상은 위에서 이미 만들었으므로 새로 만들지 않고 그대로 올린다.
+      # 항상 private + publishAt(다음 00시) — 올라가자마자 공개되면 되돌릴 틈이 없다.
+      #
+      # 스위치로 둔 이유: 쓰레드·인스타 쪽은 제재 이력이 있어 발행을 멈춰야 할 때가
+      # 오는데, 그때 유튜브까지 같이 죽이거나 반대로 유튜브만 급히 끄려면 코드를
+      # 고쳐야 한다. 변수 하나로 끊을 수 있게 해 둔다.
+      # ▶ 제어: 레포 Settings → Secrets and variables → Actions → Variables 탭의
+      #    YOUTUBE_UNMYEONG_ENABLED (1=발행, 그 외=보류). 코드는 건드릴 필요 없다.
+      - name: 유튜브 예약발행 (운명과학TV)
+        continue-on-error: true
+        env:
+          YOUTUBE_TOKEN_UNMYEONG: ${{ secrets.YOUTUBE_TOKEN_UNMYEONG }}
+          YOUTUBE_CLIENT_SECRETS: ${{ secrets.YOUTUBE_CLIENT_SECRETS }}
+          YOUTUBE_UNMYEONG_ENABLED: ${{ vars.YOUTUBE_UNMYEONG_ENABLED }}
+        run: |
+          if [ "${YOUTUBE_UNMYEONG_ENABLED}" != "1" ]; then
+            echo "유튜브 발행 보류 중(YOUTUBE_UNMYEONG_ENABLED != 1) — 건너뜁니다."
+            exit 0
+          fi
+          TODAY=$(TZ=Asia/Seoul date +%F)
+          VIDEO="reels/${TODAY}_tts.mp4"
+          if [ ! -s "$VIDEO" ]; then
+            echo "영상 없음($VIDEO) — 유튜브 업로드 건너뜀"; exit 0
+          fi
+          if [ -f "cards/${TODAY}/youtube_pub.json" ]; then
+            echo "이미 업로드됨(멱등 가드) — 건너뜀"; exit 0
+          fi
+          python - "$TODAY" <<'PY'
+          import json, subprocess, sys
+          from pathlib import Path
+          import zodiac_reels as zr
+          day = sys.argv[1]
+          m = zr.youtube_meta(day)
+          r = subprocess.run([sys.executable, "youtube_upload.py",
+                              "--file", f"reels/{day}_tts.mp4",
+                              "--title", m["title"],
+                              "--description", m["description"],
+                              "--tags", ",".join(m["tags"]),
+                              "--slot-hours", "0"])
+          if r.returncode == 0:
+              p = Path("cards") / day / "youtube_pub.json"
+              p.parent.mkdir(parents=True, exist_ok=True)
+              p.write_text(json.dumps({"uploaded": True}, ensure_ascii=False), encoding="utf-8")
+          sys.exit(r.returncode)
+          PY
+
       # [2026-07-30] 멱등 마커를 원격에 남긴다.
       # zodiac_cardnews/reels 는 발행 후 cards/{날짜}/threads_pub_*.json 을 쓰고,
       # 다음 실행에서 그 파일이 있으면 스킵한다. 그런데 위의 커밋 스텝은 발행 '전'에만
