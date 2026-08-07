@@ -55,7 +55,7 @@ jobs:
           key: supertonic3-model-v1
 
       - name: 의존성 설치
-        run: pip install requests pillow edge-tts supertonic
+        run: pip install requests pillow edge-tts supertonic google-api-python-client google-auth-oauthlib google-auth-httplib2
 
       # 공통 인자를 한 번만 만들어 세 스텝이 같은 날짜·띠를 보게 한다.
       - name: 인자 구성
