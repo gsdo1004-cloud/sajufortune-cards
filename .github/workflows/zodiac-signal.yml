@@ -161,7 +161,12 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add cards/*/threads_pub_signal.json cards/*/youtube_pub_signal.json 2>/dev/null || true
+          # [2026-08-07] 줄을 나눈다. git add 는 pathspec 하나라도 안 맞으면 통째로
+          # 실패하므로, 한 줄로 묶으면 영상 생성이 실패해 유튜브 마커가 없는 날
+          # 스레드 마커까지 못 남긴다 → 재실행 시 스레드 중복 발행.
+          # (실측: 한 줄 = 0개 스테이징, 두 줄 = 있는 것만 정상 스테이징)
+          git add cards/*/threads_pub_signal.json 2>/dev/null || true
+          git add cards/*/youtube_pub_signal.json 2>/dev/null || true
           git diff --staged --quiet || git commit -m "chore: 띠 지목 게시물 발행 마커"
           git pull --rebase --autostash || true
           git push || true
