@@ -5,8 +5,14 @@ on:
     # 2026-07-21: KST 00:02 → 21:00 으로 이동. 한밝님이 쓰레드를 켜고 있는 저녁 시간대에
     # 발행해야 노출이 잘 됨. 재료(카드+영상)는 전날 18:00 로컬 파이프라인이 이미 push 해둠 →
     # 당일 21시엔 그날치가 이미 존재. GitHub Actions cron 지연 감안 21~22시 실행.
-    # (UTC 12:00 = KST 21:00 당일 — TZ=Asia/Seoul 로 날짜를 뽑으므로 날짜 경계 문제 없음)
-    - cron: '0 12 * * *'    # KST 21:00
+    # (UTC 11:00 = KST 20:00 당일 — TZ=Asia/Seoul 로 날짜를 뽑으므로 날짜 경계 문제 없음)
+    #
+    # [2026-08-07] 한밝님 지시: '오늘의 운세'는 전날 저녁 20~24시에 올린다.
+    # 예정 21:00 일 때 실측 착지가 21:56~23:15 (지연 56분~2h15m) 로 창 상단이 빠듯했다.
+    # 지연이 3시간으로만 튀어도 자정을 넘겨 '전날 업로드'가 깨지고, 유튜브 publishAt
+    # (D+1 00:00) 도 과거 시각이 돼 즉시 공개로 새어 나간다. 예정을 20:00 으로 당겨
+    # 착지를 20:56~22:15 로 만들어 창 한가운데에 놓는다.
+    - cron: '0 11 * * *'    # KST 20:00
   workflow_dispatch:
     inputs:
       offset_days:
@@ -64,14 +70,20 @@ jobs:
       # 이전에는 집 PC 18시 스케줄이 Topview 로 만들어 커밋해 뒀고 여기서는 건너뛰기만 했다.
       # 이제 이미지 생성 API 를 쓰지 않으므로 러너가 직접 만든다 — 크레딧 0, 집 PC 불필요.
       # 집 PC 가 만들어 둔 재고(png)가 있으면 그대로 존중한다(전환기 안전망).
+      # [2026-08-07] 생성 날짜를 발행 날짜에 맞춘다.
+      # 이 잡은 '내일치'를 발행하는데(ZODIAC_PUBLISH_OFFSET_DAYS=1) 생성 가드만
+      # 오프셋 없는 '오늘'을 보고 있었다. 집 PC 파이프라인이 D+1 버퍼를 미리
+      # 커밋해 주던 동안에는 가려져 있었지만, 그게 08-06 은퇴하면서 드러났다 —
+      # 오늘치가 이미 있으면 생성을 건너뛰고, 정작 발행 대상인 내일치는 없어서
+      # 캐러셀·릴스·유튜브가 모두 빈손이 된다. 아래 유튜브 스텝과 같은 식으로 맞춘다.
       - name: 카드 생성 (기존 커밋분 있으면 건너뜀)
         run: |
-          TODAY=$(TZ=Asia/Seoul date +%F)
-          N=$(ls cards/$TODAY/card_*.png cards/$TODAY/card_*.jpg 2>/dev/null | wc -l)
+          TARGET=$(TZ=Asia/Seoul date -d "+${ZODIAC_PUBLISH_OFFSET_DAYS:-0} days" +%F)
+          N=$(ls cards/$TARGET/card_*.png cards/$TARGET/card_*.jpg 2>/dev/null | wc -l)
           if [ "$N" -ge 5 ]; then
-            echo "카드 ${N}장 존재 — 생성 건너뜀"
+            echo "카드 ${N}장 존재($TARGET) — 생성 건너뜀"
           else
-            python zodiac_cardnews_tpl.py generate "$TODAY"
+            python zodiac_cardnews_tpl.py generate "$TARGET"
           fi
 
       - name: 릴스 영상 생성 (커밋분 있으면 건너뜀)
@@ -81,9 +93,12 @@ jobs:
           ZODIAC_AVATAR: "1"
           SUPERTONIC_VOICE: "M2"
         run: |
-          TODAY=$(TZ=Asia/Seoul date +%F)
-          if [ -s "reels/${TODAY}_tts.mp4" ]; then
-            echo "쇼츠 영상 존재 — 레거시 릴스 생성 건너뜀"
+          # 가드도 발행 대상(D+1)을 봐야 한다 — 위 '카드 생성' 스텝과 같은 이유.
+          # zodiac_reels.py generate 는 인자가 없으면 zs.target_iso() = 오늘+오프셋을
+          # 만들므로, 가드만 오늘을 보면 만들 파일과 확인할 파일이 하루 어긋난다.
+          TARGET=$(TZ=Asia/Seoul date -d "+${ZODIAC_PUBLISH_OFFSET_DAYS:-0} days" +%F)
+          if [ -s "reels/${TARGET}_tts.mp4" ]; then
+            echo "쇼츠 영상 존재($TARGET) — 레거시 릴스 생성 건너뜀"
           else
             python zodiac_reels.py generate
           fi
