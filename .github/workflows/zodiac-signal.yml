@@ -157,6 +157,33 @@ jobs:
           sys.exit(r.returncode)
           PY
 
+      # Threads VIDEO는 공개 raw URL에서 mp4를 받아간다. 유튜브 예약 업로드가 먼저
+      # 성공한 뒤에만 이 파일을 push하며, 아래 gate가 두 Threads 발행의 선행조건이다.
+      - name: 쇼츠 원본 커밋·푸시 (Threads VIDEO 준비)
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          DATE="${{ github.event.inputs.date }}"
+          [ -z "$DATE" ] && DATE=$(TZ=Asia/Seoul date +%F)
+          git add -- "reels/${DATE}_signal.mp4" "cards/${DATE}/signal_youtube_meta.json"
+          git add -- "cards/${DATE}/youtube_pub_signal.json" 2>/dev/null || true
+          git diff --staged --quiet || git commit -m "chore: 띠 지목 쇼츠 원본"
+          git pull --rebase --autostash || true
+          git push
+          RAW_URL="https://raw.githubusercontent.com/gsdo1004-cloud/sajufortune-cards/main/reels/${DATE}_signal.mp4"
+          for TRY in $(seq 1 12); do
+            if curl --fail --silent --head "$RAW_URL" >/dev/null; then
+              echo "[OK] Threads VIDEO 원본 확인: $RAW_URL"
+              break
+            fi
+            if [ "$TRY" = "12" ]; then
+              echo "[FAIL] raw mp4가 공개되지 않아 Threads 발행을 중단: $RAW_URL"
+              exit 1
+            fi
+            sleep 10
+          done
+
       # 유튜브 예약 완료가 확인된 동일 대본만 Threads 캐러셀로 발행한다.
       - name: Threads 발행 선행조건 확인
         id: threads_gate
@@ -171,9 +198,21 @@ jobs:
             echo "유튜브 예약 표식 없음 — Threads 발행 보류: ${DATE}"
           fi
 
-      # 3단계 — 2장 캐러셀 발행. 카드가 없으면 코드가 알아서 텍스트로 떨어진다.
-      - name: Threads 발행
+      # 3단계 — 유튜브 예약 성공 뒤에만 같은 쇼츠를 Threads VIDEO로 발행한다.
+      # 영상 실패가 카드뉴스까지 막지 않도록 각 발행은 별도 단계·별도 멱등 마커를 쓴다.
+      - name: Threads 쇼츠 영상 발행
         if: github.event.inputs.dry_run != 'true' && steps.threads_gate.outputs.ready == 'true'
+        continue-on-error: true
+        run: |
+          DATE="${{ github.event.inputs.date }}"
+          [ -z "$DATE" ] && DATE=$(TZ=Asia/Seoul date +%F)
+          SIGN="${{ github.event.inputs.sign }}"
+          python zodiac_signal_reel.py "$DATE" $SIGN --publish-threads
+
+      # 4단계 — 같은 2장 카드뉴스를 Threads 캐러셀로도 발행한다.
+      - name: Threads 카드뉴스 발행
+        if: github.event.inputs.dry_run != 'true' && steps.threads_gate.outputs.ready == 'true'
+        continue-on-error: true
         run: python zodiac_signal.py ${{ steps.args.outputs.v }}
 
       # 발행 마커를 남긴다. 발행 '뒤'에 생기므로 이 스텝은 발행 뒤에 와야 하고,
@@ -189,6 +228,7 @@ jobs:
           # 스레드 마커까지 못 남긴다 → 재실행 시 스레드 중복 발행.
           # (실측: 한 줄 = 0개 스테이징, 두 줄 = 있는 것만 정상 스테이징)
           git add cards/*/threads_pub_signal.json 2>/dev/null || true
+          git add cards/*/threads_pub_signal_video.json 2>/dev/null || true
           git add cards/*/youtube_pub_signal.json 2>/dev/null || true
           git diff --staged --quiet || git commit -m "chore: 띠 지목 게시물 발행 마커"
           git pull --rebase --autostash || true

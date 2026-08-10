@@ -28,6 +28,8 @@ if str(BASE) not in sys.path:
 
 import zodiac_signal as zsig            # noqa: E402
 
+RAW_BASE = "https://raw.githubusercontent.com/gsdo1004-cloud/sajufortune-cards/main"
+
 # ⚠️ 설명란에 URL 을 넣지 않는다 (2026-08-06 한밝님 지시).
 # 쇼츠는 설명란이 접혀 링크가 눌리지 않는다 — 클릭도 안 되는 URL 은 유입에 도움이
 # 안 되면서 외부 유인 신호만 남긴다. 살아 있는 통로인 프로필 링크로만 안내한다.
@@ -53,6 +55,56 @@ def youtube_meta(date_iso: str, slug: str | None = None) -> dict:
         "description": desc,
         "tags": [p["sign_ko"], "오늘의운세", "띠별운세", "사주", "운세", "무료운세"],
     }
+
+
+def threads_video_caption(date_iso: str, slug: str | None = None) -> str:
+    """Threads 영상용 캡션도 카드·쇼츠와 같은 정본 일진 결과만 사용한다."""
+    p = zsig.daily_story(date_iso, slug)
+    return (
+        f"{p['date']} {p['sign_ko']} {p['focus_label']}\n\n"
+        f"{p['hook']}\n{p['overall']}\n\n"
+        f"오늘의 포인트: {p['focus']}\n"
+        f"오늘의 실천: {p['action']}\n"
+        f"{p['lucky']}\n\n"
+        f"내 사주 기준 흐름은 프로필에서 확인해 봐.\n"
+        f"#{p['sign_ko']} #오늘의운세 #띠별운세 #사주"
+    )
+
+
+def publish_threads_video(date_iso: str, slug: str | None = None) -> str | None:
+    """신호 쇼츠를 Threads VIDEO로 발행하고, 영상 전용 마커로 중복을 막는다.
+
+    호출 전 워크플로가 유튜브 예약 업로드 성공 마커를 검사한다. 이 함수는 그 뒤에만
+    실행되며, 공개 GitHub raw URL의 mp4를 Threads가 가져가도록 한다.
+    """
+    marker = BASE / "cards" / date_iso / "threads_pub_signal_video.json"
+    if marker.exists():
+        print(f"[스킵] {date_iso} 띠 지목 Threads 영상 이미 발행됨")
+        return None
+
+    video = BASE / "reels" / f"{date_iso}_signal.mp4"
+    if not video.is_file() or video.stat().st_size == 0:
+        raise FileNotFoundError(f"띠 지목 쇼츠가 없습니다: {video}")
+
+    import zodiac_reels as zr
+
+    p = zsig.daily_story(date_iso, slug)
+    url = f"{RAW_BASE}/reels/{date_iso}_signal.mp4"
+    pid = zr.publish_video(url, threads_video_caption(date_iso, slug))
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text(
+        json.dumps({
+            "post_id": pid,
+            "sign": p["slug"],
+            "day_pillar": p["day_pillar"],
+            "focus": p["focus_key"],
+            "kind": "video",
+            "video_url": url,
+        }, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    print(f"[OK] signal Threads video: {pid}")
+    return pid
 
 
 def _assert_card_contract(date_iso: str):
@@ -83,6 +135,9 @@ def main() -> int:
 
     if "--meta" in sys.argv:
         print(json.dumps(youtube_meta(date_iso, slug), ensure_ascii=False, indent=2))
+        return 0
+    if "--publish-threads" in sys.argv:
+        publish_threads_video(date_iso, slug)
         return 0
     if "--narration" in sys.argv:
         for i, line in enumerate(narration(date_iso, slug), 1):
