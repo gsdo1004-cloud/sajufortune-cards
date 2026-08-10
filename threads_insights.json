@@ -103,6 +103,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 258.4,
+     "views": 24,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-07-30T13:33:02+0000",
@@ -205,6 +215,16 @@
     {
      "t": "2026-08-09T07:07:41Z",
      "age_h": 233.6,
+     "views": 53,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 258.4,
      "views": 53,
      "likes": 0,
      "replies": 1,
@@ -319,6 +339,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 241.2,
+     "views": 5,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-07-31T06:46:56+0000",
@@ -421,6 +451,16 @@
     {
      "t": "2026-08-09T07:07:41Z",
      "age_h": 216.3,
+     "views": 5,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 241.2,
      "views": 5,
      "likes": 0,
      "replies": 0,
@@ -535,6 +575,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 265.4,
+     "views": 19,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-07-30T06:32:15+0000",
@@ -637,6 +687,16 @@
     {
      "t": "2026-08-09T07:07:41Z",
      "age_h": 240.6,
+     "views": 2,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 265.4,
      "views": 2,
      "likes": 0,
      "replies": 0,
@@ -751,6 +811,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 289.4,
+     "views": 7,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-07-29T06:34:36+0000",
@@ -853,6 +923,16 @@
     {
      "t": "2026-08-09T07:07:41Z",
      "age_h": 264.6,
+     "views": 10,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 289.4,
      "views": 10,
      "likes": 0,
      "replies": 0,
@@ -967,6 +1047,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 313.4,
+     "views": 5,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-07-28T06:30:41+0000",
@@ -1069,6 +1159,16 @@
     {
      "t": "2026-08-09T07:07:41Z",
      "age_h": 288.6,
+     "views": 5,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 313.4,
      "views": 5,
      "likes": 0,
      "replies": 0,
@@ -1186,7 +1286,8 @@
     }
    ],
    "timestamp": "2026-07-27T07:36:29+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DbScWdulpmF"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DbScWdulpmF",
+   "closed": true
   },
   "18087170432157537": {
    "channel": "ai_news",
@@ -1294,7 +1395,8 @@
     }
    ],
    "timestamp": "2026-07-27T07:36:16+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DbScUx0FraM"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DbScUx0FraM",
+   "closed": true
   },
   "18085528958416287": {
    "channel": "ai_news",
@@ -1402,7 +1504,8 @@
     }
    ],
    "timestamp": "2026-07-26T19:55:07+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DbRMFbfGIiO"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DbRMFbfGIiO",
+   "closed": true
   },
   "18087917501648834": {
    "channel": "reels",
@@ -1491,6 +1594,16 @@
     {
      "t": "2026-08-09T07:07:41Z",
      "age_h": 209.4,
+     "views": 22,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 234.2,
      "views": 22,
      "likes": 0,
      "replies": 1,
@@ -1589,6 +1702,16 @@
     {
      "t": "2026-08-09T07:07:41Z",
      "age_h": 209.4,
+     "views": 47,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 234.2,
      "views": 47,
      "likes": 0,
      "replies": 1,
@@ -1711,6 +1834,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 218.4,
+     "views": 4,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-08-01T05:34:42+0000",
@@ -1809,6 +1942,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 218.4,
+     "views": 3,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-08-01T05:34:28+0000",
@@ -1891,6 +2034,16 @@
     {
      "t": "2026-08-09T07:07:41Z",
      "age_h": 186.1,
+     "views": 24,
+     "likes": 1,
+     "replies": 3,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 210.9,
      "views": 24,
      "likes": 1,
      "replies": 3,
@@ -1980,6 +2133,16 @@
      "t": "2026-08-09T07:07:41Z",
      "age_h": 186.1,
      "views": 68,
+     "likes": 1,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 211.0,
+     "views": 73,
      "likes": 1,
      "replies": 1,
      "reposts": 0,
@@ -2091,6 +2254,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 194.4,
+     "views": 13,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-08-02T05:34:51+0000",
@@ -2179,6 +2352,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 194.4,
+     "views": 5,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-08-02T05:34:39+0000",
@@ -2257,6 +2440,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 186.9,
+     "views": 25,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-08-02T13:04:02+0000",
@@ -2329,6 +2522,16 @@
     {
      "t": "2026-08-09T07:07:41Z",
      "age_h": 162.1,
+     "views": 52,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 186.9,
      "views": 52,
      "likes": 0,
      "replies": 1,
@@ -2431,6 +2634,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 170.1,
+     "views": 7,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-08-03T05:50:43+0000",
@@ -2509,6 +2722,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 170.1,
+     "views": 11,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-08-03T05:50:28+0000",
@@ -2577,6 +2800,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 161.6,
+     "views": 26,
+     "likes": 1,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-08-03T14:21:07+0000",
@@ -2639,6 +2872,16 @@
     {
      "t": "2026-08-09T07:07:41Z",
      "age_h": 136.8,
+     "views": 35,
+     "likes": 1,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 161.6,
      "views": 35,
      "likes": 1,
      "replies": 1,
@@ -2731,6 +2974,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 146.6,
+     "views": 2,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-08-04T05:21:51+0000",
@@ -2799,6 +3052,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 146.6,
+     "views": 5,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-08-04T05:21:36+0000",
@@ -2857,6 +3120,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 138.0,
+     "views": 40,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-08-04T13:53:33+0000",
@@ -2909,6 +3182,16 @@
     {
      "t": "2026-08-09T07:07:41Z",
      "age_h": 113.3,
+     "views": 75,
+     "likes": 1,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 138.1,
      "views": 75,
      "likes": 1,
      "replies": 1,
@@ -2986,6 +3269,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 114.2,
+     "views": 45,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-08-05T13:45:52+0000",
@@ -3042,6 +3335,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 79.1,
+     "views": 23,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-08-07T00:51:18+0000",
@@ -3074,6 +3377,16 @@
     {
      "t": "2026-08-09T07:07:41Z",
      "age_h": 65.3,
+     "views": 14,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 90.2,
      "views": 14,
      "likes": 0,
      "replies": 1,
@@ -3118,6 +3431,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 79.5,
+     "views": 37,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-08-07T00:25:32+0000",
@@ -3151,6 +3474,16 @@
      "t": "2026-08-09T07:07:41Z",
      "age_h": 65.4,
      "views": 59,
+     "likes": 1,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 90.2,
+     "views": 63,
      "likes": 1,
      "replies": 1,
      "reposts": 0,
@@ -3196,6 +3529,24 @@
    ],
    "timestamp": "2026-08-08T23:48:05+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/DbzFFGmD-4O"
+  },
+  "17954576283198437": {
+   "channel": "ghost",
+   "head": "병진일. 8월 10일(월)의 기운.\n쥐띠, 원숭이띠, 닭띠 — 오늘 이 띠들은 하려던 거 밀어붙여도 되는 날.\n매일 아침 올린",
+   "snapshots": [
+    {
+     "t": "2026-08-10T07:56:24Z",
+     "age_h": 8.1,
+     "views": 0,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-09T23:50:31+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Db1qJuwEa_9"
   }
  }
 }
