@@ -9,13 +9,13 @@ AI 이미지로 되돌리되, 그 사고를 반복하지 않도록 다음 안전
   · 파일 존재·60KB 이상·PIL 열림·9:16 비율을 모두 통과해야 채택한다.
   · Topview 잔액이 3 크레딧 미만이거나 401/4100이 나오면 즉시 AI 생성을 중단하고 경보다.
   · AI 카드의 한글은 완전 자동 판독이 어려워, 매일 `signal_ai_manifest.json`과 로그에
-    **육안 확인 필요**를 남긴다. 이미지/API 검증 실패 시에는 그 날짜 5장을 기존 PIL 방식으로
+    **육안 확인 필요**를 남긴다. 이미지/API 검증 실패 시에는 그 날짜 2장을 기존 PIL 방식으로
     즉시 다시 만들어 한글이 깨진 카드를 발행하지 않는다.
 
-매일 5장을 새로 생성하므로 현재 1K 기준 약 1.0 Topview 크레딧/일(단가 변동 가능)이 든다.
+매일 2장을 새로 생성하므로 현재 1K 기준 약 0.4 Topview 크레딧/일(단가 변동 가능)이 든다.
 
 실행:
-  python zodiac_signal_card.py 2026-08-06            # cards/2026-08-06/signal_01..05.png
+  python zodiac_signal_card.py 2026-08-06            # cards/2026-08-06/signal_01..02.jpg
   python zodiac_signal_card.py 2026-08-06 --sign dog
 """
 from __future__ import annotations
@@ -203,30 +203,15 @@ def card_cta(slug: str, sign_ko: str, cta: str) -> Image.Image:
 def build_pil_fallback(date_iso: str, slug: str | None = None) -> list[Path]:
     """AI 생성이 불가하거나 검증에 실패한 **그 날짜만** 쓰는 한글 안전 폴백."""
     slug = slug or zsig.sign_of(date_iso)
-    d = dt.date.fromisoformat(date_iso)
-    sign_ko = zs.SLUG_TO_INFO[slug][1]
-    if not sign_ko.endswith("띠"):
-        sign_ko += "띠"
-
-    angle = zsig.angle_of(date_iso)
-    trait, quote, turn = zsig.TRAITS[slug][angle]
-    years = " · ".join(zsig.pick_years(slug, date_iso))
-    hook = zsig.HOOKS[d.toordinal() % len(zsig.HOOKS)].format(sign=sign_ko)
-    bridges = zsig.BRIDGES[angle]
-    bridge = bridges[d.toordinal() % len(bridges)]
-    cta = zsig.CTA_POOL[d.toordinal() % len(zsig.CTA_POOL)].format(sign=sign_ko)
+    story = zsig.daily_story(date_iso, slug)
 
     out_dir = BASE / "cards" / date_iso
     out_dir.mkdir(parents=True, exist_ok=True)
     imgs = [
-        card_cover(slug, sign_ko, years, hook),
-        card_text(slug, 1, trait),
-        card_quote(slug, quote, bridge),
-        card_text(slug, 3, turn, color=(200, 40, 90),
-                  font_name="GowunBatang-Bold.ttf", size=60),
-        card_cta(slug, sign_ko, cta),
+        card_cover(slug, story["sign_ko"], f"{story['day_pillar']}일", story["hook"]),
+        card_text(slug, 1, story["card_texts"][1], color=(70, 70, 86), size=46),
     ]
-    # JPEG 로 저장한다 — PNG 는 장당 3MB 라 5장이면 15MB 다. 매일 쌓이면 레포가 감당 못 하고
+    # JPEG 로 저장한다 — PNG 는 장당 3MB라 매일 쌓이면 레포가 감당 못 하고
     # 러너 체크아웃도 느려진다. 사진형 일러스트라 JPEG 손실이 눈에 띄지 않는다.
     paths = []
     for i, im in enumerate(imgs, 1):
@@ -293,24 +278,9 @@ def _write_manifest(out_dir: Path, payload: dict):
 
 
 def _signal_texts(date_iso: str, slug: str) -> tuple[str, str, list[str]]:
-    """카드/나레이션과 같은 5개 문구를 뽑아 AI 프롬프트에도 그대로 넣는다."""
-    d = dt.date.fromisoformat(date_iso)
-    sign_ko = zs.SLUG_TO_INFO[slug][1]
-    if not sign_ko.endswith("띠"):
-        sign_ko += "띠"
-    angle = zsig.angle_of(date_iso)
-    trait, quote, turn = zsig.TRAITS[slug][angle]
-    years = " · ".join(zsig.pick_years(slug, date_iso))
-    hook = zsig.HOOKS[d.toordinal() % len(zsig.HOOKS)].format(sign=sign_ko)
-    bridge = zsig.BRIDGES[angle][d.toordinal() % len(zsig.BRIDGES[angle])]
-    cta = zsig.CTA_POOL[d.toordinal() % len(zsig.CTA_POOL)].format(sign=sign_ko)
-    return sign_ko, angle, [
-        f"{sign_ko}\n{years}\n{hook}",
-        trait,
-        f"{quote}\n{bridge}",
-        turn,
-        cta,
-    ]
+    """사주v6 계산 대본의 2개 카드 문구를 AI 프롬프트에 그대로 넣는다."""
+    story = zsig.daily_story(date_iso, slug)
+    return story["sign_ko"], story["focus_label"], story["card_texts"]
 
 
 def _prompt(sign_ko: str, angle: str, text: str, index: int, *, simple: bool) -> str:
@@ -323,7 +293,7 @@ def _prompt(sign_ko: str, angle: str, text: str, index: int, *, simple: bool) ->
         "cinematic traditional Korean colors, a clean central text panel, and elegant hierarchy."
     )
     return f"""Create one vertical 9:16 social card for a Korean zodiac fortune channel.
-Card {index}/5, subject: {sign_ko}, theme: {angle}. {layout}
+Card {index}/2, subject: {sign_ko}, theme: {angle}. {layout}
 
 CRITICAL TEXT REQUIREMENT: Render the following Korean Hangul text EXACTLY as written.
 Preserve every character, spacing, punctuation, quotation mark, and line break. The text must
@@ -386,7 +356,7 @@ def _generate_rest(client: SignalTopviewClient, prompt: str, out: Path):
 
 def _check_credit(client: SignalTopviewClient) -> float:
     credit = float(client.get(zt.CREDIT_PATH).get("remainCredit", 0))
-    print(f"[Topview] 띠 지목 잔액: {credit} 크레딧 (오늘 5장 약 {AI_CREDIT_PER_CARD * 5:.1f})")
+    print(f"[Topview] 띠 지목 잔액: {credit} 크레딧 (오늘 2장 약 {AI_CREDIT_PER_CARD * 2:.1f})")
     if credit < zt.LOW_CREDIT:
         raise SignalTopviewError("4100", f"잔액 부족 {credit} < {zt.LOW_CREDIT}")
     return credit
@@ -424,12 +394,22 @@ def _generate_one(client: SignalTopviewClient, out: Path, sign_ko: str, angle: s
     raise RuntimeError(" / ".join(failures) or "Topview 생성 실패")
 
 
+def _remove_legacy_cards(out_dir: Path):
+    """2장 체계 전환 뒤 3~5번 잔존 카드가 캐러셀/쇼츠에 섞이지 않게 한다."""
+    for index in range(3, 6):
+        path = out_dir / f"signal_{index:02d}.jpg"
+        try:
+            path.unlink(missing_ok=True)
+        except OSError as exc:
+            print(f"[WARN] 이전 카드 삭제 실패({path.name}): {exc}")
+
+
 def build(date_iso: str, slug: str | None = None) -> list[Path]:
-    """매일 새 AI 카드 5장을 생성하고, 위험 신호가 나면 해당 날짜만 PIL로 대체한다."""
+    """매일 새 AI 카드 2장을 생성하고, 위험 신호가 나면 해당 날짜만 PIL로 대체한다."""
     slug = slug or zsig.sign_of(date_iso)
     out_dir = BASE / "cards" / date_iso
     out_dir.mkdir(parents=True, exist_ok=True)
-    paths = [out_dir / f"signal_{i:02d}.jpg" for i in range(1, 6)]
+    paths = [out_dir / f"signal_{i:02d}.jpg" for i in range(1, 3)]
     manifest_path = out_dir / AI_MANIFEST
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -437,7 +417,8 @@ def build(date_iso: str, slug: str | None = None) -> list[Path]:
         manifest = {}
     if (manifest.get("generator") in {"topview_gpt_image_2", "pil_fallback"}
             and all(zt.validate_image(path) is None for path in paths)):
-        print(f"[Topview] {date_iso} 기존 카드 5장 검증 통과({manifest.get('generator')}) — 재생성 건너뜀")
+        _remove_legacy_cards(out_dir)
+        print(f"[Topview] {date_iso} 기존 카드 2장 검증 통과({manifest.get('generator')}) — 재생성 건너뜀")
         return paths
 
     sign_ko, angle, texts = _signal_texts(date_iso, slug)
@@ -445,13 +426,14 @@ def build(date_iso: str, slug: str | None = None) -> list[Path]:
         uid, key = zt.load_credentials()
         client = SignalTopviewClient(uid, key)
         _check_credit(client)
-        print(f"[Topview] 띠 지목 AI 생성 시작: {date_iso}, 5장, 예상 약 {AI_CREDIT_PER_CARD * 5:.1f} 크레딧")
+        print(f"[Topview] 띠 지목 AI 생성 시작: {date_iso}, 2장, 예상 약 {AI_CREDIT_PER_CARD * 2:.1f} 크레딧")
         for index, (out, text) in enumerate(zip(paths, texts), 1):
             _generate_one(client, out, sign_ko, angle, text, index)
     except BaseException as exc:
         reason = f"{type(exc).__name__}: {str(exc)[:300]}"
         _alert(f"{date_iso} 띠 지목 Topview 생성 중단 — {reason}. 기존 PIL 카드로 폴백합니다.")
         paths = build_pil_fallback(date_iso, slug)
+        _remove_legacy_cards(out_dir)
         _write_manifest(out_dir, {
             "date": date_iso, "generator": "pil_fallback", "reason": reason,
             "review_required": False, "cards": [path.name for path in paths],
@@ -461,11 +443,12 @@ def build(date_iso: str, slug: str | None = None) -> list[Path]:
     _write_manifest(out_dir, {
         "date": date_iso,
         "generator": "topview_gpt_image_2",
-        "estimated_credit": AI_CREDIT_PER_CARD * 5,
+        "estimated_credit": AI_CREDIT_PER_CARD * 2,
         "cards": [path.name for path in paths],
         "review_required": True,
         "review_reason": "AI 생성 한글은 완전 자동 판독이 불가합니다. 발행 전 글자 깨짐을 육안 확인하세요.",
     })
+    _remove_legacy_cards(out_dir)
     print(f"[REVIEW REQUIRED] {date_iso} 띠 지목 AI 카드의 한글 텍스트를 육안 확인하세요: {manifest_path}")
     return paths
 

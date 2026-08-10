@@ -34,6 +34,7 @@ import datetime as dt
 from pathlib import Path
 
 import zodiac_seo as zs
+from ganzhi_zodiac import day_context, zodiac_day
 
 BASE = Path(__file__).resolve().parent
 GRAPH = "https://graph.threads.net/v1.0"
@@ -246,6 +247,123 @@ CTA_POOL = [
 
 BANNED = ["무조건", "100%", "반드시", "보장", "대박", "확실히", "절대"]
 
+# 2026-08-10 리서치 반영: 반응이 좋은 띠 운세는 출생연도만 나열하지 않고
+# ① 오늘의 일진이라는 시의성 ② 바로 적용할 한 가지(돈·관계·건강·행동)
+# ③ 답하기 쉬운 한 줄 질문을 결합한다. 단, 소재만 빌리고 운세 근거는 반드시
+# saju_v6 정본 엔진(zodiac_seo.make_reading + ganzhi_zodiac)에서 얻는다.
+POPULAR_FRAMES = [
+    ("money", "돈 흐름", "오늘 {sign}, 돈은 크게 벌리기보다 이 한 곳을 먼저 살펴봐."),
+    ("love", "관계 흐름", "오늘 {sign}, 한마디를 먼저 건네면 관계의 결이 달라질 수 있어."),
+    ("health", "컨디션 흐름", "오늘 {sign}, 밀어붙이기보다 몸의 신호를 먼저 들어봐."),
+    ("overall", "오늘의 선택", "오늘 {sign}, 고민하던 일은 이 기준 하나로 정리해봐."),
+]
+
+TONE_ACTIONS = {
+    "상승": {
+        "money": "미뤄둔 금전 연락이나 정산을 먼저 처리해봐.",
+        "love": "고마웠던 사람에게 먼저 안부를 건네봐.",
+        "health": "기운이 좋은 시간에 가장 중요한 일을 먼저 끝내봐.",
+        "overall": "망설이던 한 가지는 작은 실행부터 시작해봐.",
+    },
+    "능동": {
+        "money": "비교만 하던 선택은 기준을 정해 결론을 내려봐.",
+        "love": "애매했던 말은 짧고 분명하게 확인해봐.",
+        "health": "무리한 약속 하나를 덜어내고 리듬을 지켜봐.",
+        "overall": "내가 정할 수 있는 일부터 순서를 잡아봐.",
+    },
+    "평온": {
+        "money": "새 지출보다 이미 잡은 예산을 지키는 데 집중해봐.",
+        "love": "평소 고마웠던 마음을 짧게라도 표현해봐.",
+        "health": "평소 루틴을 지키고 수면 시간을 조금 앞당겨봐.",
+        "overall": "새 판을 벌이기보다 익숙한 일을 단단히 마무리해봐.",
+    },
+    "신중": {
+        "money": "결제와 약속은 한 번 더 확인한 뒤 처리해봐.",
+        "love": "바로 답하기보다 감정을 가라앉힌 뒤 말해봐.",
+        "health": "일정을 줄이고 몸이 보내는 신호를 먼저 챙겨봐.",
+        "overall": "큰 결정은 오늘 결론 대신 자료를 더 모아봐.",
+    },
+    "주의": {
+        "money": "빌려주거나 계약하는 일은 오늘 한 번 더 미뤄봐.",
+        "love": "감정이 올라온 대화는 잠시 멈추고 시간을 둬봐.",
+        "health": "피로가 쌓인 시간에는 무리한 약속을 잡지 마.",
+        "overall": "중요한 선택은 혼자 확정하지 말고 한 사람에게 물어봐.",
+    },
+}
+
+
+def _compact(text: str, limit: int = 66) -> str:
+    """AI 카드와 쇼츠에 맞게 정본 문장을 문장 단위로 짧게 쓴다."""
+    parts = [p.strip() for p in text.replace("\n", " ").split(". ") if p.strip()]
+    out = ""
+    for part in parts:
+        candidate = f"{out}. {part}" if out else part
+        if len(candidate) > limit and out:
+            break
+        out = candidate
+    return out.rstrip(".") + "."
+
+
+def daily_story(date_iso: str, slug: str | None = None) -> dict:
+    """사주v6 정본 계산값으로 하루 한 편(2장) 띠 지목 대본을 만든다.
+
+    출생연도는 스크롤 훅으로만 가끔 쓰고, 대본의 핵심은 당일 간지와 그 띠 지지의
+    충·합·삼합·형·파·해·오행 관계에서 나온 make_reading 결과다.
+    """
+    slug = slug or sign_of(date_iso)
+    d = dt.date.fromisoformat(date_iso)
+    reading = zs.make_reading(slug, date_iso)  # saju_v6와 동일한 결정론적 엔진
+    relation = zodiac_day(slug, d)
+    day = day_context(d)
+    if relation is None:
+        raise ValueError(f"띠 지지 계산 실패: {slug}")
+
+    score_rows = [
+        ("money", reading.money_score, reading.money),
+        ("love", reading.love_score, reading.love),
+        ("health", reading.health_score, reading.health),
+        ("overall", reading.overall_score, reading.overall),
+    ]
+    high = max(score for _, score, _ in score_rows)
+    # 동점은 날짜로 회전해 같은 일진에서도 같은 포맷만 반복되지 않게 한다.
+    candidates = [row for row in score_rows if row[1] == high]
+    focus_key, _, focus_text = candidates[d.toordinal() % len(candidates)]
+    frame_map = {key: (label, hook) for key, label, hook in POPULAR_FRAMES}
+    focus_label, hook_tpl = frame_map[focus_key]
+    hook = hook_tpl.format(sign=reading.sign_ko)
+    overall = _compact(reading.overall, 72)
+    focus = _compact(focus_text, 76)
+    action = TONE_ACTIONS[relation["tone"]][focus_key]
+    lucky = f"행운 {reading.tip.replace('오늘의 행운 ', '')} / 숫자 {reading.lucky_num}"
+
+    # 2장 모두 AI가 정확히 렌더할 수 있도록 짧은 문장과 명확한 줄바꿈으로 제한한다.
+    card_texts = [
+        f"{reading.date_ko} {day['label']}\n{reading.sign_ko} {focus_label}\n{hook}\n\n{overall}",
+        f"{reading.sign_ko} 오늘의 포인트\n{focus}\n\n오늘의 실천\n{action}\n\n{lucky}\n프로필에서 내 사주 흐름 확인",
+    ]
+    narration = [
+        f"{reading.date_ko} {day['label']}. {hook} {overall}",
+        f"오늘 {reading.sign_ko}의 {focus_label}은 이렇습니다. {focus} 오늘의 실천은 {action} {lucky}. 내 사주 기준 흐름은 프로필에서 확인해 보세요.",
+    ]
+    caption = (
+        f"{reading.date_ko} {day['label']}\n"
+        f"{reading.sign_ko} {focus_label}\n\n"
+        f"{hook}\n{overall}\n\n"
+        f"{focus_label}: {focus}\n"
+        f"오늘의 실천: {action}\n"
+        f"{lucky}\n\n"
+        f"오늘 이 말이 필요한 {reading.sign_ko} 있으면 한마디 남겨줘.\n"
+        f"내 사주 기준 흐름은 프로필에서 무료로 볼 수 있어."
+    )
+    return {
+        "date": date_iso, "slug": slug, "sign_ko": reading.sign_ko,
+        "day_pillar": day["day_pillar"], "day_branch": day["day_branch"],
+        "relation": relation, "tone": relation["tone"], "focus_key": focus_key,
+        "focus_label": focus_label, "hook": hook, "overall": overall,
+        "focus": focus, "action": action, "lucky": lucky,
+        "card_texts": card_texts, "narration": narration, "caption": caption,
+    }
+
 
 def pick_years(slug: str, date_iso: str, n: int = YEARS_SHOWN) -> list[str]:
     """이 띠의 생년 중 지금 활동하는 나이대만 골라 n개. 날짜로 창을 밀어 매번 다르게 뽑는다."""
@@ -273,34 +391,8 @@ def angle_of(date_iso: str) -> str:
 
 
 def build_text(date_iso: str, slug: str | None = None) -> str:
-    slug = slug or sign_of(date_iso)
-    if slug not in TRAITS:
-        raise ValueError(f"unknown sign: {slug}")
-    d = dt.date.fromisoformat(date_iso)
-    sign_ko = zs.SLUG_TO_INFO[slug][1]
-    if not sign_ko.endswith("띠"):
-        sign_ko += "띠"
-
-    angle = angle_of(date_iso)
-    trait, quote, turn = TRAITS[slug][angle]
-    years = " · ".join(pick_years(slug, date_iso))
-    hook = HOOKS[d.toordinal() % len(HOOKS)].format(sign=sign_ko)
-    cta = CTA_POOL[d.toordinal() % len(CTA_POOL)].format(sign=sign_ko)
-    if any(b in cta for b in BANNED):
-        cta = CTA_POOL[0]
-
-    bridges = BRIDGES[angle]
-    bridge = bridges[d.toordinal() % len(bridges)]
-
-    text = (
-        f"{sign_ko} {years}\n\n"
-        f"{hook}\n\n"
-        f"{trait}\n\n"
-        f"{quote}\n"
-        f"{bridge}\n\n"
-        f"{turn}\n\n"
-        f"{cta}"
-    )
+    """발행 본문도 카드·쇼츠와 같은 사주v6 일진 계산 결과를 사용한다."""
+    text = daily_story(date_iso, slug)["caption"]
     for b in BANNED:
         if b in text:
             raise SystemExit(f"[FAIL] 금지어 '{b}' 가 본문에 있습니다:\n{text}")
@@ -387,9 +479,10 @@ def main():
     args = [a for a in argv if not a.startswith("--") and a != slug]
     date_iso = args[0] if args else zs.today_iso()
 
-    text = build_text(date_iso, slug)
-    used = slug or sign_of(date_iso)
-    print(f"----- {date_iso} 띠 지목 게시물 ({used}/{angle_of(date_iso)}) -----")
+    story = daily_story(date_iso, slug)
+    text = story["caption"]
+    used = story["slug"]
+    print(f"----- {date_iso} 띠 지목 데일리 1편 ({used}/{story['day_pillar']}/{story['focus_key']}) -----")
     print(text)
     print("------------------------")
 
@@ -412,7 +505,8 @@ def main():
 
     # 2단계 — 발행. 카드가 있으면 캐러셀, 없으면 텍스트로 떨어진다.
     # 계정 실측상 캐러셀이 텍스트보다 10배 이상 도달하므로 카드를 우선한다.
-    cards = sorted((BASE / "cards" / date_iso).glob("signal_*.jpg"))
+    cards = [BASE / "cards" / date_iso / f"signal_{i:02d}.jpg" for i in range(1, 3)]
+    cards = [card for card in cards if card.is_file()]
     if cards and not text_only:
         urls = [f"{RAW_BASE}/cards/{date_iso}/{p.name}" for p in cards]
         pid = publish_carousel(urls, text)
@@ -424,7 +518,8 @@ def main():
 
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.write_text(
-        json.dumps({"post_id": pid, "sign": used, "angle": angle_of(date_iso),
+        json.dumps({"post_id": pid, "sign": used, "day_pillar": story["day_pillar"],
+                    "focus": story["focus_key"],
                     "kind": kind, "text": text}, ensure_ascii=False), encoding="utf-8")
 
 

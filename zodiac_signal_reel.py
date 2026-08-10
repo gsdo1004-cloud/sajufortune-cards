@@ -3,13 +3,13 @@ r"""띠 지목 쇼츠 — 유튜브 운명과학TV 예약발행용 (2026-08-06)
 
 띠 지목(zodiac_signal)은 여태 쓰레드에 카드 이미지로만 나갔다. 같은 재료로 9:16
 영상을 만들어 유튜브에도 올린다. 카드 생성 방식은 Topview AI(실패 시 PIL 폴백)로
-바뀌어도 카드 계약은 signal_01..05.jpg 5장으로 고정하므로 나레이션만 붙이면 된다.
+바뀌어도 카드 계약은 signal_01..02.jpg 2장으로 고정하므로 나레이션만 붙이면 된다.
 
 TTS·길이게이트·ffmpeg 조립은 zodiac_reels.make_reel_tts 를 그대로 쓴다 —
 복제하면 한쪽만 고쳐져 티 안 나게 어긋난다(그 모듈 주석의 경고).
 
 나레이션은 카드 순서와 1:1 로 맞춘다:
-  1 표지(띠·해당 생년·훅) / 2 성향 / 3 인용+다리 / 4 전환점 / 5 마무리
+  1 당일 간지 기반 훅·종합 흐름 / 2 재물·관계·건강 중 핵심 행동과 행운 요소
 
 사용:
   python zodiac_signal_reel.py 2026-08-06            # 영상 생성
@@ -27,60 +27,24 @@ if str(BASE) not in sys.path:
     sys.path.insert(0, str(BASE))
 
 import zodiac_signal as zsig            # noqa: E402
-import zodiac_seo as zs                 # noqa: E402  (SLUG_TO_INFO 보유 모듈)
 
 # ⚠️ 설명란에 URL 을 넣지 않는다 (2026-08-06 한밝님 지시).
 # 쇼츠는 설명란이 접혀 링크가 눌리지 않는다 — 클릭도 안 되는 URL 은 유입에 도움이
 # 안 되면서 외부 유인 신호만 남긴다. 살아 있는 통로인 프로필 링크로만 안내한다.
 
 
-def _parts(date_iso: str, slug: str | None = None) -> dict:
-    """카드가 쓰는 것과 같은 재료를 같은 규칙으로 뽑는다(어긋나면 자막과 말이 따로 논다)."""
-    slug = slug or zsig.sign_of(date_iso)
-    d = dt.date.fromisoformat(date_iso)
-    sign_ko = zs.SLUG_TO_INFO[slug][1]
-    if not sign_ko.endswith("띠"):
-        sign_ko += "띠"
-
-    angle = zsig.angle_of(date_iso)
-    trait, quote, turn = zsig.TRAITS[slug][angle]
-    years = zsig.pick_years(slug, date_iso)
-    hook = zsig.HOOKS[d.toordinal() % len(zsig.HOOKS)].format(sign=sign_ko)
-    bridges = zsig.BRIDGES[angle]
-    bridge = bridges[d.toordinal() % len(bridges)]
-    cta = zsig.CTA_POOL[d.toordinal() % len(zsig.CTA_POOL)].format(sign=sign_ko)
-    return {"slug": slug, "sign_ko": sign_ko, "years": years, "hook": hook,
-            "trait": trait, "quote": quote, "bridge": bridge, "turn": turn, "cta": cta}
-
-
 def narration(date_iso: str, slug: str | None = None) -> list[str]:
-    """카드 5장과 1:1 로 맞춘 나레이션. 마지막 줄에 프로필 안내를 붙인다 —
-    쇼츠에서 링크가 눌리지 않으므로 말로 안내하는 것 말고는 통로가 없다."""
-    p = _parts(date_iso, slug)
-    years_read = ", ".join(f"{y}년생" for y in p["years"])
-    return [
-        f"{p['sign_ko']}, {years_read}. {p['hook']}",
-        p["trait"],
-        f"{p['quote']} {p['bridge']}",
-        p["turn"],
-        f"{p['cta']} 오늘 내 사주 기준 운세는 프로필 링크에서 무료로 보실 수 있습니다.",
-    ]
+    """사주v6의 당일 간지·띠 지지 계산 대본을 카드 2장과 1:1로 읽는다."""
+    return zsig.daily_story(date_iso, slug)["narration"]
 
 
 def youtube_meta(date_iso: str, slug: str | None = None) -> dict:
-    p = _parts(date_iso, slug)
-    years_txt = " · ".join(p["years"])
-    title = f"{p['sign_ko']} {years_txt} — {p['hook']}"
+    p = zsig.daily_story(date_iso, slug)
+    title = f"{p['sign_ko']} 오늘의 {p['focus_label']} — {p['hook']}"
     if len(title) > 95:
-        title = f"{p['sign_ko']} {years_txt} 오늘의 운세"
+        title = f"{p['sign_ko']} 오늘의 {p['focus_label']}"
     desc = (
-        f"{p['hook']}\n\n"
-        f"{p['trait']}\n\n"
-        f"{p['quote']}\n{p['bridge']}\n\n"
-        f"{p['turn']}\n\n"
-        f"👉 내 사주 기준 오늘 운세와 사주 유형(살림꾼·해결사·재주꾼 …)은\n"
-        f"   채널 프로필 링크에서 무료로 확인하실 수 있습니다.\n"
-        f"   생년월일만 넣으시면 바로 나옵니다.\n\n"
+        f"{p['caption']}\n\n"
         f"#{p['sign_ko']} #오늘의운세 #띠별운세 #사주 #운세\n\n"
         f"※ 본 콘텐츠는 정통 사주명리학을 바탕으로 한 참고용입니다."
     )
@@ -92,9 +56,9 @@ def youtube_meta(date_iso: str, slug: str | None = None) -> dict:
 
 
 def _assert_card_contract(date_iso: str):
-    """AI/PIL 어느 생성 경로든 쇼츠가 기대하는 다섯 파일명을 강제한다."""
+    """AI/PIL 어느 생성 경로든 쇼츠가 기대하는 두 파일명을 강제한다."""
     card_dir = BASE / "cards" / date_iso
-    missing = [f"signal_{i:02d}.jpg" for i in range(1, 6)
+    missing = [f"signal_{i:02d}.jpg" for i in range(1, 3)
                if not (card_dir / f"signal_{i:02d}.jpg").is_file()]
     if missing:
         raise FileNotFoundError(f"띠 지목 카드 계약 위반({date_iso}): {', '.join(missing)}")
