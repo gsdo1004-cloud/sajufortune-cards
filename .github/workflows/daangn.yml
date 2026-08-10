@@ -1,0 +1,60 @@
+name: 당근 소식 자료 (새벽)
+
+# 2026-08-07 신설 — 당근 비즈프로필용 소식 본문 + 카드 6장을 매일 만들어 레포에 커밋한다.
+#
+# 왜 '생성'까지만 하나
+#   당근 비즈프로필에는 공개 게시 API 가 없다(2026-08-07 공식 문서 색인 전수 확인).
+#   그래서 이 잡은 재료만 만들고, 실제 판매 자동화는 당근 카탈로그 광고가 맡는다
+#   — 상품 피드 https://sajufortune.kr/karrot-feed.csv 는 Render 가 24시간 서빙하므로
+#   PC 가 꺼져 있어도 당근이 읽어가고, 상품이 바뀌면 광고 소재가 자동으로 따라간다.
+#
+# 비용 0 — 이미지 생성 API·LLM 호출이 없다. 배경 없이 PIL 로 그리고 운세 문구는
+# zodiac_seo 의 결정론적 생성기를 쓴다. 같은 날짜면 같은 결과가 나온다.
+on:
+  schedule:
+    # 명목 KST 03:40. Actions 실측 지연 2.5~2.8h 를 더하면 KST 06~07시 착지 =
+    # 아침에 폰으로 받아볼 수 있다. 정각(:00)은 혼잡으로 통째 누락된 전례가 있어 피한다.
+    - cron: '40 18 * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: '기준일 (YYYY-MM-DD, 비우면 오늘)'
+        required: false
+        default: ''
+
+jobs:
+  daangn:
+    runs-on: ubuntu-latest
+    # 산출물(카드·본문)을 레포에 되돌려 커밋해야 한다 — 기본 토큰은 읽기 전용이다.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 컬러 이모지 폰트. 없으면 daangn_auto.EMOJI() 가 None 을 돌려주고
+      # 이모지를 생략한 카드가 나온다(죽지는 않는다).
+      - name: 폰트 설치
+        run: sudo apt-get update && sudo apt-get install -y fonts-noto-color-emoji
+
+      - name: 의존성 설치
+        run: pip install pillow
+
+      # 상품·가격·랜딩은 라이브 피드에서 읽는다. 피드가 죽어 있으면 여기서 잡이 실패해
+      # '판매 구조가 끊겼다'는 신호가 된다 — 헬스체크를 겸한다.
+      - name: 소식 본문 + 카드 6장 생성
+        run: python daangn_auto.py ${{ github.event.inputs.date && format('--date {0}', github.event.inputs.date) || '' }}
+
+      - name: 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add daangn/*/card_*.png 2>/dev/null || true
+          git add daangn/*/post.txt 2>/dev/null || true
+          git add daangn/*/meta.json 2>/dev/null || true
+          git diff --staged --quiet || git commit -m "chore: 당근 소식 자료"
+          git pull --rebase --autostash || true
+          git push
