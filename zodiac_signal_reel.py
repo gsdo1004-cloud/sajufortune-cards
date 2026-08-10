@@ -2,8 +2,8 @@
 r"""띠 지목 쇼츠 — 유튜브 운명과학TV 예약발행용 (2026-08-06)
 
 띠 지목(zodiac_signal)은 여태 쓰레드에 카드 이미지로만 나갔다. 같은 재료로 9:16
-영상을 만들어 유튜브에도 올린다. 카드 5장(signal_01..05.jpg)이 이미 만들어져
-있으므로 나레이션만 붙이면 된다.
+영상을 만들어 유튜브에도 올린다. 카드 생성 방식은 Topview AI(실패 시 PIL 폴백)로
+바뀌어도 카드 계약은 signal_01..05.jpg 5장으로 고정하므로 나레이션만 붙이면 된다.
 
 TTS·길이게이트·ffmpeg 조립은 zodiac_reels.make_reel_tts 를 그대로 쓴다 —
 복제하면 한쪽만 고쳐져 티 안 나게 어긋난다(그 모듈 주석의 경고).
@@ -91,8 +91,18 @@ def youtube_meta(date_iso: str, slug: str | None = None) -> dict:
     }
 
 
+def _assert_card_contract(date_iso: str):
+    """AI/PIL 어느 생성 경로든 쇼츠가 기대하는 다섯 파일명을 강제한다."""
+    card_dir = BASE / "cards" / date_iso
+    missing = [f"signal_{i:02d}.jpg" for i in range(1, 6)
+               if not (card_dir / f"signal_{i:02d}.jpg").is_file()]
+    if missing:
+        raise FileNotFoundError(f"띠 지목 카드 계약 위반({date_iso}): {', '.join(missing)}")
+
+
 def build(date_iso: str, slug: str | None = None) -> Path:
     import zodiac_reels as zr
+    _assert_card_contract(date_iso)
     narrs = narration(date_iso, slug)
     out = zr.make_reel_tts(date_iso, card_stem="signal_", narrs=narrs,
                            out_name=f"{date_iso}_signal.mp4")
