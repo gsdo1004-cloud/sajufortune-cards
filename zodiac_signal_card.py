@@ -394,8 +394,9 @@ def _check_credit(client: SignalTopviewClient) -> float:
 
 def _is_fatal(exc: BaseException) -> bool:
     if isinstance(exc, SignalTopviewError):
-        return exc.code in {"401", "4100"}
-    return isinstance(exc, requests.HTTPError) and getattr(exc.response, "status_code", 0) == 401
+        return exc.code in {"401", "403", "4100"}
+    return (isinstance(exc, requests.HTTPError)
+            and getattr(exc.response, "status_code", 0) in {401, 403})
 
 
 def _generate_one(client: SignalTopviewClient, out: Path, sign_ko: str, angle: str,
