@@ -54,7 +54,7 @@ jobs:
 
       - name: 의존성 설치
         run: |
-          pip install requests playwright edge-tts supertonic
+          pip install requests playwright edge-tts supertonic Pillow
           python -m playwright install --with-deps chromium
 
       # 2026-07-17: 집 PC 새벽 파이프라인이 Topview GPT Image 2 카드 5장 + 타입캐스트
