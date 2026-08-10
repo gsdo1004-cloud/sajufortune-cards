@@ -118,14 +118,6 @@ jobs:
       - name: raw URL 전파 대기
         run: sleep 30
 
-      - name: 스레드 카드뉴스 캐러셀 발행
-        continue-on-error: true
-        run: python zodiac_cardnews.py publish
-
-      - name: 스레드 릴스 영상 발행
-        continue-on-error: true
-        run: python zodiac_reels.py publish
-
       # [2026-08-06] 유튜브 운명과학TV 예약발행.
       # 집 PC 의 zodiac_daily_pipeline 이 8/6 부로 은퇴하면서 유튜브 발행 경로가
       # 통째로 끊겼다. 영상은 위에서 이미 만들었으므로 새로 만들지 않고 그대로 올린다.
@@ -137,6 +129,7 @@ jobs:
       # ▶ 제어: 레포 Settings → Secrets and variables → Actions → Variables 탭의
       #    YOUTUBE_UNMYEONG_ENABLED (1=발행, 그 외=보류). 코드는 건드릴 필요 없다.
       - name: 유튜브 예약발행 (운명과학TV)
+        id: youtube_reservation
         continue-on-error: true
         env:
           YOUTUBE_TOKEN_UNMYEONG: ${{ secrets.YOUTUBE_TOKEN_UNMYEONG }}
@@ -157,7 +150,7 @@ jobs:
           if [ ! -s "$VIDEO" ]; then
             echo "영상 없음($VIDEO) — 유튜브 업로드 건너뜀"; exit 0
           fi
-          if [ -f "cards/${TODAY}/youtube_pub.json" ]; then
+          if [ -f "cards/${TODAY}/uploaded.json" ] || [ -f "cards/${TODAY}/youtube_pub.json" ]; then
             echo "이미 업로드됨(멱등 가드) — 건너뜀"; exit 0
           fi
           python - "$TODAY" <<'PY'
@@ -166,14 +159,16 @@ jobs:
           import zodiac_reels as zr
           day = sys.argv[1]
           m = zr.youtube_meta(day)
-          # 대상 날짜의 자정 정각에 공개한다. slot-hours 로만 두면 Actions 가 자정
-          # 가까이 지연됐을 때 "다음 0시"가 하루 뒤로 밀린다.
+          # 대상일 전날 21:00에 공개한다. 로컬 파이프라인이 먼저 예약한 경우에는
+          # uploaded.json 멱등 표식으로 건너뛴다.
+          from datetime import date, timedelta
+          publish_day = date.fromisoformat(day) - timedelta(days=1)
           r = subprocess.run([sys.executable, "youtube_upload.py",
                               "--file", f"reels/{day}_tts.mp4",
                               "--title", m["title"],
                               "--description", m["description"],
                               "--tags", ",".join(m["tags"]),
-                              "--publish-at", f"{day}T00:00:00+09:00",
+                              "--publish-at", f"{publish_day}T21:00:00+09:00",
                               "--slot-hours", "0"])
           if r.returncode == 0:
               p = Path("cards") / day / "youtube_pub.json"
@@ -181,6 +176,31 @@ jobs:
               p.write_text(json.dumps({"uploaded": True}, ensure_ascii=False), encoding="utf-8")
           sys.exit(r.returncode)
           PY
+
+      # 유튜브 예약 완료 전에는 Threads를 절대 발행하지 않는다.
+      # 로컬 파이프라인의 uploaded.json 또는 이 워크플로의 youtube_pub.json이 필요하다.
+      - name: Threads 발행 선행조건 확인
+        id: threads_gate
+        run: |
+          OFFSET="${ZODIAC_PUBLISH_OFFSET_DAYS:-0}"
+          TARGET=$(TZ=Asia/Seoul date -d "+${OFFSET} days" +%F)
+          if [ -f "cards/${TARGET}/uploaded.json" ] || [ -f "cards/${TARGET}/youtube_pub.json" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "유튜브 예약 완료 확인: ${TARGET}"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "유튜브 예약 표식 없음 — Threads 발행 보류: ${TARGET}"
+          fi
+
+      - name: 스레드 카드뉴스 캐러셀 발행
+        if: steps.threads_gate.outputs.ready == 'true'
+        continue-on-error: true
+        run: python zodiac_cardnews.py publish
+
+      - name: 스레드 릴스 영상 발행
+        if: steps.threads_gate.outputs.ready == 'true'
+        continue-on-error: true
+        run: python zodiac_reels.py publish
 
       # [2026-07-30] 멱등 마커를 원격에 남긴다.
       # zodiac_cardnews/reels 는 발행 후 cards/{날짜}/threads_pub_*.json 을 쓰고,

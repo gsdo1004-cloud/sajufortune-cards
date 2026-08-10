@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
-"""띠별운세 일일 파이프라인 오케스트레이터 (집 PC, **전날 18:00** 스케줄).
+"""띠별운세 일일 파이프라인 오케스트레이터 (집 PC, **전날 19:00** 스케줄).
 
 ⏰ 생성과 발행을 분리한다 (2026-07-17 한밝님 지시):
-  - 18:00 (D-1) 생성 → 자정까지 **6시간 재시도 여유**. 새벽에 만들어 바로 쏘면 실패 시 복구 불가.
-  - 00:00 (D) 발행 → "D일 오늘의 운세"가 D일 0시에 나가 **날짜가 정확히 일치**하고,
-    밤에 잠 못 드는 시청자부터 다음날 밤까지 **하루 전체를 커버**한다(05:35은 새벽을 통째로 놓침).
-  - 틱톡은 수동이라 한밝님이 저녁에 G드라이브에서 받아 **틱톡 예약(00:00)**으로 거신다.
+  - 19:00 (D-1) 생성 → 20:00~23:00 전날 저녁 발행 창을 확보한다.
+  - 유튜브는 D-1 21:00에 예약공개하고, 예약 완료 후에만 Threads 발행 경로를 연다.
+  - 틱톡은 수동이라 한밝님이 저녁에 G드라이브에서 받아 예약 발행한다.
 
 흐름 (전 단계 멱등 — 재실행이 빈 곳만 메움). 기준일 = **내일(D)**:
-  1. D 5장 보장     ← 평소엔 어제 버퍼분이 있어 즉시 통과 (발행 무실패의 핵심)
-  2. D+1 5장 선행   ← 내일 18:00 실행이 죽어도 모레 발행은 무사
+  1. D 기본 4장 보장 ← 평소엔 어제 버퍼분이 있어 즉시 통과 (발행 무실패의 핵심)
+  2. D+1 기본 4장 선행 ← 내일 19:00 실행이 죽어도 모레 발행은 무사
   3. G드라이브 미러 (틱톡 수동 업로드·blog-auto 소스)
   4. D 쇼츠 조립 (타입캐스트 성우 로테이션 + BGM 로테이션)
-  5. repo 커밋·푸시 → 00:02 GitHub Actions가 쓰레드 발행 (Topview분 우선)
-  6. 운명과학TV 쇼츠 업로드 — **비공개 + publishAt=D 00:00 예약공개**
+  5. 운명과학TV 쇼츠 업로드 — **비공개 + publishAt=D-1 21:00 예약공개**
+  6. 유튜브 예약 성공 표식과 함께 repo 커밋·푸시 → GitHub Actions가 Threads 발행
   7. 실패 시 이메일 경보 (zodiac_alert)
 
 실행: python zodiac_daily_pipeline.py [--date YYYY-MM-DD] [--today] [--no-upload] [--no-push]
@@ -45,11 +44,17 @@ UPLOAD_QUEUE = UPLOADER_DIR / "upload_queue_unmyeong"
 # pythonw로 돌 때 sys.executable=pythonw.exe → 자식도 무창(콘솔 안 뜸). 절대경로 고정.
 UPLOADER_PY = sys.executable
 # 🔒 업로드는 항상 private + publishAt 예약공개 (한밝님 2026-07-17 확인).
-# [[feedback_youtube_private_default]]의 "항상 비공개" 규칙을 지키면서 00:00 정각 발행을 얻는 방식:
-# 18:00에 비공개로 올라가고 자정에 유튜브가 자동 공개한다. 그 사이 1~6시간 동안 한밝님이
+# [[feedback_youtube_private_default]]의 "항상 비공개" 규칙을 지키면서 전날 저녁 발행을 얻는 방식:
+# 19:00에 비공개로 올라가고 21:00에 유튜브가 자동 공개한다. 그 사이 약 2시간 동안 한밝님이
 # 확인·취소 가능. ⚠️ privacy를 public으로 직접 바꾸지 말 것 — 예약공개가 정본 경로.
 YT_PRIVACY = "private"
-YT_PUBLISH_HOUR = "00:00:00+09:00"   # 기준일 자정 정각
+YT_PUBLISH_HOUR = "21:00:00+09:00"   # 기준일 전날 21시
+
+
+def youtube_publish_at(date_iso: str) -> str:
+    """기준일(D) 운세를 전날(D-1) 저녁 21시에 공개한다."""
+    day = dt.date.fromisoformat(date_iso) - dt.timedelta(days=1)
+    return f"{day.isoformat()}T{YT_PUBLISH_HOUR}"
 
 
 def log(msg: str):
@@ -184,7 +189,7 @@ def _record_upload(date_iso: str, variant: str = "B") -> str:
     try:
         _upload_marker(date_iso).write_text(json.dumps(
             {"date": date_iso, "video_id": vid, "variant": variant,
-             "privacy": YT_PRIVACY, "publish_at": f"{date_iso}T{YT_PUBLISH_HOUR}",
+             "privacy": YT_PRIVACY, "publish_at": youtube_publish_at(date_iso),
              "uploaded_at": dt.datetime.now().isoformat(timespec="seconds")},
             ensure_ascii=False), encoding="utf-8")
     except OSError as e:
@@ -205,9 +210,9 @@ def backfill_gdrive(days: int = 4) -> int:
     for i in range(days):
         di = (today + dt.timedelta(days=i - 1)).isoformat()
         gd = zt.GDRIVE_DIR / di
+        # 2026-08-03: 20초판(10s) 폐기로 미러 대상에서 뺐다. 되살리면 여기도 되살릴 것.
         pairs = [(BASE / "reels" / f"{di}_tts.mp4", "07_영상.mp4"),
-                 (BASE / "reels" / f"{di}_10s.mp4", "10_쇼츠20초.mp4"),
-                 (BASE / "cards" / di / "card_07.png", "08_지목3띠.png"),
+                 (BASE / "cards" / di / "card_05.png", "08_지목3띠.png"),
                  (BASE / "cards" / di / "card_08.png", "09_표형12띠.png")]
         for src, name in pairs:
             if not src.exists():
@@ -290,7 +295,7 @@ def queue_youtube_shorts(date_iso: str, alerts: list[str],
         UPLOAD_QUEUE.mkdir(parents=True, exist_ok=True)
         qv = UPLOAD_QUEUE / f"zodiac_{date_iso}_{variant}.mp4"
         shutil.copy2(video, qv)
-        publish_at = f"{date_iso}T{YT_PUBLISH_HOUR}"
+        publish_at = youtube_publish_at(date_iso)
         meta = {
             "video_file": str(qv),
             "title": title[:100],
@@ -320,35 +325,12 @@ def queue_youtube_shorts(date_iso: str, alerts: list[str],
         alerts.append(f"유튜브 업로더 종료코드 {r.returncode}: {(r.stderr or r.stdout)[-300:]}")
         return False
     vid = _record_upload(date_iso, variant)
-    log(f"유튜브 업로드 완료: {vid or '(ID확인실패)'} — 변종{variant}, 자정 예약공개")
+    log(f"유튜브 업로드 완료: {vid or '(ID확인실패)'} — 변종{variant}, 전날 저녁 예약공개")
     return True
 
 
 def main():
     args = sys.argv[1:]
-
-    # 🛑 은퇴 예정 — 카드 생성이 배경 템플릿 + PIL 방식으로 바뀌면서 Topview 이미지 생성이
-    # 필요 없어졌고, 전 과정이 GitHub Actions 안에서 끝난다(집 PC 스케줄 불필요).
-    # 그대로 두면 매일 Topview 크레딧만 나간다.
-    #
-    # 다만 **오늘(2026-08-05)까지는 그대로 돈다**(한밝님 지시). 새 파이프라인이 준비되는
-    # 동안 재고를 만들어 두는 안전망이다. 8/6 부터 자동으로 멈춘다.
-    # 날짜로 끊는 이유: 이 스크립트는 커밋 단계에서만 git pull 하므로 "코드가 언제 갱신되나"에
-    # 기대면 정지 시점이 흔들린다. 날짜 기준이면 pull 타이밍과 무관하게 정확히 끊긴다.
-    #
-    # 집 PC 작업 스케줄러의 Zodiac_DailyPipeline 을 직접 끄는 게 정석이지만 회사 PC에서는
-    # 원격으로 끌 수 없어 코드로 막는다. 되살리려면 ZODIAC_LEGACY_PIPELINE=1 또는 --force.
-    CUTOFF = dt.date(2026, 8, 6)
-    if (dt.date.today() >= CUTOFF
-            and os.environ.get("ZODIAC_LEGACY_PIPELINE", "") != "1"
-            and "--force" not in args):
-        log("=" * 66)
-        log(f"이 파이프라인은 {CUTOFF} 부로 중단됐습니다(카드 템플릿 전환).")
-        log("카드 생성·발행은 GitHub Actions 가 담당합니다.")
-        log("집 PC 작업 스케줄러의 'Zodiac_DailyPipeline' 을 꺼주세요.")
-        log("강제 실행: ZODIAC_LEGACY_PIPELINE=1 또는 --force")
-        log("=" * 66)
-        return
 
     date_iso = None
     if "--date" in args:
@@ -356,16 +338,12 @@ def main():
     elif "--today" in args:
         date_iso = zs.today_iso()
     else:
-        # 기본 = 모레(D+2). 2026-07-26 이전에는 D+1(내일치)만 만들어, 18:00 실행이 하루
-        # 실패하면 바로 다음날 발행이 빈다. D+2 로 앞당겨 두면 하루치 여유가 생겨
-        # 문제를 발견하고 손볼 시간이 확보된다.
-        # ⚠️ 2026-07-30: 발행(21시 Actions)은 D+1 로 되돌렸다(한밝님 지시 — 21시엔
-        #    다음날 운세). 생성은 D+2 를 유지한다 — 그래야 D+1 치가 이틀 전에 이미
-        #    만들어져 있어 하루 실패해도 발행이 비지 않는다. 생성 D+2 / 발행 D+1 조합.
+        # 19:00(D-1) 실행 → 전날 21:00 예약공개가 정본이다. D+1 카드도 함께
+        # 만들어 하루치 재고를 유지하므로, 다음 날 실행 실패에도 발행 공백을 줄인다.
         try:
-            offset = int(os.environ.get("ZODIAC_PIPELINE_OFFSET_DAYS", "2"))
+            offset = int(os.environ.get("ZODIAC_PIPELINE_OFFSET_DAYS", "1"))
         except ValueError:
-            offset = 2
+            offset = 1
         date_iso = (dt.date.fromisoformat(zs.today_iso())
                     + dt.timedelta(days=offset)).isoformat()
     tomorrow = (dt.date.fromisoformat(date_iso) + dt.timedelta(days=1)).isoformat()
@@ -376,10 +354,10 @@ def main():
         f"(오늘={zs.today_iso()}, 버퍼={tomorrow}) ===")
     alerts: list[str] = []
 
-    # 1) 오늘 5장 보장 (평소엔 어제 만든 재고로 즉시 통과)
+    # 1) 오늘 기본 4장 보장 (평소엔 어제 만든 재고로 즉시 통과)
     r_today = zt.ensure_daily_images(date_iso)
     alerts += r_today["alerts"]
-    # 2) 내일 5장 선행 생성 (실패해도 오늘 발행엔 지장 없음 — 경보만)
+    # 2) 내일 기본 4장 선행 생성 (실패해도 오늘 발행엔 지장 없음 — 경보만)
     try:
         r_tmr = zt.ensure_daily_images(tomorrow)
         if r_tmr["failed"]:
@@ -394,13 +372,13 @@ def main():
     #    95초판은 항상 만든다 = 쓰레드·틱톡·네이버클립 공용(90초 이내 게이트 적용).
     #    A일이면 10초 압축판도 추가로 만들어 **유튜브에만** 올린다 → A/B가 오염되지 않음.
     video_ok = False
-    # 2026-07-26: A/B(격일 변종) 종료. 두 판을 매일 다 만들고 플랫폼별로 길이를 나눈다.
-    #   95초판 → 스레드·틱톡·네이버클립   /   20초판 → 유튜브 쇼츠
-    # 같은 날 플랫폼마다 다른 영상이 나가므로 같은 영상 도배로 보이지 않는다(스팸 회피).
-    # 유튜브만 격일로 판본을 바꾼다(짝수일=20초판, 홀수일=95초판). 같은 형식이 매일
-    # 반복되면 유튜브 정책 필터에 양산물로 잡히기 쉬워, 길이·구성에 변화를 준다.
-    # 스레드·틱톡은 95초판 고정이라 같은 날 플랫폼끼리도 서로 다른 영상이 나간다.
-    variant = "A" if dt.date.fromisoformat(date_iso).toordinal() % 2 == 0 else "B"
+    # 2026-08-03: 20초판(변종A) 폐기 — 한밝님 지시. 유튜브도 95초판 고정.
+    #   95초판 → 스레드·틱톡·네이버클립·유튜브 전부
+    # 20초판은 pick3/table12/ai12 3종을 격일로 돌리며 A/B를 보던 것인데, 짧아서
+    # 담기는 정보가 적고 띠 하나하나를 스치듯 지나가 유입으로 이어지지 않았다.
+    # 그 자리는 십성·사주구성 에버그린 쇼츠가 대신한다(별도 라인).
+    # 되살리려면 variant 를 다시 격일로 돌리고 아래 make_shorts_10s 블록을 되살리면 된다.
+    variant = "B"
     if r_today["ok"]:
         try:
             import zodiac_shorts
@@ -416,29 +394,19 @@ def main():
                     log("기존 mp4는 레거시 릴스 — 덮어쓰고 Topview 쇼츠로 재조립")
                 zodiac_shorts.make_shorts(date_iso)
             video_ok = True
-            # 20초 압축판도 매일 만든다 — 유튜브 쇼츠용. 실패해도 95초판은 이미 있으므로
-            # 스레드·틱톡 발행에는 지장이 없다(경보만 남기고 계속 간다).
-            s10 = BASE / "reels" / f"{date_iso}_10s.mp4"
-            if s10.exists() and (BASE / "cards" / date_iso / "shorts10_meta.json").exists():
-                log("20초판 이미 존재 — 건너뜀")
-            else:
-                try:
-                    zodiac_shorts.make_shorts_10s(date_iso)
-                except Exception as e:
-                    alerts.append(f"20초판 생성 실패({date_iso}): {e}")
-                    variant = "B"   # 없으면 유튜브엔 95초판으로 대체
-                    log(f"[WARN] 20초판 실패 → 유튜브는 95초판으로 대체: {e}")
-            log(f"영상 2종 준비: 95초판(스레드·틱톡) + 20초판(유튜브, 변종{variant})")
+            # 2026-08-03: 20초판 생성 중단. make_shorts_10s 함수는 zodiac_shorts 에 그대로
+            # 남겨 둔다 — 되살릴 때 여기서 다시 부르기만 하면 된다.
+            log("영상 1종 준비: 95초판(스레드·틱톡·유튜브 공용)")
             # G드라이브 미러 — 틱톡·릴스·네이버클립은 **휴대폰에서 업로드**하므로
             # G드라이브에 없는 파일은 올릴 수가 없다. 그래서 두 판본을 다 올린다.
-            # 3단계 미러는 이 시점보다 앞서 돌아 20초판·표형카드가 아직 없다
+            # 3단계 미러는 이 시점보다 앞서 돌아 표형카드가 아직 없다
             # (표형 카드는 조립 중에 로컬 렌더된다) → 여기서 따로 붙인다.
             try:
                 gd = zt.GDRIVE_DIR / date_iso
                 gd.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(out, gd / "07_영상.mp4")            # 95초판
-                extra = [(BASE / "reels" / f"{date_iso}_10s.mp4", "10_쇼츠20초.mp4"),
-                         (BASE / "cards" / date_iso / "card_08.png", "09_표형12띠.png")]
+                # 2026-08-03: 20초판(10s) 폐기로 미러 대상에서 뺐다.
+                extra = [(BASE / "cards" / date_iso / "card_08.png", "09_표형12띠.png")]
                 for src, name in extra:
                     if src.exists():
                         shutil.copy2(src, gd / name)
@@ -464,13 +432,21 @@ def main():
     except Exception as e:
         log(f"[WARN] 아카이브 실패(무시하고 계속): {e}")
 
-    # 5) repo 푸시 (Actions 05:35 발행이 Topview분을 쓰도록)
-    if do_push:
-        git_push([date_iso, tomorrow], alerts)
-
-    # 6) 운명과학TV 쇼츠 업로드 (A/B 변종 반영, 자정 예약공개)
+    # 5) 운명과학TV 쇼츠를 먼저 비공개 예약 업로드한다.
+    #    uploaded.json은 이 성공 뒤에만 쓰이며, 다음 repo push/Threads 발행의 선행조건이다.
+    youtube_ready = False
     if video_ok:
-        queue_youtube_shorts(date_iso, alerts, do_upload, variant)
+        youtube_ready = queue_youtube_shorts(date_iso, alerts, do_upload, variant)
+    else:
+        alerts.append("쇼츠가 없어 유튜브 예약·Threads 발행을 모두 보류")
+
+    # 6) 유튜브 예약 성공 뒤에만 카드·영상·uploaded.json을 푸시한다.
+    #    GitHub Actions의 Threads 단계도 이 표식이 있어야 실행된다.
+    if do_push:
+        if youtube_ready and _upload_marker(date_iso).exists():
+            git_push([date_iso, tomorrow], alerts)
+        else:
+            alerts.append("유튜브 예약 미완료 — Threads 선행 방지를 위해 repo 푸시 보류")
 
     # 7) 경보
     if alerts:
