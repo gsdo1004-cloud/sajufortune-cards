@@ -1,0 +1,26 @@
+{
+  "date": "2026-08-11",
+  "landing": "https://sajufortune.kr/unse/today",
+  "cards": [
+    "card_01.png",
+    "card_02.png",
+    "card_03.png",
+    "card_04.png",
+    "card_05.png",
+    "card_06.png"
+  ],
+  "products_in_feed": [
+    "saju_full",
+    "life6_deep",
+    "newyear_basic",
+    "love_reunion",
+    "tojung_basic",
+    "match_couple",
+    "wealth",
+    "career",
+    "health_senior",
+    "pass_1day",
+    "pass_7day",
+    "pass_30day"
+  ]
+}
