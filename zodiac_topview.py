@@ -38,9 +38,47 @@ import zodiac_prompt_engine as zpe
 from ganzhi_zodiac import zodiac_day
 
 # Topview 공식 스킬 클라이언트 재사용 (REST api.topview.ai — MCP와 별개 경로)
+#
+# [2026-08-16] 정본을 레포 동봉본(topview_shared/)으로 옮긴다. 이전에는 로컬 PC의
+# ~/.claude/skills/topview-skill/scripts 만 보고 `from shared.client import ...` 했는데,
+# Actions 러너에는 그 경로가 없어 import 단계에서 ModuleNotFoundError 로 죽었다.
+# 이 모듈을 import 하는 파일이 8개(zodiac_signal_card·zodiac_shorts·promo_build 등)라
+# 한 줄이 그 전부를 끌고 넘어갔고, 8/11~8/16 엿새 동안 띠 지목 발행이 0건이었다.
 SKILL_SCRIPTS = Path.home() / ".claude" / "skills" / "topview-skill" / "scripts"
-sys.path.insert(0, str(SKILL_SCRIPTS))
-from shared.client import TopviewClient, TopviewError  # noqa: E402
+if SKILL_SCRIPTS.is_dir():
+    sys.path.append(str(SKILL_SCRIPTS))  # 레포 동봉본이 우선, 로컬 스킬은 폴백
+
+TOPVIEW_CLIENT_IMPORT_ERROR: Exception | None = None
+try:
+    from topview_shared.client import TopviewClient, TopviewError  # noqa: E402
+except ImportError:
+    try:
+        from shared.client import TopviewClient, TopviewError  # noqa: E402
+    except ImportError as exc:
+        # 여기서 raise 하면 안 된다. 호출자들의 폴백(zodiac_signal_card.build() 의
+        # PIL 카드, Actions 의 레거시 HTML 카드)은 전부 '함수 실행 중' 예외를 잡는
+        # 그물이라, import 시점에 터지면 그물 밖에서 죽는다. 자리표를 두고 실제
+        # 사용 시점까지 미뤄야 폴백이 제 일을 한다.
+        TOPVIEW_CLIENT_IMPORT_ERROR = exc
+
+        class TopviewError(Exception):  # type: ignore[no-redef]
+            """클라이언트 부재 시의 자리표. 원본과 같은 (code, message) 서명을 쓴다."""
+
+            def __init__(self, code: str, message: str):
+                self.code = code
+                self.message = message
+                super().__init__(f"[{code}] {message}")
+
+        class TopviewClient:  # type: ignore[no-redef]
+            """생성 시점에 실패를 알리는 자리표 — 폴백 경로로 유도한다."""
+
+            def __init__(self, *args, **kwargs):
+                raise TopviewError(
+                    "NO_CLIENT",
+                    "Topview 클라이언트를 불러오지 못했습니다"
+                    f"(topview_shared/ 동봉본과 로컬 스킬 모두 없음): "
+                    f"{TOPVIEW_CLIENT_IMPORT_ERROR}",
+                )
 
 SUBMIT_PATH = "/v1/common_task/text2image/task/submit"
 QUERY_PATH = "/v1/common_task/text2image/task/query"
