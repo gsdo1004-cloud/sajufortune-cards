@@ -25,8 +25,16 @@ import zodiac_seo as zs
 
 try:
     import edge_tts
-except ImportError:
-    raise SystemExit("pip install edge-tts --break-system-packages")
+except ImportError as _exc:
+    # [2026-08-16] import 시점에 죽이지 않는다. promo_publish.py 는 이 모듈에서
+    # publish_video() 하나만 쓰고 TTS 는 건드리지도 않는데, 이 raise 하나 때문에
+    # 「대박운세 홍보 발행」이 7/26 첫 실행부터 5회 내리 죽었다(러너에 edge-tts
+    # 미설치, 워크플로는 requests 만 깐다). 없는 기능은 그 기능을 실제로 쓸 때
+    # 실패해야 한다 — import 시점 크래시는 호출자 폴백 그물 밖에서 죽는다.
+    edge_tts = None
+    _EDGE_TTS_IMPORT_ERROR = _exc
+else:
+    _EDGE_TTS_IMPORT_ERROR = None
 
 W, H = 1080, 1920
 FPS = 30
@@ -149,6 +157,11 @@ def _tts(text, out_mp3, rate_pct: int = BASE_RATE_PCT):
             return
     except ImportError:
         pass
+    if edge_tts is None:
+        raise SystemExit(
+            "[FAIL] Supertonic 도 edge-tts 도 없어 TTS 를 만들 수 없습니다"
+            f" ({_EDGE_TTS_IMPORT_ERROR}). 러너라면 워크플로 의존성 설치에"
+            " edge-tts 를 추가하세요: pip install edge-tts")
     async def go():
         await edge_tts.Communicate(text, VOICE, rate=f"+{int(rate_pct)}%").save(str(out_mp3))
     asyncio.run(go())
