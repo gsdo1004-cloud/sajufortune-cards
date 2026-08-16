@@ -137,11 +137,33 @@ def _find_mcp_headers(obj):
     return None
 
 
+# BOM(U+FEFF)과 zero-width 문자들. 눈에 안 보이는데 헤더에 그대로 실려 401을 만든다.
+_INVISIBLE = "﻿​‌‍⁠"
+
+
+def _clean_secret(s: str, label: str = "") -> str:
+    """자격증명에서 공백과 '보이지 않는 문자'를 벗긴다.
+
+    ⚠️ 2026-08-16 사고: Actions 시크릿 TOPVIEW_API_KEY 값 앞에 BOM(U+FEFF)이 붙어
+    있었다(PowerShell UTF-8-with-BOM 출력에서 흘러든 것으로 보인다). 파이썬 str.strip()
+    은 공백만 벗기는데 '\\ufeff'.isspace() 는 False 라 BOM 이 살아남아, 멀쩡한 키가
+    Authorization 헤더에서 401 을 맞고 "키 전부 무효"로 보고됐다.
+    실측: 같은 키가 원본은 잔액 257.55, BOM 을 붙이면 None, .strip() 해도 None.
+    키를 갈아끼우기 전에 이 함정부터 의심할 것 — 화면상 두 문자열은 똑같아 보인다.
+    """
+    cleaned = s.strip().strip(_INVISIBLE).strip()
+    if label and cleaned != s.strip():
+        # 벗겨서 살렸더라도 출처는 오염된 채다. 다음 사람이 원인을 찾게 남긴다.
+        bad = [hex(ord(c)) for c in s if c in _INVISIBLE]
+        log(f"[WARN] {label} 값에 보이지 않는 문자 {bad} — 제거하고 씁니다. 출처 수정 권장.")
+    return cleaned
+
+
 def _credential_candidates() -> list[tuple[str, str, str]]:
     """(출처명, uid, key) 후보 전부. 우선순위 아닌 '후보 목록' — 검증으로 고른다."""
     out: list[tuple[str, str, str]] = []
-    uid_env = os.environ.get("TOPVIEW_UID", "").strip()
-    key_env = os.environ.get("TOPVIEW_API_KEY", "").strip()
+    uid_env = _clean_secret(os.environ.get("TOPVIEW_UID", ""), "환경변수 TOPVIEW_UID")
+    key_env = _clean_secret(os.environ.get("TOPVIEW_API_KEY", ""), "환경변수 TOPVIEW_API_KEY")
     if uid_env and key_env:
         out.append(("환경변수", uid_env, key_env))
     try:
@@ -149,8 +171,8 @@ def _credential_candidates() -> list[tuple[str, str, str]]:
         if cj.exists():
             h = _find_mcp_headers(json.loads(cj.read_text(encoding="utf-8")))
             if h:
-                k = h.get("Authorization", "").replace("Bearer", "").strip()
-                u = h.get("Topview-Uid", "") or h.get("topview-uid", "")
+                k = _clean_secret(h.get("Authorization", "").replace("Bearer", ""))
+                u = _clean_secret(h.get("Topview-Uid", "") or h.get("topview-uid", ""))
                 if u and k:
                     out.append((".claude.json", u, k))
     except (json.JSONDecodeError, OSError) as e:
@@ -159,7 +181,7 @@ def _credential_candidates() -> list[tuple[str, str, str]]:
         cf = Path.home() / ".topview" / "credentials.json"
         if cf.exists():
             c = json.loads(cf.read_text(encoding="utf-8"))
-            u, k = c.get("uid", "").strip(), c.get("api_key", "").strip()
+            u, k = _clean_secret(c.get("uid", "")), _clean_secret(c.get("api_key", ""))
             if u and k:
                 out.append(("credentials.json", u, k))
     except (json.JSONDecodeError, OSError) as e:
