@@ -47,11 +47,17 @@ def run_once() -> int:
             zmt.ensure_month_images(y, m)
         except Exception as e:
             print(f"[month-task] AI 카드 생성 건너뜀({e!r}) — Pillow 카드로 진행")
-        r = zms.run(y, m)
+        # 생성만 수행한다. 기존 통합 세트와 새 개별 영상 모두 자동 업로드하지 않는다.
+        r = zms.run(y, m, featured_limit=3)
         msg = [f"{y}-{m:02d} 생성 완료",
                f"로컬     : {r['root']}",
                f"구글드라이브: {r['gdrive'] or '(복사 실패 — 로컬 확인)'}",
                f"영상     : {', '.join(v.name for v in r['videos'])}"]
+        msg.extend([
+            "개별 영상: " + ", ".join(v.name for v in r["featured_videos"]),
+            f"선정 근거: {r['featured_selection']}",
+            "업로드: 수행하지 않음 (생성 후 수동 검토 전용)",
+        ])
         logf.write_text("\n".join(msg), encoding="utf-8")
         print("\n".join(msg))
         return 0

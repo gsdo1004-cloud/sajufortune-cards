@@ -258,6 +258,50 @@ def all_month_readings(year: int, month: int) -> list[dict]:
     return out
 
 
+# 실제 조회수·참여도 데이터가 연결되기 전까지는 월간 점수의 극단성으로 개별 영상을 고른다.
+# 평온 점수대의 중앙값과의 거리, 그 다음 순·중·하순 점수 변동폭 순으로 결정한다.
+FEATURED_NEUTRAL_SCORE = 75
+
+
+def select_featured_month_readings(year: int, month: int, limit: int = 3) -> list[dict]:
+    """개별 월간 쇼츠 후보를 결정론적으로 반환한다.
+
+    기존 월간 엔진의 ``score``와 일진 관계에서 계산한 ``decade_scores``만 쓴다.
+    실제 성과 데이터가 연결되면 영상 조립 코드는 바꾸지 않고 순위 입력만 교체할 수 있다.
+    """
+    if limit <= 0:
+        return []
+
+    readings = all_month_readings(year, month)
+
+    def rank_key(reading: dict) -> tuple[int, int, str]:
+        extremeness = abs(int(reading["score"]) - FEATURED_NEUTRAL_SCORE)
+        values = list(reading["decade_scores"].values())
+        spread = max(values) - min(values)
+        return (-extremeness, -spread, reading["sign"])
+
+    selected: list[dict] = []
+    for rank, reading in enumerate(sorted(readings, key=rank_key)[:limit], start=1):
+        item = dict(reading)
+        extremeness = abs(int(item["score"]) - FEATURED_NEUTRAL_SCORE)
+        values = list(item["decade_scores"].values())
+        spread = max(values) - min(values)
+        item["featured_selection"] = {
+            "rank": rank,
+            "method": "deterministic_monthly_score_extremity",
+            "neutral_score": FEATURED_NEUTRAL_SCORE,
+            "score": item["score"],
+            "extremeness": extremeness,
+            "period_spread": spread,
+            "basis": (
+                f"월간 총운 {item['score']}점이 평온 기준 {FEATURED_NEUTRAL_SCORE}점에서 "
+                f"{extremeness}점 떨어졌고, 순·중·하순 점수 변동폭은 {spread}점"
+            ),
+        }
+        selected.append(item)
+    return selected
+
+
 if __name__ == "__main__":
     import sys
     y = int(sys.argv[1]) if len(sys.argv) > 1 else 2026

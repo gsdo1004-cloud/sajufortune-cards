@@ -17,6 +17,7 @@ from pathlib import Path
 API_URL = "https://api.typecast.ai/v1/text-to-speech"
 MODEL = "ssfm-v30"
 EDGE_VOICE = "ko-KR-SunHiNeural"   # 폴백(기존 zodiac_reels와 동일)
+EDGE_GENDER = "female"              # SunHiNeural은 여성 음성
 
 # ssfm-v30 한국어 성우 풀 (2026-07-17 /v2/voices 실조회로 선별 — 남6·여6)
 VOICE_POOL = {
@@ -94,7 +95,7 @@ def synth_edge(text: str, out_path: Path, tempo: float = 1.0) -> None:
 
 def synth(text: str, out_path: Path, date: dt.date | None = None,
           log=print, tempo: float = 1.0) -> dict:
-    """내레이션 1줄 합성 — 타입캐스트 2회 → edge 폴백. 반환 {engine, voice}.
+    """내레이션 1줄 합성 — 타입캐스트 2회 → edge 폴백. 반환 {engine, voice, gender}.
 
     tempo: 말 속도(0.5~2.0). 네이버 클립 90초 제한을 맞추려 자동 상향될 수 있음.
     """
@@ -106,14 +107,16 @@ def synth(text: str, out_path: Path, date: dt.date | None = None,
         for attempt in (1, 2):
             try:
                 synth_typecast(text, out_path, v["voice_id"], key, tempo=tempo)
-                return {"engine": "typecast", "voice": v["label"], "tempo": tempo}
+                return {"engine": "typecast", "voice": v["label"],
+                        "gender": v["gender"], "tempo": tempo}
             except Exception as e:
                 log(f"[WARN] typecast 시도{attempt} 실패({v['label']}): {e}")
                 time.sleep(3 * attempt)
     else:
         log("[WARN] 타입캐스트 키 없음 — edge-tts 폴백")
     synth_edge(text, out_path, tempo)
-    return {"engine": "edge", "voice": "SunHi(폴백)", "tempo": tempo}
+    return {"engine": "edge", "voice": "SunHi(폴백)",
+            "gender": EDGE_GENDER, "tempo": tempo}
 
 
 if __name__ == "__main__":

@@ -31,6 +31,7 @@ from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE))
+VIDEO_ROOT = Path(os.environ.get("ZODIAC_VIDEO_ROOT", r"D:\shorts_work\zodiac_daily"))
 
 import zodiac_seo as zs
 import zodiac_topview as zt
@@ -39,7 +40,7 @@ import zodiac_alert
 NO_WINDOW = 0x08000000 if os.name == "nt" else 0
 
 # 운명과학TV 멀티업로더 (2026-07-17 정찰 확정)
-UPLOADER_DIR = Path(r"G:\내 드라이브\01클로드\작업폴더\music_pipeline")
+UPLOADER_DIR = Path(r"D:\automation_control\secrets\youtube")
 UPLOAD_QUEUE = UPLOADER_DIR / "upload_queue_unmyeong"
 # pythonw로 돌 때 sys.executable=pythonw.exe → 자식도 무창(콘솔 안 뜸). 절대경로 고정.
 UPLOADER_PY = sys.executable
@@ -211,7 +212,7 @@ def backfill_gdrive(days: int = 4) -> int:
         di = (today + dt.timedelta(days=i - 1)).isoformat()
         gd = zt.GDRIVE_DIR / di
         # 2026-08-03: 20초판(10s) 폐기로 미러 대상에서 뺐다. 되살리면 여기도 되살릴 것.
-        pairs = [(BASE / "reels" / f"{di}_tts.mp4", "07_영상.mp4"),
+        pairs = [(VIDEO_ROOT / "reels" / f"{di}_tts.mp4", "07_영상.mp4"),
                  (BASE / "cards" / di / "card_05.png", "08_지목3띠.png"),
                  (BASE / "cards" / di / "card_08.png", "09_표형12띠.png")]
         for src, name in pairs:
@@ -319,13 +320,16 @@ def queue_youtube_shorts(date_iso: str, alerts: list[str],
         return True
     r = _run([UPLOADER_PY, "04_auto_upload.py", "--channel", "unmyeong"],
              cwd=UPLOADER_DIR, timeout=900)
-    ok = r.returncode == 0 and ("업로드" in r.stdout or "upload" in r.stdout.lower()
-                                or r.stdout.strip() != "")
     if r.returncode != 0:
         alerts.append(f"유튜브 업로더 종료코드 {r.returncode}: {(r.stderr or r.stdout)[-300:]}")
         return False
+    # 업로더는 실패해도 종료코드 0을 낸다(썸네일 오류 등을 삼킴). 로그 파일의 status 를
+    # 근거로 실제 성공 여부를 판정한다. 성공 로그가 없으면 uploaded 표식·push를 막는다.
     vid = _record_upload(date_iso, variant)
-    log(f"유튜브 업로드 완료: {vid or '(ID확인실패)'} — 변종{variant}, 전날 저녁 예약공개")
+    if not vid:
+        alerts.append(f"유튜브 업로드 성공표식 없음(마지막 log status=success 아님) — Threads/push 보류")
+        return False
+    log(f"유튜브 업로드 완료: {vid} — 변종{variant}, 전날 저녁 예약공개")
     return True
 
 
@@ -382,7 +386,7 @@ def main():
     if r_today["ok"]:
         try:
             import zodiac_shorts
-            out = BASE / "reels" / f"{date_iso}_tts.mp4"
+            out = VIDEO_ROOT / "reels" / f"{date_iso}_tts.mp4"
             # ⚠️ 2026-07-17 버그: 파일 존재+크기만 보면 **레거시 릴스**(Actions가 05:35에
             # HTML카드+EdgeTTS로 만들어 커밋한 같은 이름 파일)를 우리 쇼츠로 오인해
             # 그대로 유튜브에 올린다(실제 오업로드 1건 발생). 판정은 반드시 우리가 남긴
@@ -394,6 +398,12 @@ def main():
                     log("기존 mp4는 레거시 릴스 — 덮어쓰고 Topview 쇼츠로 재조립")
                 zodiac_shorts.make_shorts(date_iso)
             video_ok = True
+            # GitHub Actions의 Threads 단계는 C: 저장소의 추적 파일을 읽으므로
+            # 업로드·조립이 끝난 최종 mp4만 publication handoff로 남긴다.
+            repo_out = BASE / "reels" / out.name
+            repo_out.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(out, repo_out)
+            log(f"Git publication handoff: {out.name} → {repo_out}")
             # 2026-08-03: 20초판 생성 중단. make_shorts_10s 함수는 zodiac_shorts 에 그대로
             # 남겨 둔다 — 되살릴 때 여기서 다시 부르기만 하면 된다.
             log("영상 1종 준비: 95초판(스레드·틱톡·유튜브 공용)")

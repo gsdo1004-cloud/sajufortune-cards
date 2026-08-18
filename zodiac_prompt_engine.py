@@ -1,14 +1,14 @@
-"""띠별운세 이미지 프롬프트 '다양성' 엔진 — v2 (2026-07-17 5장 체제).
+"""띠별운세 이미지 프롬프트 '다양성' 엔진 — v2 (2026-08-10 4장 체제).
 
 핵심 철학 (한밝님 2026-07-17): 매일 다른 화풍·배경·컨셉·색감·소품이라야
 독자가 질리지 않고 재미있게 본다. 여러 축을 서로 다른 주기로 순환시켜
 조합을 폭발시킨다(사실상 매일 유니크). 결정론적(날짜 기반) = 재현 가능.
 
 v2 변경 (한밝님 지시):
-  - 하루 5장: 표지(섬네일) 1장 + 띠별 4장(각 3띠) — 전부 9:16, GPT Image 2 1K
+  - 하루 기본 4장: 띠별 3장(각 4띠) + 12띠요약 1장 — 전부 9:16, GPT Image 2 1K
   - 각 장에 simple(단순화) 폴백 프롬프트 동봉 — 생성 실패 시 재시도용
     (텍스트는 동일하게 유지하고 장식 요소만 줄여 성공률을 높인다)
-  - 띠별 장: 띠 3줄 × (한 줄 운세 + 별점 4항목 전체/금전/연애/건강)
+  - 띠별 장: 띠 4줄 × (한 줄 운세 + 별점 4항목 전체/금전/연애/건강)
 """
 from __future__ import annotations
 import datetime as dt
@@ -110,7 +110,7 @@ GROUP_COMPOSITIONS = [
 
 WEEKDAY_KR = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
 
-# 12지신 (표준 순서) — 하루 4장 = 3띠씩
+# 12지신 (표준 순서) — 하루 4장 = 4띠씩 3그룹 + 12띠요약
 ZODIAC12 = ["쥐띠", "소띠", "호랑이띠", "토끼띠", "용띠", "뱀띠",
             "말띠", "양띠", "원숭이띠", "닭띠", "개띠", "돼지띠"]
 ZODIAC_EN = {
@@ -118,8 +118,8 @@ ZODIAC_EN = {
     "용띠": "dragon", "뱀띠": "snake", "말띠": "horse", "양띠": "sheep",
     "원숭이띠": "monkey", "닭띠": "rooster", "개띠": "dog", "돼지띠": "pig",
 }
-GROUP_NAMES = ["띠별A", "띠별B", "띠별C", "띠별D"]
-GROUPS = [ZODIAC12[i * 3:(i + 1) * 3] for i in range(4)]   # 3띠 × 4장
+GROUP_NAMES = ["띠별A", "띠별B", "띠별C"]
+GROUPS = [ZODIAC12[i * 4:(i + 1) * 4] for i in range(3)]   # 4띠 × 3장
 
 
 def _pick(date: dt.date, axis: list, period: int = 1, stride: int = 1):
@@ -185,7 +185,7 @@ def cover_prompt(date: dt.date, theme: dict | None = None, simple: bool = False)
 
 def group_prompt(date: dt.date, rows: list[dict], theme: dict | None = None,
                  simple: bool = False) -> str:
-    """띠별 3띠 프롬프트. rows = [{ko, line, stars:{전체,금전,연애,건강}}] 3개.
+    """띠별 4띠 프롬프트. rows = [{ko, line, stars:{전체,금전,연애,건강}}] 4개.
 
     2026-07-20: "동물 좌/텍스트 우" 3단 표 형태(도식적 나열)를 무드 비주얼 구도로
     교체. 근거·배경은 GROUP_COMPOSITIONS 선언부 주석 참고.
@@ -206,7 +206,7 @@ def group_prompt(date: dt.date, rows: list[dict], theme: dict | None = None,
         f"Vertical 9:16 Korean zodiac fortune card, atmospheric mood illustration — "
         f"NOT an infographic, NOT a chart, NOT a table. "
         f"Top title '오늘의 띠별운세' bold clean Korean, small date '{t['date_kr']} {t['weekday']}'. "
-        f"Three animals ({animals}, in order) {comp[1]}. "
+        f"Four animals ({animals}, in order) {comp[1]}. "
         f"{secs}"
         f"Characters {t['concept'][1]}. {deco}"
         f"{t['palette'][1]}. Art style: {t['style'][1]}. "
@@ -294,6 +294,30 @@ PICK3_THEMES = [
 ]
 _AXIS_FIELD = {"overall": "overall_score", "money": "money_score",
                "love": "love_score", "health": "health_score"}
+
+
+def _pick3_reading_text(sign_ko: str, date: dt.date, axis: str) -> str:
+    """지목 카드 문구를 사주v6 정본 make_reading에서 가져온다.
+
+    rows_by_ko는 카드 레이아웃용으로 이미 짧아진 값일 수 있다. 지목형은 별도
+    문구를 다시 만들지 않고, 반드시 날짜별 간지×띠 관계를 계산한 정본 결과에서
+    축(총운·재물·인연·건강)에 맞는 한 문장을 선택한다.
+    """
+    import zodiac_seo as zs
+    from ganzhi_zodiac import zodiac_day
+
+    slug = zs.KO_TO_SLUG[sign_ko]
+    reading = zs.make_reading(slug, date.isoformat())
+    if axis == "overall":
+        ctx = zodiac_day(slug, date)
+        prefix = f"오늘은 {ctx['day_pillar']}일, "
+        text = (reading.overall[len(prefix):]
+                if reading.overall.startswith(prefix) else reading.overall)
+    else:
+        text = getattr(reading, axis, reading.overall)
+    text = " ".join(str(text).split()).strip()
+    return (text.split(". ", 1)[0].rstrip(".")
+            if text else "오늘의 흐름을 차분히 살펴보세요")
 
 
 # ── 20초판 포맷 로테이션 (2026-07-26) ────────────────────────
@@ -401,13 +425,23 @@ def pick3_prompt(date: dt.date, rows_by_ko: dict[str, dict],
     pt = pick_theme or pick3_theme(date)
     picks = picks or pick3_signs(rows_by_ko, date=date, theme=pt)
     animals = ", ".join(ZODIAC_EN.get(ko, ko) for ko in picks)
+    # 기간형 지목은 해당 기간에서 점수가 가장 좋은 날짜의 정본 운세를 카드에도
+    # 반영해야 영상(pick3_narration)과 페이지가 서로 다른 말을 하지 않는다.
+    period_scores = theme_scores(date, pt) if pt["scope"] != "day" else {}
     cells = ""
     for rank, ko in enumerate(picks, 1):
         r = rows_by_ko.get(ko) or {}
         n = max(1, min(5, int((r.get("stars") or {}).get("전체", 4))))
+        target = period_scores.get(ko, {}).get("best_day") or date
+        try:
+            reading_text = _pick3_reading_text(ko, target, pt.get("axis", "overall"))
+        except Exception:
+            # 정본 엔진을 우선 사용하되, 환경이 일시적으로 불완전한 경우 기존
+            # build_rows 결과로 이미지 생성 자체가 멈추지 않게 한다.
+            reading_text = r.get("advice") or r.get("line", "좋은 기운이 함께하는 날")
         cells += (f"Card {rank} — big cute {ZODIAC_EN.get(ko, 'animal')} on the left; "
                   f"on the right the name '{ko}' in LARGE bold Korean, below it "
-                  f"'{r.get('advice') or r.get('line', '')}' in clearly readable Korean "
+                  f"'{reading_text}' in clearly readable Korean "
                   f"(2 short lines), then '행운 {r.get('lucky', '')}' and "
                   f"'운세지수 {'★' * n}{'☆' * (5 - n)}'. ")
     deco = (f"Background: {t['bg'][1]}. " if not simple else
@@ -437,44 +471,40 @@ def pick3_prompt(date: dt.date, rows_by_ko: dict[str, dict],
 
 
 def daily_set(date: dt.date, rows_by_ko: dict[str, dict]) -> dict:
-    """하루 5장 프롬프트 전체.
+    """하루 4장 프롬프트 전체(띠별 3장 + 12띠요약).
 
     rows_by_ko = {띠: {"line": 한줄운세, "stars": {전체,금전,연애,건강}}} 12개.
-    반환: {theme, images: [{name, file, signs, prompt, simple_prompt} × 5]}
+    반환: {theme, images: [{name, file, signs, prompt, simple_prompt} × 4]}
     """
     t = daily_theme(date)
-    images = [{
-        "name": "표지", "file": "01_표지", "signs": list(ZODIAC12),
-        "prompt": cover_prompt(date, t),
-        "simple_prompt": cover_prompt(date, t, simple=True),
-    }]
+    images = []
     for gi, group in enumerate(GROUPS):
         rows = []
         for ko in group:
             r = rows_by_ko.get(ko) or {"line": "좋은 기운이 함께하는 날", "stars": {"전체": 4, "금전": 4, "연애": 4, "건강": 4}}
             rows.append({"ko": ko, "line": r["line"], "stars": r["stars"]})
         images.append({
-            "name": GROUP_NAMES[gi], "file": f"{gi + 2:02d}_{GROUP_NAMES[gi]}",
+            "name": GROUP_NAMES[gi], "file": f"{gi + 1:02d}_{GROUP_NAMES[gi]}",
             "signs": list(group),
             "prompt": group_prompt(date, rows, t),
             "simple_prompt": group_prompt(date, rows, t, simple=True),
         })
-    # 6번째 = 12띠 요약 1장 (A/B 10초판 전용). 95초판은 1~5만 쓴다.
+    # 4번째 = 12띠 요약 1장. 95초판은 1~4를 쓴다.
     images.append({
-        "name": "12띠요약", "file": "06_12띠요약", "signs": list(ZODIAC12),
+        "name": "12띠요약", "file": "04_12띠요약", "signs": list(ZODIAC12),
         "prompt": summary12_prompt(date, rows_by_ko, t),
         "simple_prompt": summary12_prompt(date, rows_by_ko, t, simple=True),
     })
-    # 7번째 = 소수 지목형 카드 (2026-07-26 신포맷, 20초 유튜브판 전용).
+    # 5번째 = 소수 지목형 카드 (2026-07-26 신포맷, 20초 유튜브판 전용).
     # optional=True: 이 장이 실패해도 하루 발행을 막지 않는다. 20초판은 6번 카드로
-    # 자동 폴백하고 95초판·스레드·틱톡은 애초에 1~5번만 쓴다.
+    # 자동 폴백하고 95초판·스레드·틱톡은 애초에 1~4번만 쓴다.
     # 지목형 차례인 날에만 만든다 — 3일에 하루 쓸 카드를 매일 뽑으면 크레딧이 샌다.
     if shorts_format(date.isoformat()) != "pick3":
         return {"theme": t, "images": images, "picks": [], "pick_theme": None}
     pt = pick3_theme(date)
     picks = pick3_signs(rows_by_ko, date=date, theme=pt)
     images.append({
-        "name": "지목3띠", "file": "07_지목3띠", "signs": picks, "optional": True,
+        "name": "지목3띠", "file": "05_지목3띠", "signs": picks, "optional": True,
         "prompt": pick3_prompt(date, rows_by_ko, picks, t, pick_theme=pt),
         "simple_prompt": pick3_prompt(date, rows_by_ko, picks, t, simple=True,
                                       pick_theme=pt),
@@ -496,7 +526,7 @@ if __name__ == "__main__":
     demo_rows = {ko: {"line": "운이 활짝 열리는 날", "stars": {"전체": 4, "금전": 3, "연애": 5, "건강": 4}}
                  for ko in ZODIAC12}
     s = daily_set(base, demo_rows)
-    print(f"\n=== {base} 이미지 5장 ===")
+    print(f"\n=== {base} 이미지 {len(s['images'])}장(기본 4장 + 선택 카드) ===")
     for im in s["images"]:
         print(f"\n[{im['file']}] ({', '.join(im['signs'][:3])}{'...' if len(im['signs']) > 3 else ''})")
         print(im["prompt"][:300], "...")

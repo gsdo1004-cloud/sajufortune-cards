@@ -2,7 +2,7 @@
 """
 띠별운세 인스타그램 발행 (Instagram 로그인 API, graph.instagram.com)
 ====================================================================
-- 카드뉴스 캐러셀 (이미지 6장) + 릴스 영상(9:16 mp4) 발행 + 첫 댓글 CTA
+- 카드뉴스 캐러셀 (Topview 기본 이미지 4장) + 릴스 영상(9:16 mp4) 발행 + 첫 댓글 CTA
 - 이미지/영상은 sajufortune-cards public raw URL 사용 (카드/릴스 스크립트가 먼저 생성·커밋)
 
 모드: python zodiac_instagram.py carousel [YYYY-MM-DD]   # 카드 캐러셀
@@ -23,7 +23,7 @@ GH_REPO = "sajufortune-cards"
 RAW_BASE = f"https://raw.githubusercontent.com/{GH_USER}/{GH_REPO}/main"
 SITE = "sajufortune.kr"
 IG = "https://graph.instagram.com/v21.0"
-N_CARDS = 6   # 레거시 HTML 구성(표지1+본문4+요약1). Topview 5장이면 자동 감지.
+N_CARDS = 4   # Topview 기본 구성(띠별3+요약1). 파일 자동감지가 우선.
 
 # ⚠️ 인스타 자동발행 게이트 (2026-07-12 차단 → 2026-07-27 날짜 게이트로 전환) -------
 # gsdo10042026(김산) 계정이 링크제한을 받았다. 제재 사유는 **"링크 자동댓글 대량 살포"**
@@ -124,7 +124,7 @@ def publish_reel(video_url, caption):
 
 
 def do_carousel(date_iso):
-    # 2026-07-17: 카드 장수를 실제 파일에서 감지 (Topview 5장 / 레거시 6장 겸용)
+    # 카드 장수는 실제 파일에서 감지하고, 폴백만 Topview 기본 4장으로 둔다.
     local = sorted((Path(__file__).resolve().parent / "cards" / date_iso).glob("card_*.png"))
     n = len(local) if local else N_CARDS
     urls = [f"{RAW_BASE}/cards/{date_iso}/card_{i:02d}.png" for i in range(1, n + 1)]

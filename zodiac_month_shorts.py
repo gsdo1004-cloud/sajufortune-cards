@@ -17,17 +17,20 @@ from __future__ import annotations
 
 import argparse
 import datetime as _dt
+import json
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 import zodiac_shorts as zs_mod
-from zodiac_month import all_month_readings, month_label
+from zodiac_month import (all_month_readings, month_label,
+                          select_featured_month_readings)
 from zodiac_month_cards import (make_cardnews, make_onepage, make_outro_card,
                                 make_shorts_cards)
 
 BASE = Path(__file__).resolve().parent
+VIDEO_ROOT = Path(__import__("os").environ.get("ZODIAC_VIDEO_ROOT", r"D:\shorts_work\zodiac_monthly"))
 W, H, FPS = 1080, 1920, 30
 GDRIVE_ROOT = Path(r"G:\내 드라이브\01클로드\운세쇼츠")
 
@@ -221,6 +224,46 @@ def build(kind: str, year: int, month: int, cards: dict, rs: list[dict], out_dir
     return out
 
 
+def _featured_segments(reading: dict, year: int, month: int, card: Path,
+                       outro: Path) -> list[tuple[Path, float, str]]:
+    """기존 월간 계산 결과로 한 띠의 개별 쇼츠 대본을 만든다."""
+    lucky_days = ", ".join(f"{day}일" for day in reading["lucky_days"])
+    sign = reading["sign_ko"]
+    first = (
+        f"{year}년 {month}월 {sign} 월간 운세입니다. {reading['headline']}. "
+        f"재물운은 {reading['wealth']} 애정운은 {reading['love']}"
+    )
+    second = (
+        f"건강운은 {reading['health']} 직업운은 {reading['work']} "
+        f"{reading['period_note']} 길일은 {lucky_days}입니다. {reading['advice']}"
+    )
+    return [(card, 18.0, first), (card, 22.0, second), (outro, 4.0, CTA_END)]
+
+
+def build_featured_sign(reading: dict, year: int, month: int, card: Path,
+                        outro: Path, out_dir: Path) -> Path:
+    """기존 TTS·영상 조립 함수를 재사용해 선정 띠 한 편을 만든다."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    day = _dt.date(year, month, 1)
+    tmp = out_dir / f"_tmp_featured_{reading['sign']}"
+    tmp.mkdir(parents=True, exist_ok=True)
+    clips: list[Path] = []
+    for index, (image, seconds, narration) in enumerate(
+            _featured_segments(reading, year, month, card, outro)):
+        mp3 = tmp / f"n{index}.mp3"
+        duration = _tts(narration, mp3, day)
+        seconds = max(seconds, round(duration + 0.4, 2)) if duration else seconds
+        clips.append(_clip(image, seconds, mp3 if duration else None,
+                           tmp / f"c{index}.mp4", move_idx=index))
+    out = out_dir / f"{year}-{month:02d}_월간_{reading['sign_ko']}띠_개별운세.mp4"
+    _concat(clips, out, tmp)
+    # 카드 글자가 핵심 정보이므로 기존 PIP 생략 정책을 유지한다.
+    log(f"  개별 {reading['sign_ko']}띠: 카드 글자 보호를 위해 PNGTuber PIP 생략")
+    log(f"  개별 영상 {out.name} ({_dur(out):.1f}초)")
+    shutil.rmtree(tmp, ignore_errors=True)
+    return out
+
+
 def deploy_gdrive(local_dir: Path, year: int, month: int) -> Path | None:
     """완성본을 구글드라이브 보관 폴더로 복사. 실패해도 로컬 산출물은 남는다."""
     dest = GDRIVE_ROOT / f"{year}-{month:02d}_월간띠별운세"
@@ -228,7 +271,7 @@ def deploy_gdrive(local_dir: Path, year: int, month: int) -> Path | None:
         dest.mkdir(parents=True, exist_ok=True)
         n = 0
         for p in local_dir.rglob("*"):
-            if p.is_file() and p.suffix.lower() in (".mp4", ".png"):
+            if p.is_file() and p.suffix.lower() in (".mp4", ".png", ".json"):
                 tgt = dest / p.relative_to(local_dir)
                 tgt.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(p, tgt)
@@ -256,8 +299,8 @@ def load_ai_cards(year: int, month: int, root: Path) -> dict | None:
 
 
 def run(year: int, month: int, kinds=("30", "60", "80"), gdrive: bool = True,
-        ai: bool = True) -> dict:
-    root = BASE / "month" / f"{year}-{month:02d}"
+        ai: bool = True, featured_limit: int = 3) -> dict:
+    root = VIDEO_ROOT / f"{year}-{month:02d}"
     root.mkdir(parents=True, exist_ok=True)
     log(f"{year}년 {month}월 ({month_label(year, month)}) 월간 콘텐츠 생성 시작")
 
@@ -275,9 +318,41 @@ def run(year: int, month: int, kinds=("30", "60", "80"), gdrive: bool = True,
     log(f"  카드 완료 — 한장뉴스 1 · 카드뉴스 {len(cardnews)} · 쇼츠카드 {2 + len(cards['group']) + len(cards['single'])}")
 
     videos = [build(k, year, month, cards, rs, root) for k in kinds]
+
+    # AI 월간 카드에는 단일 띠 카드가 없으므로, 이 3편의 보조 자산으로만 기존
+    # Pillow 단일 카드 생성기를 쓴다. 새 이미지 렌더러를 추가하지 않는다.
+    detail_cards = cards if cards.get("single") else make_shorts_cards(
+        year, month, root / "shorts_cards")
+    single_by_sign = {reading["sign"]: card for reading, card in
+                      zip(rs, detail_cards["single"])}
+    featured = select_featured_month_readings(year, month, featured_limit)
+    featured_dir = root / "featured"
+    featured_videos = [
+        build_featured_sign(reading, year, month, single_by_sign[reading["sign"]],
+                            detail_cards["outro"], featured_dir)
+        for reading in featured
+    ]
+    selection_path = root / "featured_selection.json"
+    selection_path.write_text(json.dumps({
+        "year": year,
+        "month": month,
+        "method": "deterministic_monthly_score_extremity",
+        "data_status": (
+            "실제 조회수·참여도 데이터 미연결: 월간 총운 점수의 극단성과 "
+            "일진 관계에서 계산한 순·중·하순 점수 변동폭으로 선정"
+        ),
+        "selected": [
+            {"sign": reading["sign"], "sign_ko": reading["sign_ko"],
+             **reading["featured_selection"]}
+            for reading in featured
+        ],
+    }, ensure_ascii=False, indent=2), encoding="utf-8")
+    log(f"  개별 월간 쇼츠 {len(featured_videos)}개 생성; 선정 근거: {selection_path.name}")
     dest = deploy_gdrive(root, year, month) if gdrive else None
     return {"root": root, "gdrive": dest, "onepage": onepage,
-            "cardnews": cardnews, "videos": videos}
+            "cardnews": cardnews, "videos": videos,
+            "featured_videos": featured_videos,
+            "featured_selection": selection_path}
 
 
 if __name__ == "__main__":
@@ -289,10 +364,15 @@ if __name__ == "__main__":
     ap.add_argument("--kinds", default="30,60,80")
     ap.add_argument("--no-gdrive", action="store_true")
     ap.add_argument("--pillow", action="store_true", help="AI 카드 대신 Pillow 카드로 조립")
+    ap.add_argument("--featured-limit", type=int, default=3,
+                    help="추가 생성할 개별 띠 월간 쇼츠 수 (기본 3)")
     a = ap.parse_args()
     r = run(a.year, a.month, tuple(a.kinds.split(",")), gdrive=not a.no_gdrive,
-            ai=not a.pillow)
+            ai=not a.pillow, featured_limit=a.featured_limit)
     print("\n로컬 :", r["root"])
     print("G드라이브 :", r["gdrive"] or "(복사 안 함)")
+    print("선정 근거 :", r["featured_selection"])
+    for v in r["featured_videos"]:
+        print("  개별 :", v.name)
     for v in r["videos"]:
         print("  영상 :", v.name)

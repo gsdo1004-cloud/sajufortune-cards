@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""띠별운세 Topview GPT Image 2 — 하루 6장 '무실패' 생성 모듈 (2026-07-17 한밝님 지시)
+"""띠별운세 Topview GPT Image 2 — 하루 4장 '무실패' 생성 모듈 (2026-07-17 한밝님 지시)
 
 "이 이미지가 실패하면 다른 모든 것이 구현이 안 된다" → 설계 원칙:
   1) 멱등: 검증 통과한 장은 절대 재생성 안 함 → 재실행(2차 스케줄)이 빈 곳만 메움
@@ -13,7 +13,7 @@
 
 인증: 환경변수 TOPVIEW_UID/TOPVIEW_API_KEY 우선, 없으면 .claude.json의
       topview-mcp 헤더(sk-rGl 유효키)에서 자동 추출 ([[reference_topview_skill]] 정본).
-사용: python zodiac_topview.py ensure [YYYY-MM-DD]   # 6장 보장 생성(멱등)
+사용: python zodiac_topview.py ensure [YYYY-MM-DD]   # 기본 4장 보장 생성(멱등)
       python zodiac_topview.py status [YYYY-MM-DD]   # 검증 상태만 출력
       python zodiac_topview.py mirror [YYYY-MM-DD]   # G드라이브 일자별 폴더로 복사
 """
@@ -86,11 +86,11 @@ CREDIT_PATH = "/user/credit/detail"
 
 MODEL = "GPT Image 2"          # 한글 텍스트 렌더링 실증 유일 (2026-07-17)
 ASPECT = "9:16"
-RESOLUTION = "1K"              # 0.2크레딧/장 → 하루 6장 = 1.2크레딧 (월 36, 잔액 418 = 11개월)
-N_CARDS = 6                    # 필수: 표지1 + 띠별4 + 12띠요약1(20초판 폴백용)
-# 2026-07-26 신포맷: 7번째 = 소수 지목형 카드(20초 유튜브판). **선택 카드**로 둔다 —
+RESOLUTION = "1K"              # 0.2크레딧/장 → 하루 기본 4장 = 0.8크레딧
+N_CARDS = 4                    # 필수: 띠별3 + 12띠요약1
+# 2026-07-26 신포맷: 기본 카드 다음 = 소수 지목형 카드(20초 유튜브판). **선택 카드**로 둔다 —
 # 이걸 필수로 세면 이 한 장이 실패한 날 r_today["ok"]=False가 되어 쇼츠·발행 전체가
-# 멈춘다(파이프라인 4단계 게이트). 실패 시엔 경보만 남기고 20초판이 6번 카드로 폴백.
+# 멈춘다(파이프라인 4단계 게이트). 실패 시엔 경보만 남기고 20초판이 04번 카드로 폴백.
 N_CARDS_OPT = 1
 POLL_TIMEOUT = 300
 MIN_BYTES = 60_000             # 1K 9:16 정상물은 수백 KB — 60KB 미만은 깨진 파일
@@ -257,7 +257,7 @@ def _advice(overall: str, limit: int = 46) -> str:
 def build_rows(date_iso: str) -> dict[str, dict]:
     """12띠 각각 {line, advice, lucky, stars{전체/금전/연애/건강}}.
 
-    line   = 짧은 리드 (띠별 3띠 카드용, ≤22자)
+    line   = 짧은 리드 (띠별 4띠 카드용, ≤22자)
     advice = 조언 2~3줄 (12띠 요약 카드 셀용) — 한밝님 레퍼런스 밀도
     lucky  = "흰색·서쪽" 형태 (그날 일진 오행에서 도출 — 명리 근거)
     같은 그룹 내 중복 문구는 회피.
@@ -491,7 +491,7 @@ def check_balance(client: TopviewClient, alerts: list[str]) -> float | None:
 
 
 def ensure_daily_images(date_iso: str | None = None) -> dict:
-    """하루 6장(표지1+띠별4+12띠요약1) 보장 생성(멱등). 반환: {date, ok, files, failed, alerts}."""
+    """하루 기본 4장(띠별3+12띠요약1) 보장 생성(멱등). 반환: {date, ok, files, failed, alerts}."""
     date_iso = date_iso or zs.today_iso()
     d = dt.date.fromisoformat(date_iso)
     out_dir = BASE / "cards" / date_iso
@@ -533,15 +533,15 @@ def ensure_daily_images(date_iso: str | None = None) -> dict:
 
 
 # ── G드라이브 미러 (틱톡·blog-auto 소스) ─────────────────────
-# 번호는 card_NN이 아니라 **G드라이브에서 사람이 보는 순서**다. 07번은 이미
-# 95초판 영상(07_영상.mp4)이 쓰고 있어 지목 카드는 08번부터 이어 붙인다.
+# 번호는 card_NN이 아니라 **G드라이브에서 사람이 보는 순서**다. 표지는 제거했고,
+# 선택 지목 카드는 기존 미디어 슬롯(08_지목3띠)을 유지해 외부 사용 흐름을 보존한다.
 # 09_표형12띠.png·10_쇼츠20초.mp4는 조립 뒤에 생겨서 파이프라인 4단계가 따로 올린다.
-KOREAN_NAMES = ["01_표지", "02_띠별A", "03_띠별B", "04_띠별C", "05_띠별D", "06_12띠요약",
+KOREAN_NAMES = ["01_띠별A", "02_띠별B", "03_띠별C", "04_12띠요약",
                 "08_지목3띠"]
 
 
 def mirror_to_gdrive(date_iso: str | None = None) -> bool:
-    """cards/{date}/card_01~05.png → G드라이브 일자별 폴더(한글명). 실패해도 파이프라인 지속."""
+    """cards/{date}/card_01~04.png(+선택 05) → G드라이브 일자별 폴더(한글명). 실패해도 지속."""
     date_iso = date_iso or zs.today_iso()
     src = BASE / "cards" / date_iso
     try:
@@ -554,7 +554,7 @@ def mirror_to_gdrive(date_iso: str | None = None) -> bool:
                 shutil.copy2(s, dst / f"{name}.png")
                 n += 1
         log(f"G드라이브 미러: {n}/{N_CARDS + N_CARDS_OPT}장 → {dst}")
-        return n >= N_CARDS   # 7번(지목3띠)은 선택 카드 — 없어도 미러는 성공으로 본다
+        return n >= N_CARDS   # 선택 지목 카드는 없어도 기본 4장 미러는 성공으로 본다
     except OSError as e:
         log(f"[WARN] G드라이브 미러 실패(파이프라인 지속): {e}")
         return False
