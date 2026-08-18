@@ -3688,7 +3688,8 @@
     }
    ],
    "timestamp": "2026-08-03T14:21:07+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DblL4omiT60"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DblL4omiT60",
+   "closed": true
   },
   "18606220081005040": {
    "channel": "carousel",
@@ -3836,7 +3837,8 @@
     }
    ],
    "timestamp": "2026-08-03T14:17:48+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DblL1YSlLrZ"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DblL1YSlLrZ",
+   "closed": true
   },
   "17896107438375695": {
    "channel": "ghost",
@@ -3854,7 +3856,8 @@
     }
    ],
    "timestamp": "2026-08-04T00:01:19+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DbmOnuVloqU"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DbmOnuVloqU",
+   "closed": true
   },
   "17979341598108208": {
    "channel": "ai_news",
@@ -4002,7 +4005,8 @@
     }
    ],
    "timestamp": "2026-08-04T05:21:51+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DbmzTQRILYN"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DbmzTQRILYN",
+   "closed": true
   },
   "18072152252448877": {
    "channel": "ai_news",
@@ -4150,7 +4154,8 @@
     }
    ],
    "timestamp": "2026-08-04T05:21:36+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DbmzRQoIIzL"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DbmzRQoIIzL",
+   "closed": true
   },
   "18102954917611465": {
    "channel": "reels",
@@ -4279,6 +4284,16 @@
     {
      "t": "2026-08-17T07:09:59Z",
      "age_h": 305.3,
+     "views": 40,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-18T06:56:29Z",
+     "age_h": 329.0,
      "views": 40,
      "likes": 0,
      "replies": 1,
@@ -4417,6 +4432,16 @@
     {
      "t": "2026-08-17T07:09:59Z",
      "age_h": 305.3,
+     "views": 76,
+     "likes": 1,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-18T06:56:29Z",
+     "age_h": 329.1,
      "views": 76,
      "likes": 1,
      "replies": 1,
@@ -4574,6 +4599,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-18T06:56:29Z",
+     "age_h": 305.2,
+     "views": 45,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-08-05T13:45:52+0000",
@@ -4710,6 +4745,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-18T06:56:29Z",
+     "age_h": 270.1,
+     "views": 25,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-08-07T00:51:18+0000",
@@ -4822,6 +4867,16 @@
     {
      "t": "2026-08-17T07:09:59Z",
      "age_h": 257.4,
+     "views": 14,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-18T06:56:29Z",
+     "age_h": 281.2,
      "views": 14,
      "likes": 0,
      "replies": 1,
@@ -4946,6 +5001,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-18T06:56:29Z",
+     "age_h": 270.5,
+     "views": 38,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-08-07T00:25:32+0000",
@@ -5058,6 +5123,16 @@
     {
      "t": "2026-08-17T07:09:59Z",
      "age_h": 257.4,
+     "views": 69,
+     "likes": 1,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-18T06:56:29Z",
+     "age_h": 281.2,
      "views": 69,
      "likes": 1,
      "replies": 1,
@@ -5248,6 +5323,24 @@
    ],
    "timestamp": "2026-08-16T23:37:35+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/DcHqPQ0CY4J"
+  },
+  "17985064715865861": {
+   "channel": "ghost",
+   "head": "아침부터 마음이 분주하면 잠깐 멈춰볼 것.\n8월 18일 일진은 갑자일. 서두르는 것보다 한 박자 늦추는 게 나은 날이다.\n생년",
+   "snapshots": [
+    {
+     "t": "2026-08-18T06:56:29Z",
+     "age_h": 7.2,
+     "views": 0,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-17T23:42:06+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcKPjITD0xv"
   }
  }
 }
