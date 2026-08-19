@@ -4303,7 +4303,8 @@
     }
    ],
    "timestamp": "2026-08-04T13:53:33+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DbnthZDDaul"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DbnthZDDaul",
+   "closed": true
   },
   "17910628293263263": {
    "channel": "carousel",
@@ -4451,7 +4452,8 @@
     }
    ],
    "timestamp": "2026-08-04T13:50:10+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/Dbntd3joMTA"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dbntd3joMTA",
+   "closed": true
   },
   "17941298490317099": {
    "channel": "ghost",
@@ -4469,7 +4471,8 @@
     }
    ],
    "timestamp": "2026-08-04T23:56:49+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/Dboy5ciH5-D"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dboy5ciH5-D",
+   "closed": true
   },
   "18076558625388444": {
    "channel": "reels",
@@ -4603,6 +4606,16 @@
     {
      "t": "2026-08-18T06:56:29Z",
      "age_h": 305.2,
+     "views": 45,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-19T06:57:24Z",
+     "age_h": 329.2,
      "views": 45,
      "likes": 0,
      "replies": 1,
@@ -4755,6 +4768,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-19T06:57:24Z",
+     "age_h": 294.1,
+     "views": 25,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-08-07T00:51:18+0000",
@@ -4877,6 +4900,16 @@
     {
      "t": "2026-08-18T06:56:29Z",
      "age_h": 281.2,
+     "views": 14,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-19T06:57:24Z",
+     "age_h": 305.2,
      "views": 14,
      "likes": 0,
      "replies": 1,
@@ -5011,6 +5044,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-19T06:57:24Z",
+     "age_h": 294.5,
+     "views": 38,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-08-07T00:25:32+0000",
@@ -5133,6 +5176,16 @@
     {
      "t": "2026-08-18T06:56:29Z",
      "age_h": 281.2,
+     "views": 69,
+     "likes": 1,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-19T06:57:24Z",
+     "age_h": 305.2,
      "views": 69,
      "likes": 1,
      "replies": 1,
@@ -5341,6 +5394,24 @@
    ],
    "timestamp": "2026-08-17T23:42:06+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/DcKPjITD0xv"
+  },
+  "18379035031228849": {
+   "channel": "ghost",
+   "head": "을축일. 8월 19일(수)의 기운.\n쥐띠, 소띠, 뱀띠 — 오늘 이 띠들은 하려던 거 밀어붙여도 되는 날.\n오늘 내 사주 흐름",
+   "snapshots": [
+    {
+     "t": "2026-08-19T06:57:24Z",
+     "age_h": 7.3,
+     "views": 0,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-18T23:41:25+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcM0Q6qk8ez"
   }
  }
 }
