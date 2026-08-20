@@ -4625,7 +4625,8 @@
     }
    ],
    "timestamp": "2026-08-05T13:45:52+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DbqRxPWmxa2"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DbqRxPWmxa2",
+   "closed": true
   },
   "18183577411404418": {
    "channel": "ghost",
@@ -4643,7 +4644,8 @@
     }
    ],
    "timestamp": "2026-08-05T23:51:50+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DbrXH8iGMDg"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DbrXH8iGMDg",
+   "closed": true
   },
   "18615529132013699": {
    "channel": "reels",
@@ -4772,6 +4774,16 @@
     {
      "t": "2026-08-19T06:57:24Z",
      "age_h": 294.1,
+     "views": 25,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-20T06:57:57Z",
+     "age_h": 318.1,
      "views": 25,
      "likes": 0,
      "replies": 1,
@@ -4916,6 +4928,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-20T06:57:57Z",
+     "age_h": 329.2,
+     "views": 14,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-08-06T13:46:55+0000",
@@ -5054,6 +5076,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-08-20T06:57:57Z",
+     "age_h": 318.5,
+     "views": 38,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-08-07T00:25:32+0000",
@@ -5186,6 +5218,16 @@
     {
      "t": "2026-08-19T06:57:24Z",
      "age_h": 305.2,
+     "views": 69,
+     "likes": 1,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-08-20T06:57:57Z",
+     "age_h": 329.2,
      "views": 69,
      "likes": 1,
      "replies": 1,
@@ -5412,6 +5454,24 @@
    ],
    "timestamp": "2026-08-18T23:41:25+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/DcM0Q6qk8ez"
+  },
+  "18149002291472488": {
+   "channel": "ghost",
+   "head": "오늘 뭐부터 할지 정했나.\n8월 20일 일진 병인일로 보면 호랑이띠, 말띠, 개띠한테 유리한 흐름이다.\n궁금한 사람만 프로필로",
+   "snapshots": [
+    {
+     "t": "2026-08-20T06:57:57Z",
+     "age_h": 7.3,
+     "views": 0,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-19T23:41:47+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcPZGntlsvP"
   }
  }
 }
