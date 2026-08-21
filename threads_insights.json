@@ -4793,7 +4793,8 @@
     }
    ],
    "timestamp": "2026-08-07T00:51:18+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DbuCY1GFDBF"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DbuCY1GFDBF",
+   "closed": true
   },
   "17874089256547942": {
    "channel": "reels",
@@ -4941,7 +4942,8 @@
     }
    ],
    "timestamp": "2026-08-06T13:46:55+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/Dbs2WsWFSbn"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dbs2WsWFSbn",
+   "closed": true
   },
   "17931658179123490": {
    "channel": "carousel",
@@ -5089,7 +5091,8 @@
     }
    ],
    "timestamp": "2026-08-07T00:25:32+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/Dbt_w9KEhFk"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dbt_w9KEhFk",
+   "closed": true
   },
   "18109841174026951": {
    "channel": "carousel",
@@ -5237,7 +5240,8 @@
     }
    ],
    "timestamp": "2026-08-06T13:43:33+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/Dbs2TFYm5eo"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dbs2TFYm5eo",
+   "closed": true
   },
   "18112893335282727": {
    "channel": "ghost",
@@ -5472,6 +5476,24 @@
    ],
    "timestamp": "2026-08-19T23:41:47+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/DcPZGntlsvP"
+  },
+  "17933889369361904": {
+   "channel": "ghost",
+   "head": "8월 21일(금) 아침.\n오늘은 정묘일 — 새로 벌이기보다 정리에 어울리는 기운.\n내 띠 안 나왔으면 프로필에서 찾아보면 된다",
+   "snapshots": [
+    {
+     "t": "2026-08-21T06:59:26Z",
+     "age_h": 7.3,
+     "views": 1,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-20T23:43:48+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcR-ILzlm5i"
   }
  }
 }
