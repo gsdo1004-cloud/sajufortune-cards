@@ -5259,7 +5259,8 @@
     }
    ],
    "timestamp": "2026-08-07T23:51:02+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/Dbwgn49lqKS"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dbwgn49lqKS",
+   "closed": true
   },
   "18098346479216376": {
    "channel": "ghost",
@@ -5494,6 +5495,24 @@
    ],
    "timestamp": "2026-08-20T23:43:48+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/DcR-ILzlm5i"
+  },
+  "18132273331649763": {
+   "channel": "ghost",
+   "head": "잘 풀리는 날이랑 아닌 날, 뭐가 다른가 싶을 때가 있다.\n8월 22일 오늘은 무진일. 쥐띠, 원숭이띠, 닭띠가 앞서 나가는 ",
+   "snapshots": [
+    {
+     "t": "2026-08-22T06:53:03Z",
+     "age_h": 7.2,
+     "views": 2,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-21T23:42:43+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcUizLGERhr"
   }
  }
 }
