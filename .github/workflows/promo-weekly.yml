@@ -1,4 +1,4 @@
-name: 대박운세 홍보 발행 (주 1회 · 토요일)
+name: 대박운세 정통명리엔진 홍보 발행 (주 1회 · 토요일)
 
 on:
   schedule:
@@ -8,13 +8,13 @@ on:
   workflow_dispatch:
     inputs:
       set_key:
-        description: '발행할 세트 (free / pass / channel). 비우면 주차로 자동 선택'
+        description: '발행할 세트 (현재 engine만 지원). 비우면 engine'
         required: false
-        default: ''
+        default: 'engine'
       mode:
-        description: 'all / carousel / reel'
+        description: 'carousel (정통명리엔진 카드뉴스)'
         required: false
-        default: 'all'
+        default: 'carousel'
 
 jobs:
   promo:
@@ -37,8 +37,6 @@ jobs:
 
       - name: 홍보 발행
         run: |
-          ARGS="${{ github.event.inputs.mode || 'all' }}"
-          if [ -n "${{ github.event.inputs.set_key }}" ]; then
-            ARGS="$ARGS ${{ github.event.inputs.set_key }}"
-          fi
-          python promo_publish.py $ARGS
+          # 2026-08-22: 종료된 무제한 이용권 프로모션을 폐기하고,
+          # 정통명리엔진 카드뉴스만 발행한다. 새 쇼츠는 별도 검수 후 추가한다.
+          python promo_publish.py carousel engine
