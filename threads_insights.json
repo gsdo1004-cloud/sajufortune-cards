@@ -5316,7 +5316,8 @@
     }
    ],
    "timestamp": "2026-08-10T23:53:38+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/Db4PTbSmlSr"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Db4PTbSmlSr",
+   "closed": true
   },
   "18618590335025909": {
    "channel": "ghost",
@@ -5551,6 +5552,24 @@
    ],
    "timestamp": "2026-08-23T23:39:39+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/DcZsCYQiWN_"
+  },
+  "18126224965688259": {
+   "channel": "ghost",
+   "head": "운세 본다고 뭐가 달라지냐 싶겠지만,\n8월 25일(화) 신미일 — 오늘 같은 날은 무리하지 않는 게 이득이다.\n토끼띠, 말띠,",
+   "snapshots": [
+    {
+     "t": "2026-08-25T07:00:11Z",
+     "age_h": 7.3,
+     "views": 2,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-24T23:40:59+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DccQ_HjG7SJ"
   }
  }
 }
