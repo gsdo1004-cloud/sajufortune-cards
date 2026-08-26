@@ -1,0 +1,11 @@
+{
+  "date": "2026-08-26",
+  "generator": "topview_gpt_image_2",
+  "estimated_credit": 0.4,
+  "cards": [
+    "signal_01.jpg",
+    "signal_02.jpg"
+  ],
+  "review_required": true,
+  "review_reason": "AI 생성 한글은 완전 자동 판독이 불가합니다. 발행 전 글자 깨짐을 육안 확인하세요."
+}
