@@ -5354,7 +5354,8 @@
     }
    ],
    "timestamp": "2026-08-13T00:01:41+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/Db9Z0I5Gb8D"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Db9Z0I5Gb8D",
+   "closed": true
   },
   "17901470289481166": {
    "channel": "ghost",
@@ -5589,6 +5590,24 @@
    ],
    "timestamp": "2026-08-25T23:42:59+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/Dce2AqOFcaN"
+  },
+  "17907760764508169": {
+   "channel": "ghost",
+   "head": "아침부터 마음이 분주하면 잠깐 멈춰볼 것.\n8월 27일 일진은 계유일. 서두르는 것보다 한 박자 늦추는 게 나은 날이다.\n프로",
+   "snapshots": [
+    {
+     "t": "2026-08-27T17:37:38Z",
+     "age_h": 13.1,
+     "views": 2,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-27T04:33:38+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dch8ESDFqLw"
   }
  }
 }
