@@ -18,18 +18,18 @@ import datetime as dt
 # ─────────────────────────────────────────────────────────────
 
 ART_STYLES = [
-    ("수채화",     "soft watercolor illustration, gentle wet-on-wet washes, dreamy translucent tones"),
-    ("3D 클레이",  "cute 3D clay-render style, Pixar-like rounded forms, soft studio lighting"),
-    ("수묵화",     "traditional Korean ink-wash painting (수묵화), elegant flowing brushstrokes, misty negative space"),
-    ("반실사",     "semi-realistic detailed digital painting, rich soft fur texture, shallow depth of field"),
-    ("시네마틱",   "cinematic key-lit illustration, golden-hour glow, filmic color grade, gentle bokeh"),
-    ("유화",       "classical oil-painting look, visible impasto brushwork, warm chiaroscuro depth"),
-    ("민화",       "Korean folk-art (민화) style, vivid symbolic colors, decorative flat composition"),
-    ("파스텔 애니","soft pastel anime style, kawaii big-eyed charm, gentle gradient shading"),
-    ("판타지 매직","magical fantasy illustration, glowing particles, ethereal luminous atmosphere"),
-    ("색연필",     "warm colored-pencil storybook style, hand-drawn hatching, cozy paper grain"),
-    ("종이공예",   "layered cut-paper craft collage, papercut shadow depth, tactile texture"),
-    ("빈티지",     "retro vintage poster art, subtle halftone texture, nostalgic warm palette"),
+    ("수채화",     "clean 2D watercolor illustration, crisp outlines, gentle warm washes"),
+    ("민화 평면",  "clean 2D Korean folk-art illustration, vivid symbolic colors, crisp decorative shapes"),
+    ("수묵 담채",  "clean 2D Korean ink-and-light-wash illustration, elegant brushstrokes, warm accents"),
+    ("동화책",     "clean 2D storybook illustration, soft hand-drawn lines, friendly rounded shapes"),
+    ("따뜻한 선화", "clean 2D line-art illustration, warm golden palette, soft flat shading"),
+    ("파스텔",     "clean 2D pastel illustration, gentle gradients, charming rounded details"),
+    ("민화 색감",  "clean 2D Korean folk-art illustration, bright obangsaek-inspired colors, neat shapes"),
+    ("파스텔 애니","clean 2D pastel animation illustration, cute expressive eyes, gentle shading"),
+    ("판타지 동화","clean 2D fantasy storybook illustration, soft glow, warm magical accents"),
+    ("색연필",     "clean 2D colored-pencil storybook illustration, cozy paper texture, crisp silhouettes"),
+    ("종이공예",   "clean 2D paper-cut illustration, clear layered shapes, soft warm shadows"),
+    ("빈티지 평면", "clean 2D vintage poster illustration, warm nostalgic palette, crisp simple forms"),
 ]
 
 BACKGROUNDS = [
@@ -57,18 +57,18 @@ BACKGROUNDS = [
 #       축을 늘리거나 줄일 때 길이가 서로 나누어떨어지지 않는지 꼭 확인할 것.
 
 CONCEPTS = [
-    ("한복",       "each animal wearing colorful traditional hanbok"),
-    ("신선 도사",  "as cute mystical mountain-sage characters"),
-    ("아기 동물",  "as adorable chibi baby animals"),
-    ("왕과 신하",  "as charming royal-court characters with small crowns and robes"),
-    ("계절 나들이","in cheerful seasonal outing outfits"),
-    ("복 요정",    "as tiny winged fortune fairies carrying luck"),
-    ("전통 놀이",  "cheerfully enjoying traditional Korean folk play"),
-    ("명절 한복",  "in festive holiday hanbok with ornaments"),
+    ("한복 여성",  "the woman remains in elegant hanbok while every zodiac mascot stays a natural animal"),
+    ("전통 정원",  "in a bright traditional Korean garden with flowers and soft sunlight"),
+    ("산뜻한 나들이","in a cheerful outdoor Korean spring setting with clear warm light"),
+    ("등불 한옥",  "with warm hanok lanterns, auspicious clouds, and a welcoming glow"),
+    ("꽃바구니",   "with flowers and a small lucky pouch as gentle Korean scene accents"),
+    ("연꽃 연못",  "beside a tranquil lotus pond with soft ripples and warm dawn light"),
+    ("전통 놀이",  "in a bright Korean courtyard with simple folk-play props in the background"),
+    ("명절 풍경",  "near a festive hanok courtyard with flowers and clean Korean decorative accents"),
     # 2026-07-25 +3 → 길이 11 (소수)
-    ("차 한잔",    "gathered for a cozy traditional tea time with small cups"),
-    ("달구경",     "gazing up at the moon together in quiet wonder"),
-    ("악사·풍류",  "as cheerful traditional musicians with small folk instruments"),
+    ("차 한잔",    "near a cozy traditional tea table, with the animals remaining separate natural animals"),
+    ("달구경",     "in a quiet moonlit hanok garden with soft flowers and gentle wonder"),
+    ("악사·풍류",  "near small traditional folk instruments used only as background decoration"),
 ]
 
 PALETTES = [
@@ -118,6 +118,45 @@ ZODIAC_EN = {
     "용띠": "dragon", "뱀띠": "snake", "말띠": "horse", "양띠": "sheep",
     "원숭이띠": "monkey", "닭띠": "rooster", "개띠": "dog", "돼지띠": "pig",
 }
+
+# 공통 베이스: 한복 여성과 동물의 몸을 분리해 명시하고, 띠별 외형은 변수로 주입한다.
+ZODIAC_COMMON_BASE = (
+    "A beautiful Korean woman wearing elegant hanbok stands with separate cute and friendly "
+    "zodiac animal mascots. The woman has a normal human body; every zodiac mascot has its "
+    "own complete natural animal body and unmistakable species features. Adorable mascot style, "
+    "strict flat 2D editorial illustration, crisp linework, simple flat shading, "
+    "no dimensional rendering, no glossy CGI, bright warm Korean aesthetic, "
+    "harmonious composition, charming friendly expressions, anatomically clean and visually appealing."
+)
+ZODIAC_FEATURES = {
+    "쥐띠": "a small nimble rat with round ears, tiny paws, whiskers, and curious bright eyes",
+    "소띠": "a sturdy gentle ox with a broad build, soft muzzle, and calm kind eyes",
+    "호랑이띠": "a lively tiger with clear black stripes, rounded paws, alert eyes, and a gentle expression",
+    "토끼띠": "a lovable rabbit with long ears, round cheeks, fluffy tail, and soft bright eyes",
+    "용띠": "a small friendly East Asian dragon with four legs, soft scales, tiny horns, short wings, and a curling tail",
+    "뱀띠": "a softly rounded snake with clear scales, gentle bright eyes, and no limbs",
+    "말띠": "a bright healthy horse with a clear equine head, flowing mane, four legs, and lively eyes",
+    "양띠": "a fluffy gentle sheep with soft wool, small curved horns, rounded face, and kind eyes",
+    "원숭이띠": "a clearly animal-shaped clever monkey with brown fur, rounded ears, long curling tail, and playful eyes",
+    "닭띠": "a lively rooster with red comb, colorful feathers, wings, two legs, clear beak, and bright eyes",
+    "개띠": "a friendly Korean Jindo-style dog with fluffy tail, pointed ears, soft muzzle, and loyal bright eyes",
+    "돼지띠": "a round plump adorable pig with pink snout, floppy ears, tiny hooves, and joyful bright eyes",
+}
+ZODIAC_NEGATIVE_PROMPT = (
+    "no anthropomorphic human-animal hybrids, no human body for zodiac animals, no humanized animals, "
+    "no humanoid form, no malformed face, no distorted limbs, no extra limbs, no creepy anatomy, "
+    "no grotesque features, no fused bodies, no animal face on a human body, no scary or horror features, "
+    "no photorealism, no 3D render, no glossy CGI"
+)
+
+
+def _zodiac_feature_guide(signs: list[str]) -> str:
+    return "; ".join(
+        f"{ZODIAC_EN.get(sign, 'animal')}: {ZODIAC_FEATURES.get(sign, 'a cute natural animal mascot')}"
+        for sign in signs
+    )
+
+
 GROUP_NAMES = ["띠별A", "띠별B", "띠별C"]
 GROUPS = [ZODIAC12[i * 4:(i + 1) * 4] for i in range(3)]   # 4띠 × 3장
 
@@ -149,8 +188,9 @@ def daily_theme(date: dt.date) -> dict:
     }
 
 
-_SNAKE_GUARD = "The snake must be drawn cute, round and friendly, never realistic or scary."
-_NEG = ("No watermark, no logo, crisp clean readable Korean typography. "
+_SNAKE_GUARD = "The snake must be a cute natural snake with a softly rounded body and no limbs, never realistic or scary."
+_NEG = (f"Negative prompt: {ZODIAC_NEGATIVE_PROMPT}. "
+        "No watermark, no logo, crisp clean readable Korean typography. "
         "Render ONLY the Korean strings given above, exactly as written — "
         "do not invent or add any other Korean text.")
 
@@ -166,6 +206,7 @@ def stars_line(s: dict) -> str:
 def cover_prompt(date: dt.date, theme: dict | None = None, simple: bool = False) -> str:
     """표지(섬네일) 프롬프트: 오늘의 운세 + 날짜 + 12지신."""
     t = theme or daily_theme(date)
+    guide = _zodiac_feature_guide(ZODIAC12)
     deco = (f"Background: {t['bg'][1]}. Lucky props scattered: {', '.join(t['props'])}. "
             if not simple else
             "Background: soft plain auspicious gradient with gentle light rays. ")
@@ -173,10 +214,11 @@ def cover_prompt(date: dt.date, theme: dict | None = None, simple: bool = False)
         f"Vertical 9:16 Korean daily fortune COVER poster. "
         f"Large bold clean Korean title '오늘의 운세' at top center, "
         f"date '{t['date_kr']} {t['weekday']}' clearly just below. "
-        f"All twelve cute Korean zodiac animals (rat, ox, tiger, rabbit, dragon, snake, "
-        f"horse, sheep, monkey, rooster, dog, pig), {t['concept'][1]}, gently arranged in a soft "
+        f"{ZODIAC_COMMON_BASE} All twelve cute Korean zodiac animals (rat, ox, tiger, rabbit, dragon, snake, "
+        f"horse, sheep, monkey, rooster, dog, pig) are gently arranged in a soft "
         f"circular mandala-wheel formation around the title, each animal in its own graceful "
-        f"position along the circle — not a grid, not stacked rows. "
+        f"position along the circle — not a grid, not stacked rows. Species guide: {guide}. "
+        f"Scene accents: {t['concept'][1]}. "
         f"{deco}"
         f"{t['palette'][1]}. Art style: {t['style'][1]}. "
         f"{_SNAKE_GUARD} Warm auspicious festive lucky mood. {_NEG}"
@@ -192,11 +234,13 @@ def group_prompt(date: dt.date, rows: list[dict], theme: dict | None = None,
     """
     t = theme or daily_theme(date)
     animals = ", ".join(ZODIAC_EN.get(r["ko"], r["ko"]) for r in rows)
+    guide = _zodiac_feature_guide([r["ko"] for r in rows])
     comp = t.get("composition") or GROUP_COMPOSITIONS[0]
     secs = ""
     for i, r in enumerate(rows, 1):
         en = ZODIAC_EN.get(r["ko"], "animal")
-        secs += (f"Vignette {i} — a cute {en} character labeled '{r['ko']}' in elegant small "
+        feature = ZODIAC_FEATURES.get(r["ko"], "a cute natural animal mascot")
+        secs += (f"Vignette {i} — a cute {en} zodiac mascot ({feature}) labeled '{r['ko']}' in elegant small "
                  f"Korean type, its one-line fortune '{r['line']}' and star line "
                  f"'{stars_line(r['stars'])}' gently placed beside it, not boxed or tabled. ")
     deco = (f"Background: {t['bg'][1]}. " if not simple else
@@ -206,9 +250,10 @@ def group_prompt(date: dt.date, rows: list[dict], theme: dict | None = None,
         f"Vertical 9:16 Korean zodiac fortune card, atmospheric mood illustration — "
         f"NOT an infographic, NOT a chart, NOT a table. "
         f"Top title '오늘의 띠별운세' bold clean Korean, small date '{t['date_kr']} {t['weekday']}'. "
-        f"Four animals ({animals}, in order) {comp[1]}. "
+        f"{ZODIAC_COMMON_BASE} Four animals ({animals}, in order) {comp[1]}. "
+        f"Species guide: {guide}. "
         f"{secs}"
-        f"Characters {t['concept'][1]}. {deco}"
+        f"Scene accents: {t['concept'][1]}. {deco}"
         f"{t['palette'][1]}. Art style: {t['style'][1]}. "
         f"{guard}{_NEG}"
     )
@@ -229,6 +274,7 @@ def summary12_prompt(date: dt.date, rows_by_ko: dict[str, dict],
     rows_by_ko[ko] = {line, stars{전체..}, lucky(색·방향), keyword}
     """
     t = theme or daily_theme(date)
+    guide = _zodiac_feature_guide(ZODIAC12)
     rows = ""
     for i in range(0, 12, 3):
         cells = []
@@ -250,7 +296,8 @@ def summary12_prompt(date: dt.date, rows_by_ko: dict[str, dict],
         f"fortune sentence in SMALL but crisp readable Korean (wrap to 2-3 short lines), and at "
         f"the cell bottom a thin divider with '행운' keywords on the left and '운세지수' stars on "
         f"the right. Exact contents:\n{rows}"
-        f"All twelve animals cute and friendly, {t['concept'][1]}. {_SNAKE_GUARD} "
+        f"{ZODIAC_COMMON_BASE} All twelve animals are cute and friendly. Species guide: {guide}. "
+        f"Scene accents: {t['concept'][1]}. {_SNAKE_GUARD} "
         f"{deco}Bright clean editorial layout, generous padding, soft card shadows, "
         f"{t['palette'][1]}. Every Korean line must be sharp and legible on a phone. "
         f"Art style: {t['style'][1]}. {_NEG}"
@@ -425,6 +472,7 @@ def pick3_prompt(date: dt.date, rows_by_ko: dict[str, dict],
     pt = pick_theme or pick3_theme(date)
     picks = picks or pick3_signs(rows_by_ko, date=date, theme=pt)
     animals = ", ".join(ZODIAC_EN.get(ko, ko) for ko in picks)
+    guide = _zodiac_feature_guide(picks)
     # 기간형 지목은 해당 기간에서 점수가 가장 좋은 날짜의 정본 운세를 카드에도
     # 반영해야 영상(pick3_narration)과 페이지가 서로 다른 말을 하지 않는다.
     period_scores = theme_scores(date, pt) if pt["scope"] != "day" else {}
@@ -439,7 +487,8 @@ def pick3_prompt(date: dt.date, rows_by_ko: dict[str, dict],
             # 정본 엔진을 우선 사용하되, 환경이 일시적으로 불완전한 경우 기존
             # build_rows 결과로 이미지 생성 자체가 멈추지 않게 한다.
             reading_text = r.get("advice") or r.get("line", "좋은 기운이 함께하는 날")
-        cells += (f"Card {rank} — big cute {ZODIAC_EN.get(ko, 'animal')} on the left; "
+        feature = ZODIAC_FEATURES.get(ko, "a cute natural animal mascot")
+        cells += (f"Card {rank} — a big cute {ZODIAC_EN.get(ko, 'animal')} zodiac mascot ({feature}) on the left; "
                   f"on the right the name '{ko}' in LARGE bold Korean, below it "
                   f"'{reading_text}' in clearly readable Korean "
                   f"(2 short lines), then '행운 {r.get('lucky', '')}' and "
@@ -450,6 +499,7 @@ def pick3_prompt(date: dt.date, rows_by_ko: dict[str, dict],
     return (
         f"Vertical 9:16 Korean daily fortune card featuring ONLY THREE zodiac signs "
         f"({animals}) — exactly three, no other animals anywhere in the image. "
+        f"{ZODIAC_COMMON_BASE} Species guide: {guide}. "
         # 날짜는 넣지 않는다 — 2026-07-30 실물에서 '7월 30일'이 '7월 30얼'로 깨졌다.
         # 날짜는 영상 제목·설명에 이미 있고, 벤치마크 영상도 카드에 날짜가 없다.
         # 글자를 하나라도 덜 그리게 하는 게 오타 확률을 줄이는 가장 확실한 방법이다.
@@ -464,7 +514,7 @@ def pick3_prompt(date: dt.date, rows_by_ko: dict[str, dict],
         f"At the very bottom, one slim rounded banner in deep wine red with a cream "
         f"border, containing exactly this Korean line in clean bold cream type: "
         f"'무료 오늘의 운세 · 프로필 링크 확인'. "
-        f"Characters {t['concept'][1]}. {guard}{deco}"
+        f"Scene accents: {t['concept'][1]}. {guard}{deco}"
         f"Bright clean editorial layout, generous padding, soft card shadows, "
         f"{t['palette'][1]}. Art style: {t['style'][1]}. {_NEG}"
     )
