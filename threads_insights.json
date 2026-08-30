@@ -5411,7 +5411,8 @@
     }
    ],
    "timestamp": "2026-08-15T23:38:41+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DcFFkSPiaYo"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcFFkSPiaYo",
+   "closed": true
   },
   "18125705368704521": {
    "channel": "ghost",
@@ -5646,6 +5647,24 @@
    ],
    "timestamp": "2026-08-29T04:12:25+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/DcnDOs7FmCH"
+  },
+  "17983053098883200": {
+   "channel": "ghost",
+   "head": "8월 30일(일) 아침.\n오늘은 병자일 — 새로 벌이기보다 정리에 어울리는 기운.\n매일 아침 올린다. 프로필에 쌓아두는 중 🔮",
+   "snapshots": [
+    {
+     "t": "2026-08-30T11:46:24Z",
+     "age_h": 10.5,
+     "views": 1,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-30T01:19:14+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcpUNLpjck6"
   }
  }
 }
