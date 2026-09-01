@@ -5449,7 +5449,8 @@
     }
    ],
    "timestamp": "2026-08-17T23:42:06+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DcKPjITD0xv"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcKPjITD0xv",
+   "closed": true
   },
   "18379035031228849": {
    "channel": "ghost",
@@ -5684,6 +5685,24 @@
    ],
    "timestamp": "2026-08-31T01:25:06+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/Dcr5q9WkZmK"
+  },
+  "18029015390675319": {
+   "channel": "ghost",
+   "head": "호랑이띠, 말띠, 개띠.\n9월 1일(화) 오늘 기운 좋은 띠다. 일진은 무인일.\n내 띠 없다고 서운해할 것 없다. 흐름은 매일",
+   "snapshots": [
+    {
+     "t": "2026-09-01T11:33:01Z",
+     "age_h": 9.7,
+     "views": 3,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-01T01:52:42+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dcuhn-cnCGt"
   }
  }
 }
