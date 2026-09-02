@@ -5468,7 +5468,8 @@
     }
    ],
    "timestamp": "2026-08-18T23:41:25+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DcM0Q6qk8ez"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcM0Q6qk8ez",
+   "closed": true
   },
   "18149002291472488": {
    "channel": "ghost",
@@ -5703,6 +5704,24 @@
    ],
    "timestamp": "2026-09-01T01:52:42+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/Dcuhn-cnCGt"
+  },
+  "18125497304500789": {
+   "channel": "ghost",
+   "head": "9월 2일 기묘일.\n사주는 정해진 답이 아니라 그날 기운의 결이다. 오늘은 토끼띠, 뱀띠, 양띠가 그 결을 탄다.\n띠별 흐름은",
+   "snapshots": [
+    {
+     "t": "2026-09-02T11:07:58Z",
+     "age_h": 10.0,
+     "views": 1,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-02T01:05:10+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcxA-qxIFH0"
   }
  }
 }
