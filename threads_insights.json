@@ -5487,7 +5487,8 @@
     }
    ],
    "timestamp": "2026-08-19T23:41:47+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DcPZGntlsvP"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcPZGntlsvP",
+   "closed": true
   },
   "17933889369361904": {
    "channel": "ghost",
@@ -5722,6 +5723,24 @@
    ],
    "timestamp": "2026-09-02T01:05:10+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/DcxA-qxIFH0"
+  },
+  "18070719623733717": {
+   "channel": "ghost",
+   "head": "운세 본다고 뭐가 달라지냐 싶겠지만,\n9월 3일(목) 경진일 — 오늘 같은 날은 무리하지 않는 게 이득이다.\n쥐띠, 원숭이띠,",
+   "snapshots": [
+    {
+     "t": "2026-09-03T11:05:13Z",
+     "age_h": 9.9,
+     "views": 0,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-03T01:11:24+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DczmfO1kVMX"
   }
  }
 }
