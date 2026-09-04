@@ -1,13 +1,9 @@
 {
  "latest": {
-  "at": "2026-09-03T11:05:27Z",
+  "at": "2026-09-04T11:06:36Z",
   "followers_count": 24
  },
  "history": [
-  {
-   "at": "2026-08-04T08:51:07Z",
-   "followers_count": 17
-  },
   {
    "at": "2026-08-05T08:48:18Z",
    "followers_count": 20
@@ -126,6 +122,10 @@
   },
   {
    "at": "2026-09-03T11:05:27Z",
+   "followers_count": 24
+  },
+  {
+   "at": "2026-09-04T11:06:36Z",
    "followers_count": 24
   }
  ]

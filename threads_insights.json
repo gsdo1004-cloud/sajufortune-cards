@@ -5506,7 +5506,8 @@
     }
    ],
    "timestamp": "2026-08-20T23:43:48+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DcR-ILzlm5i"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcR-ILzlm5i",
+   "closed": true
   },
   "18132273331649763": {
    "channel": "ghost",
@@ -5741,6 +5742,24 @@
    ],
    "timestamp": "2026-09-03T01:11:24+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/DczmfO1kVMX"
+  },
+  "18110155367591155": {
+   "channel": "ghost",
+   "head": "9월 4일(금) 오늘은 신사일.\n기운 타는 띠는 소띠, 용띠, 뱀띠.\n내 띠 궁금하면 프로필 링크",
+   "snapshots": [
+    {
+     "t": "2026-09-04T11:06:00Z",
+     "age_h": 10.0,
+     "views": 1,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-04T01:03:46+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc2KaStlfPm"
   }
  }
 }
