@@ -23,6 +23,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import zodiac_seo as zs
+import threads_conversion as conv
 from ganzhi_zodiac import day_context, ELEM_KO
 
 # ── 오행(일진 지지) 테마 — 2026-07-11 간지 틴트 (레이아웃·핑크 액센트는 고정) ──
@@ -265,10 +266,9 @@ def do_publish():
     urls = [f"{RAW_BASE}/cards/{date_iso}/{f.name}" for f in files]
     if not urls:
         raise SystemExit("[FAIL] 발행할 카드 PNG가 없습니다 (generate 먼저 실행)")
-    caption = (f"{date_full(date_iso)} 오늘의 띠별 운세 🔮\n"
-               f"내 띠는 오늘 어떤 흐름일까요?\n\n"
-               f"👉 무료 '오늘의 운세'는 프로필 링크에서 확인하세요\n"
-               f"#오늘의운세 #띠별운세 #사주 #운세 #12띠")
+    base_caption = (f"{date_full(date_iso)} 오늘의 띠별 운세 🔮\n"
+                    f"내 띠는 오늘 어떤 흐름일까요?")
+    caption = conv.apply(base_caption, "carousel", date_iso)
     pid = publish_carousel(urls, caption)
     # [2026-07-16] 스레드 외부링크 도달저하 회피 — 첫댓글을 일진 풀이·사주 상식 훅으로.
     # 사주포춘 링크는 주 1회(일요일 캐러셀)만. comment_hooks 참조.
