@@ -180,16 +180,22 @@ def build_text(date_iso: str) -> str:
                       으로=_josa(ganzhi, "으로", "로"))
 
 
-def publish_ghost(text: str) -> str:
+def publish_ghost(text: str, date_iso: str) -> str:
     import requests
     tok = os.environ["THREADS_ACCESS_TOKEN"]
     uid = os.environ["THREADS_USER_ID"]
     base = f"{GRAPH}/{uid}"
 
-    j = requests.post(f"{base}/threads", timeout=30, data={
-        "media_type": "TEXT", "text": text,
-        "is_ghost_post": "true", "access_token": tok}).json()
+    payload = {"media_type": "TEXT", "text": text,
+               "is_ghost_post": "true", "access_token": tok,
+               "topic_tag": conv.topic_tag("ghost", date_iso)}
+    j = requests.post(f"{base}/threads", timeout=30, data=payload).json()
     cid = j.get("id")
+    if not cid:
+        # topic_tag가 계정/지역/주제 사전에서 거절돼도 게시 자체는 살린다.
+        payload.pop("topic_tag", None)
+        j = requests.post(f"{base}/threads", timeout=30, data=payload).json()
+        cid = j.get("id")
     if not cid:
         raise SystemExit(f"[FAIL] ghost container: {j}")
     time.sleep(3)
@@ -218,7 +224,7 @@ def main():
         print(f"[스킵] {date_iso} 유령 게시물 이미 발행됨")
         return
 
-    pid = publish_ghost(text)
+    pid = publish_ghost(text, date_iso)
     print(f"[OK] ghost post: {pid}")
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.write_text(json.dumps({"post_id": pid, "text": text}, ensure_ascii=False),
