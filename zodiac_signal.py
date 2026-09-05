@@ -35,6 +35,7 @@ from pathlib import Path
 
 import zodiac_seo as zs
 import threads_viral_learning as viral
+import threads_conversion as conv
 from ganzhi_zodiac import day_context, zodiac_day
 
 BASE = Path(__file__).resolve().parent
@@ -482,6 +483,7 @@ def main():
 
     story = daily_story(date_iso, slug)
     text = viral.signal_caption(story, story["caption"])
+    text = conv.apply(text, "signal", date_iso, story.get("sign_ko", ""), story.get("focus_key", ""))
     used = story["slug"]
     print(f"----- {date_iso} 띠 지목 데일리 1편 ({used}/{story['day_pillar']}/{story['focus_key']}) -----")
     print(text)

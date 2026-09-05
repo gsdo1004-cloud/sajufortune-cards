@@ -28,6 +28,7 @@ import datetime as dt
 from pathlib import Path
 
 import zodiac_seo as zs
+import threads_conversion as conv
 from ganzhi_zodiac import day_context
 
 BASE = Path(__file__).resolve().parent
@@ -166,11 +167,11 @@ def build_text(date_iso: str) -> str:
     except Exception:
         ganzhi = "오늘의 일진"
     tpl = TEMPLATES[d.toordinal() % len(TEMPLATES)]
-    # 본문 %9, 마무리 %20 — 주기가 서로소라 같은 짝이 다시 만나기까지 180일 걸린다.
-    cta = CTA_POOL[d.toordinal() % len(CTA_POOL)]
-    if any(b in cta for b in BANNED):
-        cta = CTA_POOL[0]
     top = _top_signs(date_iso)
+    # 매 글이 광고가 되지 않도록 reach/bridge/conversion 단계를 날짜별로 배분한다.
+    cta = conv.cta("ghost", date_iso, top)
+    if any(b in cta for b in BANNED):
+        cta = conv.cta("ghost", date_iso, top)
     return tpl.format(md=md, wd=wd, ganzhi=ganzhi, top=top, cta=cta,
                       이가=_josa(top, "이", "가"),
                       은는=_josa(top, "은", "는"),
