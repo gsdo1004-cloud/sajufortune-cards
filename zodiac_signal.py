@@ -403,16 +403,21 @@ def build_text(date_iso: str, slug: str | None = None) -> str:
     return text
 
 
-def publish(text: str) -> str:
+def publish(text: str, date_iso: str) -> str:
     """일반 게시물로 낸다. 유령글과 달리 계정에 남아야 검색·프로필 유입에 쓰인다."""
     import requests
     tok = os.environ["THREADS_ACCESS_TOKEN"]
     uid = os.environ["THREADS_USER_ID"]
     base = f"{GRAPH}/{uid}"
 
-    j = requests.post(f"{base}/threads", timeout=30, data={
-        "media_type": "TEXT", "text": text, "access_token": tok}).json()
+    payload = {"media_type": "TEXT", "text": text, "access_token": tok,
+               "topic_tag": conv.topic_tag("signal", date_iso)}
+    j = requests.post(f"{base}/threads", timeout=30, data=payload).json()
     cid = j.get("id")
+    if not cid:
+        payload.pop("topic_tag", None)
+        j = requests.post(f"{base}/threads", timeout=30, data=payload).json()
+        cid = j.get("id")
     if not cid:
         raise SystemExit(f"[FAIL] container: {j}")
     time.sleep(3)
@@ -430,7 +435,7 @@ def publish(text: str) -> str:
 RAW_BASE = "https://raw.githubusercontent.com/gsdo1004-cloud/sajufortune-cards/main"
 
 
-def publish_carousel(image_urls: list[str], caption: str) -> str:
+def publish_carousel(image_urls: list[str], caption: str, date_iso: str) -> str:
     import requests
     tok = os.environ["THREADS_ACCESS_TOKEN"]
     uid = os.environ["THREADS_USER_ID"]
@@ -454,10 +459,15 @@ def publish_carousel(image_urls: list[str], caption: str) -> str:
         children.append(cid)
         time.sleep(2)
 
-    j = _post(f"{base}/threads", {
-        "media_type": "CAROUSEL", "children": ",".join(children),
-        "text": caption, "access_token": tok})
+    payload = {"media_type": "CAROUSEL", "children": ",".join(children),
+               "text": caption, "access_token": tok,
+               "topic_tag": conv.topic_tag("signal", date_iso)}
+    j = _post(f"{base}/threads", payload)
     car = j.get("id")
+    if not car:
+        payload.pop("topic_tag", None)
+        j = _post(f"{base}/threads", payload)
+        car = j.get("id")
     if not car:
         raise SystemExit(f"[FAIL] carousel container: {j}")
     time.sleep(6)
@@ -512,10 +522,10 @@ def main():
     cards = [card for card in cards if card.is_file()]
     if cards and not text_only:
         urls = [f"{RAW_BASE}/cards/{date_iso}/{p.name}" for p in cards]
-        pid = publish_carousel(urls, text)
+        pid = publish_carousel(urls, text, date_iso)
         kind = f"carousel({len(urls)})"
     else:
-        pid = publish(text)
+        pid = publish(text, date_iso)
         kind = "text"
     print(f"[OK] signal post: {pid} ({kind})")
 

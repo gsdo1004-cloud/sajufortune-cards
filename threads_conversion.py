@@ -60,3 +60,14 @@ def apply(text: str, channel: str, date_iso: str, sign: str = "", focus: str = "
     if stage(channel,date_iso)=="reach" and clean.endswith("?"):
         return clean
     return f"{clean}\n\n{line}".strip()
+
+TOPIC_TAGS = {
+    "ghost": ("오늘의 운세", "사주"),
+    "signal": ("띠별 운세", "사주"),
+    "carousel": ("오늘의 운세", "띠별 운세", "사주"),
+}
+
+def topic_tag(channel: str, date_iso: str) -> str:
+    """Threads 공식 topic_tag용 주제. API가 거절하면 발행 코드가 무태그로 재시도한다."""
+    pool = TOPIC_TAGS.get(channel) or ("사주",)
+    return pool[_h(f"topic|{channel}|{date_iso}") % len(pool)]

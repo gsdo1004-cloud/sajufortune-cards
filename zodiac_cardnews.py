@@ -195,7 +195,7 @@ def _post(url, data):
     return requests.post(url, data=data, timeout=30).json()
 
 
-def publish_carousel(image_urls, caption):
+def publish_carousel(image_urls, caption, date_iso):
     tok = os.environ["THREADS_ACCESS_TOKEN"]
     uid = os.environ["THREADS_USER_ID"]
     base = f"https://graph.threads.net/v1.0/{uid}"
@@ -211,10 +211,15 @@ def publish_carousel(image_urls, caption):
         children.append(cid)
         time.sleep(2)
 
-    j = _post(f"{base}/threads", {
-        "media_type": "CAROUSEL", "children": ",".join(children),
-        "text": caption, "access_token": tok})
+    payload = {"media_type": "CAROUSEL", "children": ",".join(children),
+               "text": caption, "access_token": tok,
+               "topic_tag": conv.topic_tag("carousel", date_iso)}
+    j = _post(f"{base}/threads", payload)
     carousel_id = j.get("id")
+    if not carousel_id:
+        payload.pop("topic_tag", None)
+        j = _post(f"{base}/threads", payload)
+        carousel_id = j.get("id")
     if not carousel_id:
         raise SystemExit(f"[FAIL] carousel container: {j}")
 
@@ -269,7 +274,7 @@ def do_publish():
     base_caption = (f"{date_full(date_iso)} 오늘의 띠별 운세 🔮\n"
                     f"내 띠는 오늘 어떤 흐름일까요?")
     caption = conv.apply(base_caption, "carousel", date_iso)
-    pid = publish_carousel(urls, caption)
+    pid = publish_carousel(urls, caption, date_iso)
     # [2026-07-16] 스레드 외부링크 도달저하 회피 — 첫댓글을 일진 풀이·사주 상식 훅으로.
     # 사주포춘 링크는 주 1회(일요일 캐러셀)만. comment_hooks 참조.
     from comment_hooks import build_first_comment
