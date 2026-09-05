@@ -34,6 +34,7 @@ import datetime as dt
 from pathlib import Path
 
 import zodiac_seo as zs
+import threads_viral_learning as viral
 from ganzhi_zodiac import day_context, zodiac_day
 
 BASE = Path(__file__).resolve().parent
@@ -480,7 +481,7 @@ def main():
     date_iso = args[0] if args else zs.today_iso()
 
     story = daily_story(date_iso, slug)
-    text = story["caption"]
+    text = viral.signal_caption(story, story["caption"])
     used = story["slug"]
     print(f"----- {date_iso} 띠 지목 데일리 1편 ({used}/{story['day_pillar']}/{story['focus_key']}) -----")
     print(text)

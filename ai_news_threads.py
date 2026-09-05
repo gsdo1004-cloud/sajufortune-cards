@@ -44,6 +44,7 @@ from pathlib import Path
 import requests
 
 import llm_fallback as llm
+import threads_viral_learning as viral
 
 BASE = Path(__file__).resolve().parent
 STATE = BASE / "ai_news_posted.json"
@@ -192,7 +193,7 @@ def fetch_news() -> list[dict]:
                         "boost": sum(1 for w in BOOST_WORDS if w.lower() in low)})
     # 소스가 전부 인기순이라 **RSS 순서 자체가 사람들의 관심 신호**다.
     # 시간순으로 재정렬하면 그 신호를 버리게 된다 — 관심축 가점 → 원래 순위 순으로 본다.
-    out.sort(key=lambda x: (-x["boost"], x["rank"]))
+    out.sort(key=lambda x: (-(x["boost"] + viral.topic_bonus(x["title"])), x["rank"]))
     log(f"수집 {len(out)}건 (최근 {FRESH_HOURS}시간, 관심축 매칭 "
         f"{sum(1 for x in out if x['boost'])}건)")
     return out
@@ -253,6 +254,8 @@ PROMPT = """아래 뉴스를 스레드(SNS)에 올릴 짧은 글로 바꿔라.
 
 제목: {title}
 
+성과학습 가이드: {viral_guide}
+
 너는 사주·운세를 보는 사람이고, AI 도 매일 쓴다. 읽는 사람은 **개발자가 아니라
 운세를 보러 온 보통 사람**이다. 그 사람이 자기 삶과 연결지어 읽게 써라.
 
@@ -287,7 +290,7 @@ def _gemini(title: str, source: str) -> str | None:
     집 PC 의 Ollama 는 쿼터가 없어 그 구멍을 메운다. 러너에는 Ollama 가 없으니
     거기서는 Gemini 만 쓰고, 실패하면 아래 build_text 가 사실만 발행한다.
     """
-    t = llm.ask(PROMPT.format(title=title, source=source),
+    t = llm.ask(PROMPT.format(title=title, source=source, viral_guide=viral.guidance()),
                 max_tokens=700, temperature=0.8)
     return re.sub(r"[#*`]", "", t).strip() or None if t else None
 
@@ -393,7 +396,17 @@ def build_text(n: dict, date: dt.date, slot: int = 0) -> tuple[str, str]:
         hook, interp, question = parts
         # 훅 → 사실(원문 제목 인용) → 해석 → 질문.
         # 사실은 여전히 제목 인용뿐이다. LLM 은 훅·해석·질문만 쓴다.
-        return (f"{hook}\n\n{head}\n\n{interp}\n\n{question}"[:MAX_TEXT], interp)
+        candidate = f"{hook}\n\n{head}\n\n{interp}\n\n{question}"[:MAX_TEXT]
+        unique_ok, sim = viral.similarity_guard(candidate)
+        quality = viral.text_quality(candidate)
+        if not unique_ok:
+            log(f"[VIRAL-GATE] 과거 고성과 글과 유사도 {sim:.2f} — 복제 방지 폐기")
+        elif quality < 62:
+            log(f"[VIRAL-GATE] 구조점수 {quality:.1f} — 제목+질문 폴백")
+        else:
+            log(f"[VIRAL] 구조점수 {quality:.1f}, 과거최대유사도 {sim:.2f}")
+            return candidate, interp
+        parts = None
 
     # 3줄 파싱이나 게이트에 실패하면 사실 + 질문만 남긴다 — 지어내느니 짧게 간다.
     log("[GATE] 3줄 생성 실패 — 제목+질문만 발행")

@@ -88,7 +88,9 @@ def targets() -> list[dict]:
 
     for name, ch in (("threads_pub_ghost.json", "ghost"),
                      ("threads_pub_carousel.json", "carousel"),
-                     ("threads_pub_reels.json", "reels")):
+                     ("threads_pub_reels.json", "reels"),
+                     ("threads_pub_signal.json", "signal_carousel"),
+                     ("threads_pub_signal_video.json", "signal_video")):
         for p in sorted((BASE / "cards").glob(f"*/{name}")):
             try:
                 d = json.loads(p.read_text(encoding="utf-8"))
@@ -380,6 +382,13 @@ def main() -> int:
         harvest_targets(tok, uid)
     if not a.dry_run and uid:
         collect_account(tok, uid)
+    if not a.dry_run:
+        try:
+            import threads_viral_learning as viral
+            m = viral.learn()
+            log(f"[학습] viral model 갱신: {m.get('sample_count', 0)} samples")
+        except Exception as e:
+            log(f"[WARN] viral learning 실패: {type(e).__name__}: {str(e)[:80]}")
     report(store)
     return 0
 
