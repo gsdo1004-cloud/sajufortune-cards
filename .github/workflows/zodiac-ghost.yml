@@ -39,6 +39,15 @@ jobs:
       THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            zodiac_ghost.py
+            zodiac_seo.py
+            ganzhi_zodiac.py
+            threads_conversion.py
+            cards/*/threads_pub_ghost.json
 
       - uses: actions/setup-python@v5
         with:
