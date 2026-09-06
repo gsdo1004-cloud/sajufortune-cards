@@ -197,7 +197,14 @@ def publish_ghost(text: str, date_iso: str) -> str:
         j = requests.post(f"{base}/threads", timeout=30, data=payload).json()
         cid = j.get("id")
     if not cid:
-        raise SystemExit(f"[FAIL] ghost container: {j}")
+        # Ghost 기능 자체가 계정/지역/API 상태 때문에 거절될 수 있다.
+        # 그 경우 그날 게시물을 0편으로 만들지 말고 일반 TEXT 게시물로 최종 폴백한다.
+        # 동일 main() 멱등 마커를 쓰므로 성공 후 재실행 중복은 없다.
+        fallback = {"media_type": "TEXT", "text": text, "access_token": tok}
+        j = requests.post(f"{base}/threads", timeout=30, data=fallback).json()
+        cid = j.get("id")
+    if not cid:
+        raise SystemExit(f"[FAIL] ghost/text container: {j}")
     time.sleep(3)
     j = requests.post(f"{base}/threads_publish", timeout=30,
                       data={"creation_id": cid, "access_token": tok}).json()
