@@ -33,6 +33,7 @@ from ganzhi_zodiac import day_context
 
 BASE = Path(__file__).resolve().parent
 GRAPH = "https://graph.threads.net/v1.0"
+# 2026-09-06: token rotation verified; push triggers a live publish check.
 
 WEEKDAY_KO = ["월", "화", "수", "목", "금", "토", "일"]
 
