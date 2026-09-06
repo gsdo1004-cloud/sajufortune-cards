@@ -46,6 +46,32 @@ jobs:
       # 예: 오늘치를 메워야 하면 0, 모레치를 미리 올리려면 2.
       ZODIAC_PUBLISH_OFFSET_DAYS: ${{ github.event.inputs.offset_days || '1' }}
     steps:
+      - name: Threads 토큰 사전검사
+        shell: bash
+        run: |
+          python3 - <<'PYTOKEN'
+          import json, os, sys, urllib.parse, urllib.request, urllib.error
+          tok=os.environ.get('THREADS_ACCESS_TOKEN','')
+          if not tok:
+              print('[FAIL] THREADS_ACCESS_TOKEN secret is missing')
+              sys.exit(78)
+          url='https://graph.threads.net/v1.0/me?' + urllib.parse.urlencode({'fields':'id','access_token':tok})
+          try:
+              with urllib.request.urlopen(url, timeout=15) as r:
+                  data=json.load(r)
+              if not data.get('id'):
+                  raise RuntimeError('token validation returned no id')
+              print('[OK] Threads token valid')
+          except urllib.error.HTTPError as e:
+              body=e.read().decode('utf-8','replace')[:1500]
+              body=body.replace(tok,'[REDACTED]')
+              print('[FAIL] Threads token invalid/expired:', body)
+              sys.exit(78)
+          except Exception as e:
+              print('[FAIL] Threads token preflight:', type(e).__name__, str(e)[:500])
+              sys.exit(78)
+          PYTOKEN
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
@@ -178,15 +204,21 @@ jobs:
           sys.exit(r.returncode)
           PY
 
-      # Threads는 유튜브 예약 여부와 독립적으로 발행한다.
-      # 각 게시기는 자체 멱등 마커를 사용하므로 백업 cron 재실행에도 중복되지 않는다.
-      - name: 스레드 카드뉴스 캐러셀 발행
+      # Threads 저녁 슬롯도 실제 게시물 1편만 발행한다.
+      # 날짜 홀짝으로 캐러셀/릴스를 교대해 형식 실험은 유지하되 같은 소재 중복 게시를 막는다.
+      - name: 스레드 저녁 1편 발행 (캐러셀/릴스 교대)
         continue-on-error: true
-        run: python zodiac_cardnews.py publish
-
-      - name: 스레드 릴스 영상 발행
-        continue-on-error: true
-        run: python zodiac_reels.py publish
+        run: |
+          OFFSET="${ZODIAC_PUBLISH_OFFSET_DAYS:-0}"
+          TARGET=$(TZ=Asia/Seoul date -d "+${OFFSET} days" +%F)
+          ORD=$(TZ=Asia/Seoul date -d "$TARGET" +%j)
+          if [ $((10#$ORD % 2)) -eq 0 ]; then
+            echo "${TARGET}: 캐러셀 발행"
+            python zodiac_cardnews.py publish
+          else
+            echo "${TARGET}: 릴스 발행"
+            python zodiac_reels.py publish
+          fi
 
       # [2026-07-30] 멱등 마커를 원격에 남긴다.
       # zodiac_cardnews/reels 는 발행 후 cards/{날짜}/threads_pub_*.json 을 쓰고,

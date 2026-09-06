@@ -1,5 +1,0 @@
-{
-  "message": "----- 2026-09-06 유령 게시물 -----\n계미일. 9월 6일(일)의 기운.\n토끼띠, 말띠, 양띠 — 오늘 이 띠들은 하려던 거 밀어붙여도 되는 날.\n오늘은 무엇을 먼저 챙길 건지 한마디만 남겨봐.\n------------------------\n[FAIL] ghost/text container: {'error': {'message': 'Error validating access token: Session has expired on Saturday, 05-Sep-26 08:32:22 PDT. The current time is Saturday, 05-Sep-26 20:27:22 PDT.', 'type': 'OAuthException', 'code': 190, 'error_subcode': 0, 'fbtrace_id': 'AwTchtWxG2L8-GqCu86wnue'}}\n",
-  "token_set": true,
-  "user_id_set": true
-}

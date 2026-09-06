@@ -42,6 +42,32 @@ jobs:
       THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
       THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
     steps:
+      - name: Threads 토큰 사전검사
+        shell: bash
+        run: |
+          python3 - <<'PYTOKEN'
+          import json, os, sys, urllib.parse, urllib.request, urllib.error
+          tok=os.environ.get('THREADS_ACCESS_TOKEN','')
+          if not tok:
+              print('[FAIL] THREADS_ACCESS_TOKEN secret is missing')
+              sys.exit(78)
+          url='https://graph.threads.net/v1.0/me?' + urllib.parse.urlencode({'fields':'id','access_token':tok})
+          try:
+              with urllib.request.urlopen(url, timeout=15) as r:
+                  data=json.load(r)
+              if not data.get('id'):
+                  raise RuntimeError('token validation returned no id')
+              print('[OK] Threads token valid')
+          except urllib.error.HTTPError as e:
+              body=e.read().decode('utf-8','replace')[:1500]
+              body=body.replace(tok,'[REDACTED]')
+              print('[FAIL] Threads token invalid/expired:', body)
+              sys.exit(78)
+          except Exception as e:
+              print('[FAIL] Threads token preflight:', type(e).__name__, str(e)[:500])
+              sys.exit(78)
+          PYTOKEN
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
@@ -186,18 +212,9 @@ jobs:
             sleep 10
           done
 
-      # Threads는 유튜브 예약 성공 여부와 독립적으로 발행한다.
-      # 영상은 원본 준비가 실패할 수 있으므로 continue-on-error로 두고, 카드뉴스는 반드시 시도한다.
-      - name: Threads 쇼츠 영상 발행
-        if: github.event.inputs.dry_run != 'true'
-        continue-on-error: true
-        run: |
-          DATE="${{ github.event.inputs.date }}"
-          [ -z "$DATE" ] && DATE=$(TZ=Asia/Seoul date +%F)
-          SIGN="${{ github.event.inputs.sign }}"
-          python zodiac_signal_reel.py "$DATE" $SIGN --publish-threads
-
-      - name: Threads 카드뉴스 발행
+      # Threads 낮 슬롯은 실제 게시물 1편만 발행한다.
+      # 같은 대본의 VIDEO+카드 2중 게시를 없애고 캐러셀 하나로 집중한다.
+      - name: Threads 카드뉴스 발행 (낮 1편)
         if: github.event.inputs.dry_run != 'true'
         continue-on-error: true
         run: python zodiac_signal.py ${{ steps.args.outputs.v }}

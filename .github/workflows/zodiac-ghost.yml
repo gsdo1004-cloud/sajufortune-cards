@@ -40,6 +40,32 @@ jobs:
       THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
       THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
     steps:
+      - name: Threads 토큰 사전검사
+        shell: bash
+        run: |
+          python3 - <<'PYTOKEN'
+          import json, os, sys, urllib.parse, urllib.request, urllib.error
+          tok=os.environ.get('THREADS_ACCESS_TOKEN','')
+          if not tok:
+              print('[FAIL] THREADS_ACCESS_TOKEN secret is missing')
+              sys.exit(78)
+          url='https://graph.threads.net/v1.0/me?' + urllib.parse.urlencode({'fields':'id','access_token':tok})
+          try:
+              with urllib.request.urlopen(url, timeout=15) as r:
+                  data=json.load(r)
+              if not data.get('id'):
+                  raise RuntimeError('token validation returned no id')
+              print('[OK] Threads token valid')
+          except urllib.error.HTTPError as e:
+              body=e.read().decode('utf-8','replace')[:1500]
+              body=body.replace(tok,'[REDACTED]')
+              print('[FAIL] Threads token invalid/expired:', body)
+              sys.exit(78)
+          except Exception as e:
+              print('[FAIL] Threads token preflight:', type(e).__name__, str(e)[:500])
+              sys.exit(78)
+          PYTOKEN
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
@@ -49,7 +75,6 @@ jobs:
             zodiac_seo.py
             ganzhi_zodiac.py
             threads_conversion.py
-            threads_ghost*.json
             cards/*/threads_pub_ghost.json
 
       - uses: actions/setup-python@v5
@@ -65,26 +90,7 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             FLAG="--dry-run"
           fi
-          set +e
-          python zodiac_ghost.py ${{ github.event.inputs.date }} $FLAG > /tmp/ghost-run.log 2>&1
-          RC=$?
-          cat /tmp/ghost-run.log
-          if [ "$RC" -ne 0 ]; then
-            python - <<'PYERR'
-          import json, os
-          from pathlib import Path
-          msg=Path('/tmp/ghost-run.log').read_text(encoding='utf-8',errors='replace')[-5000:]
-          for k in ('THREADS_ACCESS_TOKEN','THREADS_USER_ID'):
-              v=os.environ.get(k,'')
-              if v: msg=msg.replace(v,'[REDACTED]')
-          Path('threads_ghost_runner_error.json').write_text(json.dumps({
-              'message':msg,
-              'token_set':bool(os.environ.get('THREADS_ACCESS_TOKEN')),
-              'user_id_set':bool(os.environ.get('THREADS_USER_ID'))
-          },ensure_ascii=False,indent=2),encoding='utf-8')
-          PYERR
-            exit "$RC"
-          fi
+          python zodiac_ghost.py ${{ github.event.inputs.date }} $FLAG
 
       - name: 발행 마커 커밋
         if: always()
@@ -92,8 +98,6 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add cards/*/threads_pub_ghost.json 2>/dev/null || true
-          git add --sparse threads_ghost_error.json 2>/dev/null || true
-          git add --sparse threads_ghost_runner_error.json 2>/dev/null || true
           # "변경 없음"을 문자열로 판정하지 않는다 — exit code 로만 본다.
           if git diff --cached --quiet; then
             echo "새 마커 없음 — 커밋 생략"

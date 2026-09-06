@@ -1,7 +1,0 @@
-{
-  "error_type": "SystemExit",
-  "message": "[FAIL] ghost/text container: {'error': {'message': 'Error validating access token: Session has expired on Saturday, 05-Sep-26 08:32:22 PDT. The current time is Saturday, 05-Sep-26 20:27:22 PDT.', 'type': 'OAuthException', 'code': 190, 'error_subcode': 0, 'fbtrace_id': 'AwTchtWxG2L8-GqCu86wnue'}}",
-  "token_set": true,
-  "user_id_set": true,
-  "date": "2026-09-06"
-}

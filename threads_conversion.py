@@ -8,6 +8,7 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import re
+from urllib.parse import urlencode
 
 PROFILE_RE = re.compile(r"^.*(?:프로필|무료로 볼 수|무료로 확인|사주 기준 흐름).*$", re.M)
 
@@ -42,13 +43,24 @@ def stage(channel: str, date_iso: str) -> str:
     chosen = CHANNELS[_h("promo|" + date_iso) % len(CHANNELS)]
     if channel != chosen:
         return "reach"
-    return "conversion" if _h("stage|" + date_iso) % 3 == 0 else "bridge"
+    return "conversion" if _h("stage|" + date_iso) % 7 == 0 else "bridge"
+
+def campaign_key(channel: str, date_iso: str) -> str:
+    return f"th_{date_iso.replace('-', '')}_{channel}"[:100]
+
+def tracked_url(channel: str, date_iso: str) -> str:
+    q=urlencode({"utm_source":"threads","utm_medium":"organic","utm_campaign":campaign_key(channel,date_iso)})
+    return f"https://sajufortune.kr/links?{q}"
 
 def cta(channel: str, date_iso: str, sign: str = "", focus: str = "") -> str:
     st=stage(channel,date_iso)
     seed=int(hashlib.sha256(f"{channel}|{date_iso}|{sign}|{focus}".encode()).hexdigest()[:8],16)
     pool=CONVERT if st=="conversion" else BRIDGE if st=="bridge" else REACH
-    return pool[seed % len(pool)]
+    line=pool[seed % len(pool)]
+    # 직접 URL은 약 5%의 sale 글에만 넣는다. 나머지는 프로필 유도로 도달 손실을 줄인다.
+    if st=="conversion":
+        line += "\n" + tracked_url(channel,date_iso)
+    return line
 
 
 def apply(text: str, channel: str, date_iso: str, sign: str = "", focus: str = "") -> str:
