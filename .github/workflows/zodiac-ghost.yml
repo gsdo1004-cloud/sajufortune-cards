@@ -64,7 +64,26 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             FLAG="--dry-run"
           fi
-          python zodiac_ghost.py ${{ github.event.inputs.date }} $FLAG
+          set +e
+          python zodiac_ghost.py ${{ github.event.inputs.date }} $FLAG > /tmp/ghost-run.log 2>&1
+          RC=$?
+          cat /tmp/ghost-run.log
+          if [ "$RC" -ne 0 ]; then
+            python - <<'PYERR'
+          import json, os
+          from pathlib import Path
+          msg=Path('/tmp/ghost-run.log').read_text(encoding='utf-8',errors='replace')[-5000:]
+          for k in ('THREADS_ACCESS_TOKEN','THREADS_USER_ID'):
+              v=os.environ.get(k,'')
+              if v: msg=msg.replace(v,'[REDACTED]')
+          Path('threads_ghost_runner_error.json').write_text(json.dumps({
+              'message':msg,
+              'token_set':bool(os.environ.get('THREADS_ACCESS_TOKEN')),
+              'user_id_set':bool(os.environ.get('THREADS_USER_ID'))
+          },ensure_ascii=False,indent=2),encoding='utf-8')
+          PYERR
+            exit "$RC"
+          fi
 
       - name: 발행 마커 커밋
         if: always()
@@ -73,6 +92,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add cards/*/threads_pub_ghost.json 2>/dev/null || true
           git add threads_ghost_error.json 2>/dev/null || true
+          git add threads_ghost_runner_error.json 2>/dev/null || true
           # "변경 없음"을 문자열로 판정하지 않는다 — exit code 로만 본다.
           if git diff --cached --quiet; then
             echo "새 마커 없음 — 커밋 생략"
