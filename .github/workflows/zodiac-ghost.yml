@@ -49,6 +49,7 @@ jobs:
             zodiac_seo.py
             ganzhi_zodiac.py
             threads_conversion.py
+            threads_ghost*.json
             cards/*/threads_pub_ghost.json
 
       - uses: actions/setup-python@v5
@@ -91,8 +92,8 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add cards/*/threads_pub_ghost.json 2>/dev/null || true
-          git add threads_ghost_error.json 2>/dev/null || true
-          git add threads_ghost_runner_error.json 2>/dev/null || true
+          git add --sparse threads_ghost_error.json 2>/dev/null || true
+          git add --sparse threads_ghost_runner_error.json 2>/dev/null || true
           # "변경 없음"을 문자열로 판정하지 않는다 — exit code 로만 본다.
           if git diff --cached --quiet; then
             echo "새 마커 없음 — 커밋 생략"
