@@ -231,7 +231,27 @@ def main():
         print(f"[스킵] {date_iso} 유령 게시물 이미 발행됨")
         return
 
-    pid = publish_ghost(text, date_iso)
+    try:
+        pid = publish_ghost(text, date_iso)
+    except BaseException as e:
+        # 공개 가능한 최소 진단만 남긴다. 토큰/UID 값은 절대 기록하지 않는다.
+        err = BASE / "cards" / date_iso / "threads_ghost_error.json"
+        err.parent.mkdir(parents=True, exist_ok=True)
+        msg = str(e)[:1200]
+        tok = os.environ.get("THREADS_ACCESS_TOKEN", "")
+        uid = os.environ.get("THREADS_USER_ID", "")
+        if tok:
+            msg = msg.replace(tok, "[REDACTED]")
+        if uid:
+            msg = msg.replace(uid, "[USER_ID]")
+        err.write_text(json.dumps({
+            "error_type": type(e).__name__,
+            "message": msg,
+            "token_set": bool(tok),
+            "user_id_set": bool(uid),
+            "date": date_iso,
+        }, ensure_ascii=False, indent=2), encoding="utf-8")
+        raise
     print(f"[OK] ghost post: {pid}")
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.write_text(json.dumps({"post_id": pid, "text": text}, ensure_ascii=False),
