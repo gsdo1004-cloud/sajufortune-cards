@@ -10,6 +10,11 @@ on:
     # cron 이 몰리는 혼잡 구간이라 지연·누락이 잦다(GitHub 문서에 명시). 분을 어긋나게
     # 두면 확률이 낮아진다. 다만 누락을 완전히 막아주지는 않는다.
     - cron: '23 23 * * *'    # KST 08:23
+    - cron: '53 0 * * *'     # KST 09:53 백업 (멱등 마커로 중복 방지)
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/zodiac-ghost.yml'
   workflow_dispatch:
     inputs:
       date:

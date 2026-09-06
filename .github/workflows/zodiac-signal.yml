@@ -15,6 +15,7 @@ on:
     # [2026-08-07] 정각(:00) → :23. 같은 날 유령글이 정각 혼잡으로 통째로 누락된 뒤
     # 세 워크플로 모두 분을 어긋나게 뒀다. 자세한 근거는 zodiac-ghost.yml 주석 참조.
     - cron: '23 2 * * *'    # KST 11:23
+    - cron: '53 4 * * *'    # KST 13:53 백업 (멱등 마커로 중복 방지)
   workflow_dispatch:
     inputs:
       date:
@@ -161,6 +162,7 @@ jobs:
       # 성공한 뒤에만 이 파일을 push하며, 아래 gate가 두 Threads 발행의 선행조건이다.
       - name: 쇼츠 원본 커밋·푸시 (Threads VIDEO 준비)
         if: github.event.inputs.dry_run != 'true'
+        continue-on-error: true
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -184,24 +186,10 @@ jobs:
             sleep 10
           done
 
-      # 유튜브 예약 완료가 확인된 동일 대본만 Threads 캐러셀로 발행한다.
-      - name: Threads 발행 선행조건 확인
-        id: threads_gate
-        if: github.event.inputs.dry_run != 'true'
-        run: |
-          DATE="${{ github.event.inputs.date }}"
-          [ -z "$DATE" ] && DATE=$(TZ=Asia/Seoul date +%F)
-          if [ -f "cards/${DATE}/youtube_pub_signal.json" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "유튜브 예약 표식 없음 — Threads 발행 보류: ${DATE}"
-          fi
-
-      # 3단계 — 유튜브 예약 성공 뒤에만 같은 쇼츠를 Threads VIDEO로 발행한다.
-      # 영상 실패가 카드뉴스까지 막지 않도록 각 발행은 별도 단계·별도 멱등 마커를 쓴다.
+      # Threads는 유튜브 예약 성공 여부와 독립적으로 발행한다.
+      # 영상은 원본 준비가 실패할 수 있으므로 continue-on-error로 두고, 카드뉴스는 반드시 시도한다.
       - name: Threads 쇼츠 영상 발행
-        if: github.event.inputs.dry_run != 'true' && steps.threads_gate.outputs.ready == 'true'
+        if: github.event.inputs.dry_run != 'true'
         continue-on-error: true
         run: |
           DATE="${{ github.event.inputs.date }}"
@@ -209,9 +197,8 @@ jobs:
           SIGN="${{ github.event.inputs.sign }}"
           python zodiac_signal_reel.py "$DATE" $SIGN --publish-threads
 
-      # 4단계 — 같은 2장 카드뉴스를 Threads 캐러셀로도 발행한다.
       - name: Threads 카드뉴스 발행
-        if: github.event.inputs.dry_run != 'true' && steps.threads_gate.outputs.ready == 'true'
+        if: github.event.inputs.dry_run != 'true'
         continue-on-error: true
         run: python zodiac_signal.py ${{ steps.args.outputs.v }}
 

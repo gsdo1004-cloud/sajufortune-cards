@@ -17,6 +17,7 @@ on:
     # 세 워크플로 모두 분을 어긋나게 뒀다. 자세한 근거는 zodiac-ghost.yml 주석 참조.
     # 명목 20:23 + 지연이면 착지가 21시 전후 — 20~24시 창 한가운데를 유지한다.
     - cron: '23 11 * * *'    # KST 20:23
+    - cron: '53 13 * * *'    # KST 22:53 백업 (멱등 마커로 중복 방지)
   workflow_dispatch:
     inputs:
       offset_days:
@@ -177,28 +178,13 @@ jobs:
           sys.exit(r.returncode)
           PY
 
-      # 유튜브 예약 완료 전에는 Threads를 절대 발행하지 않는다.
-      # 로컬 파이프라인의 uploaded.json 또는 이 워크플로의 youtube_pub.json이 필요하다.
-      - name: Threads 발행 선행조건 확인
-        id: threads_gate
-        run: |
-          OFFSET="${ZODIAC_PUBLISH_OFFSET_DAYS:-0}"
-          TARGET=$(TZ=Asia/Seoul date -d "+${OFFSET} days" +%F)
-          if [ -f "cards/${TARGET}/uploaded.json" ] || [ -f "cards/${TARGET}/youtube_pub.json" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-            echo "유튜브 예약 완료 확인: ${TARGET}"
-          else
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "유튜브 예약 표식 없음 — Threads 발행 보류: ${TARGET}"
-          fi
-
+      # Threads는 유튜브 예약 여부와 독립적으로 발행한다.
+      # 각 게시기는 자체 멱등 마커를 사용하므로 백업 cron 재실행에도 중복되지 않는다.
       - name: 스레드 카드뉴스 캐러셀 발행
-        if: steps.threads_gate.outputs.ready == 'true'
         continue-on-error: true
         run: python zodiac_cardnews.py publish
 
       - name: 스레드 릴스 영상 발행
-        if: steps.threads_gate.outputs.ready == 'true'
         continue-on-error: true
         run: python zodiac_reels.py publish
 
