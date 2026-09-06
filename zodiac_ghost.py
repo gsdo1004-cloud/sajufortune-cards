@@ -235,8 +235,7 @@ def main():
         pid = publish_ghost(text, date_iso)
     except BaseException as e:
         # 공개 가능한 최소 진단만 남긴다. 토큰/UID 값은 절대 기록하지 않는다.
-        err = BASE / "cards" / date_iso / "threads_ghost_error.json"
-        err.parent.mkdir(parents=True, exist_ok=True)
+        err = BASE / "threads_ghost_error.json"
         msg = str(e)[:1200]
         tok = os.environ.get("THREADS_ACCESS_TOKEN", "")
         uid = os.environ.get("THREADS_USER_ID", "")
