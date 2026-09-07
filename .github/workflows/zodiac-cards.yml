@@ -244,15 +244,36 @@ jobs:
           git pull --rebase --autostash origin main || true
           git push
 
-      # [2026-07-27] 주석 대신 **날짜 게이트**로 전환했다.
-      # zodiac_instagram.py 의 IG_RESUME_DATE(2026-08-15) 전에는 스스로 SKIP 하고 끝난다.
-      # 주석으로 막아두면 해제일에 사람이 기억해서 풀어야 하는데, 그게 잊혀진다.
-      # ⚠️ 재개는 캐러셀 하나로 시작한다. 릴스까지 같이 켜면 재개 직후 자동화 신호가
-      #    두 배로 뛴다 — 제재 이력이 있는 계정이라 2주 지켜보고 아래 릴스를 켠다.
-      - name: 인스타 카드뉴스 캐러셀 발행 (8/15 자동 재개)
+      # Instagram은 과거 링크 자동댓글 제한 이력이 있어 URL 자동댓글은 영구 금지하고
+      # 프로필 첫 링크 CTA만 사용한다. 백업 cron은 marker로 중복 게시를 막는다.
+      - name: Instagram 토큰 사전검사
+        id: ig_preflight
         continue-on-error: true
-        run: python zodiac_instagram.py carousel
+        env:
+          INSTAGRAM_AUTO_COMMENT: "0"
+        run: python zodiac_instagram.py preflight
 
-      # - name: 인스타 릴스 영상 발행   ← 캐러셀 2주 무사고 확인 후 해제
-      #   continue-on-error: true
-      #   run: python zodiac_instagram.py reel
+      - name: Instagram 오늘운세 Reel 발행 (저녁 1편)
+        if: steps.ig_preflight.outcome == 'success'
+        continue-on-error: true
+        env:
+          INSTAGRAM_AUTO_COMMENT: "0"
+        run: python zodiac_instagram.py reel
+
+      - name: Instagram 인사이트 수집
+        if: always() && steps.ig_preflight.outcome == 'success'
+        continue-on-error: true
+        run: python instagram_insights.py
+
+      - name: Instagram 마커·인사이트 커밋
+        if: always() && steps.ig_preflight.outcome == 'success'
+        continue-on-error: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cards/*/instagram_pub_*.json 2>/dev/null || true
+          git add analytics/instagram_insights.json 2>/dev/null || true
+          git diff --cached --quiet && echo "Instagram 변경 없음" && exit 0
+          git commit -m "chore: instagram markers+insights $(TZ=Asia/Seoul date +%F)"
+          git pull --rebase --autostash origin main || true
+          git push
