@@ -1,0 +1,113 @@
+name: Instagram Revenue Reels
+
+on:
+  schedule:
+    - cron: '17 6 * * *'    # KST 15:17 - afternoon secondary post
+    - cron: '47 6 * * *'    # KST 15:47 - backup; idempotency marker blocks duplicates
+    - cron: '17 11 * * *'   # KST 20:17 - next-day today-fortune Reel
+    - cron: '47 11 * * *'   # KST 20:47 - backup; idempotency marker blocks duplicates
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'status | signal | carousel | reel'
+        required: false
+        default: 'status'
+      date:
+        description: 'YYYY-MM-DD; blank = KST today'
+        required: false
+        default: ''
+      publish:
+        description: 'true only for an intentional manual publish'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: instagram-revenue-publisher
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+      INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+      INSTAGRAM_AUTO_COMMENT: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install runtime
+        run: pip install requests
+
+      - name: Validate Instagram authorization
+        run: python zodiac_instagram.py preflight
+
+      - name: Resolve safe publish slot
+        id: target
+        shell: bash
+        run: |
+          TODAY=$(TZ=Asia/Seoul date +%F)
+          TOMORROW=$(TZ=Asia/Seoul date -d tomorrow +%F)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            MODE="${{ github.event.inputs.mode }}"
+            DATE="${{ github.event.inputs.date }}"
+            [ -z "$DATE" ] && DATE="$TODAY"
+          else
+            SLOT="${{ github.event.schedule }}"
+            case "$SLOT" in
+              '17 6 * * *'|'47 6 * * *')
+                DOW=$(TZ=Asia/Seoul date +%u)
+                case "$DOW" in
+                  1|3|5) MODE='signal' ;;
+                  2|4|7) MODE='carousel' ;;
+                  *) MODE='skip' ;;
+                esac
+                DATE="$TODAY"
+                ;;
+              *)
+                MODE='reel'
+                DATE="$TOMORROW"
+                ;;
+            esac
+          fi
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
+
+      - name: Show safe status only
+        run: python zodiac_instagram.py status "${{ steps.target.outputs.date }}"
+
+      - name: Publish scheduled Instagram content
+        if: github.event_name == 'schedule' && steps.target.outputs.mode != 'skip'
+        run: python zodiac_instagram.py "${{ steps.target.outputs.mode }}" "${{ steps.target.outputs.date }}"
+
+      - name: Publish intentional manual content
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.publish == 'true' && github.event.inputs.mode != 'status'
+        run: python zodiac_instagram.py "${{ github.event.inputs.mode }}" "${{ steps.target.outputs.date }}"
+
+      - name: Collect aggregate insights when permission is available
+        continue-on-error: true
+        run: python instagram_insights.py
+
+      - name: Persist idempotency markers and aggregate insights
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add cards/*/instagram_pub_*.json 2>/dev/null || true
+          git add analytics/instagram_insights.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No Instagram state changes"
+            exit 0
+          fi
+          git commit -m "chore(instagram): record automated publish"
+          git pull --rebase --autostash origin main
+          git push origin HEAD:main
