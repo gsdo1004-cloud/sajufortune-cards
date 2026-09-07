@@ -1,7 +1,24 @@
 {
-  "collected_at": "2026-09-07T04:00:24",
+  "collected_at": "2026-09-07T12:44:13",
   "count": 30,
   "media": [
+    {
+      "id": "17909855943470225",
+      "media_type": "VIDEO",
+      "media_product_type": "REELS",
+      "timestamp": "2026-09-07T12:43:57+0000",
+      "permalink": "https://www.instagram.com/reel/Dc_I4Etiv3U/",
+      "like_count": 0,
+      "comments_count": 0,
+      "caption_head": "2026년 9월 7일 월요일 오늘 눈여겨볼 띠 한 가지 🔮 짧은 영상은 공통 신호만 보여드립니다. 내 사주 기준 흐름은 프로필 첫 링크의 무료 오늘운세에서 확인하세요.  #사주 #띠별운세 #오늘의운세 #릴스 #운세 ",
+      "metrics": {
+        "views": 0,
+        "reach": 0,
+        "saved": 0,
+        "shares": 0,
+        "total_interactions": 0
+      }
+    },
     {
       "id": "18278877454290298",
       "media_type": "VIDEO",
@@ -487,23 +504,6 @@
       "like_count": 0,
       "comments_count": 0,
       "caption_head": "",
-      "metrics": {
-        "views": 0,
-        "reach": 0,
-        "saved": 0,
-        "shares": 0,
-        "total_interactions": 0
-      }
-    },
-    {
-      "id": "18067270049407429",
-      "media_type": "IMAGE",
-      "media_product_type": "FEED",
-      "timestamp": "2026-06-09T21:08:45+0000",
-      "permalink": "https://www.instagram.com/p/DZYTJ4PT1bO/",
-      "like_count": 0,
-      "comments_count": 0,
-      "caption_head": "사주,운세",
       "metrics": {
         "views": 0,
         "reach": 0,
