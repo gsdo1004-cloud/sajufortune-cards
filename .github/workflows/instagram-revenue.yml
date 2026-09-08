@@ -56,7 +56,11 @@ jobs:
         shell: bash
         run: |
           TODAY=$(TZ=Asia/Seoul date +%F)
-          TOMORROW=$(TZ=Asia/Seoul date -d tomorrow +%F)
+          # Scheduled jobs can start hours late. For the fixed 06/11 UTC slots,
+          # the UTC calendar date is the intended KST publishing date. Using
+          # execution-time KST after midnight can otherwise jump one day ahead.
+          SCHEDULE_DATE=$(date -u +%F)
+          SCHEDULE_TOMORROW=$(date -u -d "$SCHEDULE_DATE +1 day" +%F)
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             MODE="${{ github.event.inputs.mode }}"
             DATE="${{ github.event.inputs.date }}"
@@ -71,11 +75,11 @@ jobs:
                   2|4|7) MODE='carousel' ;;
                   *) MODE='skip' ;;
                 esac
-                DATE="$TODAY"
+                DATE="$SCHEDULE_DATE"
                 ;;
               *)
                 MODE='reel'
-                DATE="$TOMORROW"
+                DATE="$SCHEDULE_TOMORROW"
                 ;;
             esac
           fi

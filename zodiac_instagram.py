@@ -145,7 +145,31 @@ def publish_carousel(image_urls: list[str], caption: str) -> str:
     return str(pid)
 
 
+def _remote_media_ready(url: str) -> tuple[bool, str]:
+    """Verify Meta can fetch the public media before creating a container.
+
+    GitHub raw returns application/octet-stream for mp4, so status/length are
+    more reliable here than an exact Content-Type check.
+    """
+    try:
+        r = requests.get(url, stream=True, timeout=20, allow_redirects=True)
+        try:
+            if r.status_code != 200:
+                return False, f"HTTP {r.status_code}"
+            length = int(r.headers.get("content-length") or 0)
+            if length and length < 1024:
+                return False, f"too small ({length} bytes)"
+            return True, f"HTTP 200 length={length or 'unknown'}"
+        finally:
+            r.close()
+    except Exception as e:
+        return False, f"{type(e).__name__}: {str(e)[:120]}"
+
+
 def publish_reel(video_url: str, caption: str) -> str:
+    ready, why = _remote_media_ready(video_url)
+    if not ready:
+        raise FileNotFoundError(f"IG reel source not ready: {video_url} ({why})")
     uid, tok = _env()
     j = _post(f"{IG}/{uid}/media", {
         "media_type": "REELS", "video_url": video_url,
@@ -213,7 +237,11 @@ def do_reel(date_iso: str) -> None:
         "영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.\n\n"
         "#오늘의운세 #띠별운세 #릴스 #사주 #운세 #무료운세"
     )
-    pid = publish_reel(url, caption)
+    try:
+        pid = publish_reel(url, caption)
+    except FileNotFoundError as e:
+        print(f"[SKIP] {e}")
+        return
     _write_marker(date_iso, "reel", pid, media_url=url)
     add_comment(pid, CTA_COMMENT)
 
@@ -227,7 +255,11 @@ def do_signal_reel(date_iso: str) -> None:
         "짧은 영상은 공통 신호만 보여드립니다. 내 사주 기준 흐름은 프로필 첫 링크의 무료 오늘운세에서 확인하세요.\n\n"
         "#사주 #띠별운세 #오늘의운세 #릴스 #운세 #명리"
     )
-    pid = publish_reel(url, caption)
+    try:
+        pid = publish_reel(url, caption)
+    except FileNotFoundError as e:
+        print(f"[SKIP] {e}")
+        return
     _write_marker(date_iso, "signal", pid, media_url=url)
     add_comment(pid, CTA_COMMENT)
 
