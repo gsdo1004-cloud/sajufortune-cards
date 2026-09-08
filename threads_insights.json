@@ -5525,7 +5525,8 @@
     }
    ],
    "timestamp": "2026-08-21T23:42:43+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DcUizLGERhr"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcUizLGERhr",
+   "closed": true
   },
   "18415858570153932": {
    "channel": "ghost",
@@ -5543,7 +5544,8 @@
     }
    ],
    "timestamp": "2026-08-22T23:38:51+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DcXHJwrlvMz"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcXHJwrlvMz",
+   "closed": true
   },
   "18079660493695094": {
    "channel": "ghost",
@@ -5561,7 +5563,8 @@
     }
    ],
    "timestamp": "2026-08-23T23:39:39+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DcZsCYQiWN_"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcZsCYQiWN_",
+   "closed": true
   },
   "18126224965688259": {
    "channel": "ghost",
@@ -5579,7 +5582,8 @@
     }
    ],
    "timestamp": "2026-08-24T23:40:59+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DccQ_HjG7SJ"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DccQ_HjG7SJ",
+   "closed": true
   },
   "18126865237746958": {
    "channel": "ghost",
@@ -5760,6 +5764,681 @@
    ],
    "timestamp": "2026-09-04T01:03:46+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/Dc2KaStlfPm"
+  },
+  "18120477679908017": {
+   "channel": "signal_video",
+   "head": "",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 76.0,
+     "views": 20,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-05T07:07:12+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc5YdVoEWcD"
+  },
+  "17954297370211439": {
+   "channel": "signal_video",
+   "head": "",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 99.7,
+     "views": 17,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-04T07:26:32+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc214O8CELF"
+  },
+  "18123935788848626": {
+   "channel": "signal_video",
+   "head": "",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 123.7,
+     "views": 14,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-03T07:23:59+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc0QybvjuQp"
+  },
+  "17933913183365888": {
+   "channel": "signal_video",
+   "head": "",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 147.2,
+     "views": 7,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-02T07:55:58+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dcxvn8dEuiO"
+  },
+  "18086799071661661": {
+   "channel": "signal_video",
+   "head": "",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 171.1,
+     "views": 21,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-01T08:01:40+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcvLg5miJV6"
+  },
+  "18076886723369435": {
+   "channel": "signal_video",
+   "head": "",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 194.2,
+     "views": 7,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-31T08:52:23+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dcssg2uE0A-"
+  },
+  "18118097084303462": {
+   "channel": "signal_video",
+   "head": "",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 218.6,
+     "views": 13,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-30T08:31:39+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcqFWIDFSKl"
+  },
+  "17955108114212901": {
+   "channel": "signal_video",
+   "head": "",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 241.8,
+     "views": 13,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-29T09:18:59+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dcnl-Uridcb"
+  },
+  "18115954819739251": {
+   "channel": "signal_video",
+   "head": "",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 260.5,
+     "views": 6,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-28T14:34:31+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcllSBqlOnU"
+  },
+  "18111273155279248": {
+   "channel": "signal_video",
+   "head": "",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 286.0,
+     "views": 15,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-27T13:03:27+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dci2EoeDDQh"
+  },
+  "18134460178715746": {
+   "channel": "signal_video",
+   "head": "",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 319.5,
+     "views": 14,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-26T03:37:24+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcfQf_Minsp"
+  },
+  "18143996653554067": {
+   "channel": "signal_video",
+   "head": "",
+   "snapshots": [],
+   "timestamp": "2026-08-25T03:30:26+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dccq4spicC1",
+   "closed": true
+  },
+  "18113435693016841": {
+   "channel": "signal_video",
+   "head": "",
+   "snapshots": [],
+   "timestamp": "2026-08-24T03:35:04+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcaGno-DMAU",
+   "closed": true
+  },
+  "18003623654976019": {
+   "channel": "signal_video",
+   "head": "",
+   "snapshots": [],
+   "timestamp": "2026-08-23T03:34:01+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcXhtayD_qt",
+   "closed": true
+  },
+  "17997325100806634": {
+   "channel": "signal_video",
+   "head": "",
+   "snapshots": [],
+   "timestamp": "2026-08-22T03:18:33+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcU7KVRgq2U",
+   "closed": true
+  },
+  "18148912039523999": {
+   "channel": "signal_video",
+   "head": "",
+   "snapshots": [],
+   "timestamp": "2026-08-21T03:33:36+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcSYEnyDmTw",
+   "closed": true
+  },
+  "18441605071192448": {
+   "channel": "signal_video",
+   "head": "",
+   "snapshots": [],
+   "timestamp": "2026-08-20T03:22:18+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcPx_5bDZUe",
+   "closed": true
+  },
+  "18072906086413400": {
+   "channel": "signal_video",
+   "head": "",
+   "snapshots": [],
+   "timestamp": "2026-08-19T03:27:12+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcNNw-GAV1a",
+   "closed": true
+  },
+  "18603348760018492": {
+   "channel": "signal_video",
+   "head": "",
+   "snapshots": [],
+   "timestamp": "2026-08-18T03:22:14+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcKoaVOAFYI",
+   "closed": true
+  },
+  "18017669924716252": {
+   "channel": "signal_video",
+   "head": "",
+   "snapshots": [],
+   "timestamp": "2026-08-17T03:31:35+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcIErb-j7I1",
+   "closed": true
+  },
+  "18182467516364592": {
+   "channel": "signal_video",
+   "head": "",
+   "snapshots": [],
+   "timestamp": "2026-08-16T11:55:00+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcGZfnmjo7z",
+   "closed": true
+  },
+  "18120484690856569": {
+   "channel": "signal_carousel",
+   "head": "2026년 9월 8일 을유일\n양띠 관계 흐름\n\n오늘 양띠, 한마디를 먼저 건네면 관계의 결이 달라질 수 있어.\n오늘은 을유일,",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 3.7,
+     "views": 4,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-08T07:24:37+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DdBJKrSm-1_"
+  },
+  "18117282388997463": {
+   "channel": "signal_carousel",
+   "head": "2026년 9월 7일 갑신일\n말띠 돈 흐름\n\n오늘 말띠, 돈은 크게 벌리기보다 이 한 곳을 먼저 살펴봐.\n오늘은 갑신일, 내가",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 27.6,
+     "views": 13,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-07T07:30:12+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc-lAspG2Xa"
+  },
+  "18056684939795088": {
+   "channel": "signal_carousel",
+   "head": "2026년 9월 6일 계미일\n뱀띠 컨디션 흐름\n\n오늘 뱀띠, 밀어붙이기보다 몸의 신호를 먼저 들어봐.\n오늘은 계미일, 내가 오",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 50.1,
+     "views": 7,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-06T09:02:25+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc8KxRCFrT0"
+  },
+  "18458303044141069": {
+   "channel": "signal_carousel",
+   "head": "2026년 9월 5일 임오일\n용띠 돈 흐름\n\n오늘 용띠, 돈은 크게 벌리기보다 이 한 곳을 먼저 살펴봐.\n오늘은 임오일, 오늘",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 76.0,
+     "views": 8,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-05T07:07:36+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc5Y1fflUM9"
+  },
+  "17997632507991213": {
+   "channel": "signal_carousel",
+   "head": "2026년 9월 4일 신사일\n토끼띠 돈 흐름\n\n오늘 토끼띠, 돈은 크게 벌리기보다 이 한 곳을 먼저 살펴봐.\n오늘은 신사일, ",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 99.7,
+     "views": 13,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-04T07:27:03+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc22QdPFZQ0"
+  },
+  "17993969862009675": {
+   "channel": "signal_carousel",
+   "head": "2026년 9월 3일 경진일\n호랑이띠 오늘의 선택\n\n오늘 호랑이띠, 고민하던 일은 이 기준 하나로 정리해봐.\n오늘은 경진일, ",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 123.7,
+     "views": 10,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-03T07:24:26+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc0RK8BmwhW"
+  },
+  "18123389287880943": {
+   "channel": "signal_carousel",
+   "head": "2026년 9월 2일 기묘일\n소띠 관계 흐름\n\n오늘 소띠, 한마디를 먼저 건네면 관계의 결이 달라질 수 있어.\n오늘은 기묘일,",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 147.2,
+     "views": 6,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-02T07:56:29+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcxwC0BEbfz"
+  },
+  "18091107824158035": {
+   "channel": "signal_carousel",
+   "head": "2026년 9월 1일 무인일\n쥐띠 컨디션 흐름\n\n오늘 쥐띠, 밀어붙이기보다 몸의 신호를 먼저 들어봐.\n오늘은 무인일, 내가 오",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 171.1,
+     "views": 9,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-01T08:02:06+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcvL5BtGwtB"
+  },
+  "18111248075023325": {
+   "channel": "signal_carousel",
+   "head": "2026년 8월 31일 정축일\n돼지띠 컨디션 흐름\n\n오늘 돼지띠, 밀어붙이기보다 몸의 신호를 먼저 들어봐.\n오늘은 정축일, 오",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 194.2,
+     "views": 9,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-31T08:52:48+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dcss5sAm0xu"
+  },
+  "18140751364585849": {
+   "channel": "signal_carousel",
+   "head": "2026년 8월 30일 병자일\n개띠 관계 흐름\n\n오늘 개띠, 한마디를 먼저 건네면 관계의 결이 달라질 수 있어.\n오늘은 병자일",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 218.6,
+     "views": 5,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-30T08:32:04+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcqFu5dGxOi"
+  },
+  "18128870848680286": {
+   "channel": "signal_carousel",
+   "head": "2026년 8월 29일 을해일\n닭띠 관계 흐름\n\n오늘 닭띠, 한마디를 먼저 건네면 관계의 결이 달라질 수 있어.\n오늘은 을해일",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 241.8,
+     "views": 10,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-29T09:19:22+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcnmWgRFjSU"
+  },
+  "17967018825071427": {
+   "channel": "signal_carousel",
+   "head": "2026년 8월 28일 갑술일\n원숭이띠 오늘의 선택\n\n오늘 원숭이띠, 고민하던 일은 이 기준 하나로 정리해봐.\n오늘은 갑술일,",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 260.5,
+     "views": 4,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-28T14:34:56+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dcllq3im0MG"
+  },
+  "17978563194094924": {
+   "channel": "signal_carousel",
+   "head": "2026년 8월 27일 계유일\n양띠 컨디션 흐름\n\n오늘 양띠, 밀어붙이기보다 몸의 신호를 먼저 들어봐.\n오늘은 계유일, 내가 ",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 286.0,
+     "views": 9,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-27T13:03:55+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dci2dRsoFWB"
+  },
+  "18148215994548276": {
+   "channel": "signal_carousel",
+   "head": "2026년 8월 26일 임신일\n말띠 컨디션 흐름\n\n오늘 말띠, 밀어붙이기보다 몸의 신호를 먼저 들어봐.\n오늘은 임신일, 내가 ",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 319.5,
+     "views": 12,
+     "likes": 3,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-08-26T03:37:52+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcfQ4XNG5za"
+  },
+  "17981962707065776": {
+   "channel": "signal_carousel",
+   "head": "2026년 8월 25일 신미일\n뱀띠 오늘의 선택\n\n오늘 뱀띠, 고민하던 일은 이 기준 하나로 정리해봐.\n오늘은 신미일, 내가 ",
+   "snapshots": [],
+   "timestamp": "2026-08-25T03:31:07+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DccrT4hiA2w",
+   "closed": true
+  },
+  "18030533315849726": {
+   "channel": "signal_carousel",
+   "head": "2026년 8월 24일 경오일\n용띠 돈 흐름\n\n오늘 용띠, 돈은 크게 벌리기보다 이 한 곳을 먼저 살펴봐.\n오늘은 경오일, 오",
+   "snapshots": [],
+   "timestamp": "2026-08-24T03:35:36+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcaHCFaEwOw",
+   "closed": true
+  },
+  "18112794763952939": {
+   "channel": "signal_carousel",
+   "head": "2026년 8월 23일 기사일\n토끼띠 컨디션 흐름\n\n오늘 토끼띠, 밀어붙이기보다 몸의 신호를 먼저 들어봐.\n오늘은 기사일, 내",
+   "snapshots": [],
+   "timestamp": "2026-08-23T03:34:26+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcXiGvEjryy",
+   "closed": true
+  },
+  "18008360231958690": {
+   "channel": "signal_carousel",
+   "head": "2026년 8월 22일 무진일\n호랑이띠 관계 흐름\n\n오늘 호랑이띠, 한마디를 먼저 건네면 관계의 결이 달라질 수 있어.\n오늘은",
+   "snapshots": [],
+   "timestamp": "2026-08-22T03:19:01+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcU7i8sG_8Z",
+   "closed": true
+  },
+  "18059735459518821": {
+   "channel": "signal_carousel",
+   "head": "2026년 8월 21일 정묘일\n소띠 오늘의 선택\n\n오늘 소띠, 고민하던 일은 이 기준 하나로 정리해봐.\n오늘은 정묘일, 오늘 ",
+   "snapshots": [],
+   "timestamp": "2026-08-21T03:34:07+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcSYeWRiAnP",
+   "closed": true
+  },
+  "17902358541487550": {
+   "channel": "signal_carousel",
+   "head": "2026년 8월 20일 병인일\n쥐띠 돈 흐름\n\n오늘 쥐띠, 돈은 크게 벌리기보다 이 한 곳을 먼저 살펴봐.\n오늘은 병인일, 내",
+   "snapshots": [],
+   "timestamp": "2026-08-20T03:22:46+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcPyYrGoBRr",
+   "closed": true
+  },
+  "18215652289340498": {
+   "channel": "signal_carousel",
+   "head": "2026년 8월 19일 을축일\n돼지띠 컨디션 흐름\n\n오늘 돼지띠, 밀어붙이기보다 몸의 신호를 먼저 들어봐.\n오늘은 을축일, 오",
+   "snapshots": [],
+   "timestamp": "2026-08-19T03:27:37+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcNOJdIlmbv",
+   "closed": true
+  },
+  "17923901808410709": {
+   "channel": "signal_carousel",
+   "head": "2026년 8월 18일 갑자일\n개띠 돈 흐름\n\n오늘 개띠, 돈은 크게 벌리기보다 이 한 곳을 먼저 살펴봐.\n오늘은 갑자일, 내",
+   "snapshots": [],
+   "timestamp": "2026-08-18T03:22:43+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcKoymhlBRO",
+   "closed": true
+  },
+  "17898287082574712": {
+   "channel": "signal_carousel",
+   "head": "2026년 8월 17일 계해일\n닭띠 돈 흐름\n\n오늘 닭띠, 돈은 크게 벌리기보다 이 한 곳을 먼저 살펴봐.\n오늘은 계해일, 내",
+   "snapshots": [],
+   "timestamp": "2026-08-17T03:32:00+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcIFDuBHHbF",
+   "closed": true
+  },
+  "18091769705640685": {
+   "channel": "signal_carousel",
+   "head": "2026년 8월 16일 임술일\n원숭이띠 오늘의 선택\n\n오늘 원숭이띠, 고민하던 일은 이 기준 하나로 정리해봐.\n오늘은 임술일,",
+   "snapshots": [],
+   "timestamp": "2026-08-16T11:55:26+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DcGZ4IrlqWd",
+   "closed": true
+  },
+  "18108160973032148": {
+   "channel": "signal_carousel",
+   "head": "호랑이띠 1950 · 1962 · 1974 · 1986 · 1998\n\n호랑이띠인데 요즘 뭘 해도 제자리 같으면 읽어봐.\n\n범띠",
+   "snapshots": [],
+   "timestamp": "2026-08-10T04:12:22+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Db2IHLrHAv1",
+   "closed": true
+  },
+  "18410286487157893": {
+   "channel": "signal_carousel",
+   "head": "소띠 1949 · 1961 · 1973 · 1985 · 1997\n\n이 글 본 소띠, 그냥 넘기지 마.\n\n소띠는 한번 믿으면 웬",
+   "snapshots": [],
+   "timestamp": "2026-08-09T03:57:37+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DbzhobbG5Ul",
+   "closed": true
+  },
+  "17875054014689101": {
+   "channel": "signal_carousel",
+   "head": "쥐띠 1948 · 1960 · 1972 · 1984 · 1996\n\n쥐띠면 한 번쯤 이런 생각 해봤을 거야.\n\n쥐띠는 일이 꼬여",
+   "snapshots": [],
+   "timestamp": "2026-08-08T03:50:11+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dbw7_C4IJHr",
+   "closed": true
+  },
+  "18089573438343871": {
+   "channel": "signal_carousel",
+   "head": "돼지띠 1959 · 1971 · 1983 · 1995 · 2007\n\n돼지띠, 남들은 모르는 얘기 하나 할게.\n\n돼지띠는 있으면",
+   "snapshots": [],
+   "timestamp": "2026-08-07T00:29:37+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DbuAPPcDQmf",
+   "closed": true
+  },
+  "18100533281013945": {
+   "channel": "ghost",
+   "head": "9월 8일(화) 아침.\n오늘은 을유일 — 새로 벌이기보다 정리에 어울리는 기운.\n같은 띠라도 생년월일에 따라 결이 달라. 내 ",
+   "snapshots": [
+    {
+     "t": "2026-09-08T11:06:26Z",
+     "age_h": 9.9,
+     "views": 2,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-08T01:14:13+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DdAeyWYlSY2"
+  },
+  "18022642490914574": {
+   "channel": "ghost",
+   "head": "오늘 뭐부터 할지 정했나.\n9월 7일 일진 갑신일로 보면 쥐띠, 용띠, 뱀띠한테 유리한 흐름이다.\n비슷하게 느끼는 사람 있어,",
+   "snapshots": []
+  },
+  "18621249382009578": {
+   "channel": "ghost",
+   "head": "계미일. 9월 6일(일)의 기운.\n토끼띠, 말띠, 양띠 — 오늘 이 띠들은 하려던 거 밀어붙여도 되는 날.\n오늘은 무엇을 먼저",
+   "snapshots": []
+  },
+  "18031063328665605": {
+   "channel": "ghost",
+   "head": "아침부터 마음이 분주하면 잠깐 멈춰볼 것.\n9월 5일 일진은 임오일. 서두르는 것보다 한 박자 늦추는 게 나은 날이다.\n12띠",
+   "snapshots": []
   }
  }
 }
