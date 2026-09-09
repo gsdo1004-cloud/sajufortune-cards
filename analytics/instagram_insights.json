@@ -1,22 +1,39 @@
 {
-  "collected_at": "2026-09-08T15:22:22",
+  "collected_at": "2026-09-09T11:32:17",
   "count": 30,
   "media": [
+    {
+      "id": "17916422592433638",
+      "media_type": "VIDEO",
+      "media_product_type": "REELS",
+      "timestamp": "2026-09-09T11:31:56+0000",
+      "permalink": "https://www.instagram.com/reel/DdEKO-PjNGf/",
+      "like_count": 0,
+      "comments_count": 0,
+      "caption_head": "2026년 9월 9일 수요일 오늘 눈여겨볼 띠 한 가지 🔮 짧은 영상은 공통 신호만 보여드립니다. 내 사주 기준 흐름은 프로필 첫 링크의 무료 오늘운세에서 확인하세요.  #사주 #띠별운세 #오늘의운세 #릴스 #운세 ",
+      "metrics": {
+        "views": 0,
+        "reach": 0,
+        "saved": 0,
+        "shares": 0,
+        "total_interactions": 0
+      }
+    },
     {
       "id": "18014746673952159",
       "media_type": "VIDEO",
       "media_product_type": "REELS",
       "timestamp": "2026-09-08T15:10:07+0000",
       "permalink": "https://www.instagram.com/reel/DdB-YiViuC4/",
-      "like_count": 1,
+      "like_count": 2,
       "comments_count": 0,
       "caption_head": "2026년 9월 9일 수요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #릴스 #사주 #운세 #무료운세",
       "metrics": {
-        "views": 1,
-        "reach": 0,
+        "views": 164,
+        "reach": 148,
         "saved": 0,
         "shares": 0,
-        "total_interactions": 1
+        "total_interactions": 2
       }
     },
     {
@@ -25,15 +42,15 @@
       "media_product_type": "FEED",
       "timestamp": "2026-09-08T11:27:06+0000",
       "permalink": "https://www.instagram.com/p/DdBk6v8FjxU/",
-      "like_count": 1,
+      "like_count": 2,
       "comments_count": 0,
       "caption_head": "2026년 9월 8일 화요일 오늘의 띠별 운세 🔮 내 띠의 흐름을 먼저 보고, 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #사주 #운세 #12띠 #데일리운세",
       "metrics": {
-        "views": 11,
-        "reach": 6,
+        "views": 20,
+        "reach": 12,
         "saved": 0,
         "shares": 0,
-        "total_interactions": 1
+        "total_interactions": 2
       }
     },
     {
@@ -216,8 +233,8 @@
       "comments_count": 0,
       "caption_head": "#오늘의운세",
       "metrics": {
-        "views": 1792,
-        "reach": 1639,
+        "views": 1794,
+        "reach": 1641,
         "saved": 0,
         "shares": 0,
         "total_interactions": 18
@@ -490,23 +507,6 @@
       "metrics": {
         "views": 152,
         "reach": 139,
-        "saved": 0,
-        "shares": 0,
-        "total_interactions": 1
-      }
-    },
-    {
-      "id": "18097160072211770",
-      "media_type": "CAROUSEL_ALBUM",
-      "media_product_type": "FEED",
-      "timestamp": "2026-07-07T18:10:57+0000",
-      "permalink": "https://www.instagram.com/p/DagFDaUILTW/",
-      "like_count": 0,
-      "comments_count": 1,
-      "caption_head": "2026년 7월 8일 수요일 오늘의 띠별 운세 🔮 내 띠는 오늘 어떤 흐름일까요?  #오늘의운세 #띠별운세 #사주 #운세 #12띠 #데일리운세",
-      "metrics": {
-        "views": 0,
-        "reach": 0,
         "saved": 0,
         "shares": 0,
         "total_interactions": 1
