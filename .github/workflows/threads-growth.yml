@@ -38,71 +38,38 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  tests:
+  growth:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+      THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEY_PAID: ${{ secrets.GEMINI_API_KEY_PAID }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
       - run: pip install requests
+
       - name: 안전장치 단위테스트
         run: python -m unittest -v test_threads_growth.py
 
-  preflight:
-    needs: tests
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    env:
-      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
-      THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      GEMINI_API_KEY_PAID: ${{ secrets.GEMINI_API_KEY_PAID }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: pip install requests
       - name: API 권한/기능 사전검사
         run: python threads_growth.py --preflight
-      - name: 사전검사 결과 저장
-        if: always()
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase --autostash origin main
-          for f in threads_growth_capabilities.json threads_growth_report.md; do
-            [ -f "$f" ] && git add "$f" || true
-          done
-          if ! git diff --cached --quiet; then
-            git commit -m "chore: Threads growth API preflight"
-            git push origin HEAD:main || true
-          fi
 
-  growth:
-    # push 이벤트는 테스트+preflight만. 실제 발송은 schedule 또는 명시적 dispatch에서만.
-    if: github.event_name != 'push'
-    needs: [tests, preflight]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    env:
-      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
-      THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      GEMINI_API_KEY_PAID: ${{ secrets.GEMINI_API_KEY_PAID }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: pip install requests
       - name: 댓글/대댓글 성장 루프
+        if: github.event_name != 'push'
         shell: bash
         run: |
           FLAGS=""
+          # 정기 스케줄은 실제 발송. 수동 dispatch는 send=true일 때만 실제 발송.
           if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.send }}" = "true" ]; then
             FLAGS="$FLAGS --send"
           fi
@@ -116,12 +83,15 @@ jobs:
             FLAGS="$FLAGS --clear-pause"
           fi
           python threads_growth.py $FLAGS
-      - name: 상태/보고 저장
+
+      - name: 상태/권한/보고 저장
         if: always()
+        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase --autostash origin main
+          # 다른 발행 workflow가 먼저 main을 갱신했을 수 있으므로 충돌을 흡수한다.
+          git pull --rebase --autostash origin main || true
           for f in threads_growth_state.json threads_growth_report.md threads_growth_capabilities.json threads_growth_PAUSED.json; do
             [ -f "$f" ] && git add "$f" || true
           done
