@@ -68,8 +68,9 @@ jobs:
         shell: bash
         run: |
           FLAGS=""
-          # 정기 스케줄은 실제 발송. 수동 dispatch는 send=true일 때만 실제 발송.
-          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.send }}" = "true" ]; then
+          # 안전 게이트: 검증 완료 전에는 정기 schedule도 드라이런만 수행한다.
+          # 실제 발송은 수동 dispatch에서 send=true로 명시한 경우에만 허용한다.
+          if [ "${{ github.event.inputs.send }}" = "true" ]; then
             FLAGS="$FLAGS --send"
           fi
           if [ "${{ github.event.inputs.external }}" = "false" ]; then
