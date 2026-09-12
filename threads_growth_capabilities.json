@@ -1,9 +1,10 @@
 {
-  "checked_at": "2026-09-12T23:26:06.829276+00:00",
+  "checked_at": "2026-09-12T23:28:55.725098+00:00",
   "basic": true,
   "read_replies": true,
   "profile_posts": false,
   "keyword_search": false,
+  "mentions": false,
   "token_app_id": null,
   "token_scopes": [
     "threads_basic",
@@ -13,11 +14,14 @@
     "threads_read_replies"
   ],
   "missing_recommended_scopes": [
+    "threads_delete",
     "threads_keyword_search",
+    "threads_manage_mentions",
     "threads_profile_discovery"
   ],
   "errors": {
-    "profile_posts": "HTTP 500: non-json response",
-    "keyword_search": "HTTP 500: non-json response"
+    "profile_posts": "API code=1 subcode=None: An unknown error occurred",
+    "keyword_search": "HTTP 500: non-json response",
+    "mentions": "HTTP 500: non-json response"
   }
 }

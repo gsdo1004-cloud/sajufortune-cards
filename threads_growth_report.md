@@ -10,13 +10,15 @@
 - read_replies: ✅
 - profile_posts: ❌
 - keyword_search: ❌
+- mentions: ❌
 - token scopes: `threads_basic, threads_content_publish, threads_manage_insights, threads_manage_replies, threads_read_replies`
-- 추가 권장 scope: `threads_keyword_search, threads_profile_discovery`
+- 추가 권장 scope: `threads_delete, threads_keyword_search, threads_manage_mentions, threads_profile_discovery`
 
 ## 미지원/권한 오류
 
-- profile_posts: `HTTP 500: non-json response`
+- profile_posts: `API code=1 subcode=None: An unknown error occurred`
 - keyword_search: `HTTP 500: non-json response`
+- mentions: `HTTP 500: non-json response`
 
 ## 이번 실행
 
