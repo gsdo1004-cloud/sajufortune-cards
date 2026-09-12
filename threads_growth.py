@@ -325,7 +325,7 @@ def generate_reply(candidate: Candidate, cfg: dict[str, Any], state: dict[str, A
 def api_capabilities(api: ThreadsAPI, cfg: dict[str, Any]) -> dict[str, Any]:
     result: dict[str, Any] = {"checked_at": utcnow().isoformat(), "basic": False,
                               "read_replies": False, "profile_posts": False,
-                              "keyword_search": False, "token_app_id": None,
+                              "keyword_search": False, "mentions": False, "token_app_id": None,
                               "token_scopes": [], "missing_recommended_scopes": [],
                               "errors": {}}
     # Access Token Debugger: user token itself is used as caller credential.
@@ -338,7 +338,8 @@ def api_capabilities(api: ThreadsAPI, cfg: dict[str, Any]) -> dict[str, Any]:
         result["token_scopes"] = scopes
         recommended = {
             "threads_basic", "threads_content_publish", "threads_read_replies",
-            "threads_manage_replies", "threads_keyword_search", "threads_profile_discovery"
+            "threads_manage_replies", "threads_manage_insights", "threads_keyword_search",
+            "threads_manage_mentions", "threads_delete", "threads_profile_discovery"
         }
         result["missing_recommended_scopes"] = sorted(recommended - set(scopes))
     except APIError as e:
@@ -350,6 +351,7 @@ def api_capabilities(api: ThreadsAPI, cfg: dict[str, Any]) -> dict[str, Any]:
                                              "fields": THREAD_FIELDS, "limit": 1}),
         ("keyword_search", "keyword_search", {"q": "사주", "search_type": "RECENT",
                                                 "fields": THREAD_FIELDS, "limit": 1}),
+        ("mentions", "me/mentions", {"fields": THREAD_FIELDS, "limit": 1}),
     ]
     for name, path, params in probes:
         try:
@@ -669,7 +671,7 @@ def write_report(result: dict[str, Any], caps: dict[str, Any]) -> None:
         "",
         "## API 기능", "",
     ]
-    for k in ["basic", "read_replies", "profile_posts", "keyword_search"]:
+    for k in ["basic", "read_replies", "profile_posts", "keyword_search", "mentions"]:
         lines.append(f"- {k}: {'✅' if caps.get(k) else '❌'}")
     if caps.get("token_app_id"):
         lines.append(f"- token app id: `{caps.get('token_app_id')}`")

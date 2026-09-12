@@ -90,8 +90,17 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # 다른 발행 workflow가 먼저 main을 갱신했을 수 있으므로 충돌을 흡수한다.
-          git pull --rebase --autostash origin main || true
+          # 생성 결과를 임시 보관한 뒤 최신 main에서 다시 올린다.
+          # rebase/autostash가 JSON에 conflict marker를 남기는 문제를 원천 차단한다.
+          mkdir -p /tmp/threads-growth-state
+          for f in threads_growth_state.json threads_growth_report.md threads_growth_capabilities.json threads_growth_PAUSED.json; do
+            [ -f "$f" ] && cp "$f" /tmp/threads-growth-state/ || true
+          done
+          git fetch origin main
+          git reset --hard origin/main
+          for f in /tmp/threads-growth-state/*; do
+            [ -f "$f" ] && cp "$f" . || true
+          done
           for f in threads_growth_state.json threads_growth_report.md threads_growth_capabilities.json threads_growth_PAUSED.json; do
             [ -f "$f" ] && git add "$f" || true
           done
