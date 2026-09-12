@@ -1,9 +1,21 @@
 {
-  "checked_at": "2026-09-12T23:01:58.608843+00:00",
+  "checked_at": "2026-09-12T23:07:59.797788+00:00",
   "basic": true,
   "read_replies": true,
   "profile_posts": false,
   "keyword_search": false,
+  "token_app_id": null,
+  "token_scopes": [
+    "threads_basic",
+    "threads_content_publish",
+    "threads_manage_insights",
+    "threads_manage_replies",
+    "threads_read_replies"
+  ],
+  "missing_recommended_scopes": [
+    "threads_keyword_search",
+    "threads_profile_discovery"
+  ],
   "errors": {
     "profile_posts": "HTTP 500: non-json response",
     "keyword_search": "HTTP 500: non-json response"

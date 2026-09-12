@@ -10,6 +10,8 @@
 - read_replies: ✅
 - profile_posts: ❌
 - keyword_search: ❌
+- token scopes: `threads_basic, threads_content_publish, threads_manage_insights, threads_manage_replies, threads_read_replies`
+- 추가 권장 scope: `threads_keyword_search, threads_profile_discovery`
 
 ## 미지원/권한 오류
 
