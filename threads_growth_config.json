@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "account_username": "gsdo10042026",
+  "external_daily_cap": 3,
+  "external_per_run": 1,
+  "inbound_daily_cap": 8,
+  "inbound_per_run": 3,
+  "total_daily_cap": 10,
+  "per_target_daily_cap": 1,
+  "max_target_age_hours": 36,
+  "recent_own_posts": 12,
+  "target_accounts": [
+    "saju.pharmacy",
+    "saju_byeolha",
+    "saju.myungdang",
+    "allday_saju",
+    "tarot_hwarin",
+    "sini_saju_tarot",
+    "ssfortuneclub",
+    "rpsaju__",
+    "goldoryun_saju",
+    "saju_tarot_charlotte",
+    "sajudosa_",
+    "saju.note_",
+    "saju_myeongon",
+    "saju_hacker",
+    "saju_haeundam"
+  ],
+  "topic_keywords": [
+    "사주", "명리", "운세", "대운", "세운", "재물운", "직업운", "궁합", "일주", "오행", "십성", "타로"
+  ],
+  "skip_keywords": [
+    "정치", "대통령", "좌파", "우파", "선거", "종교", "교회", "목사", "고소", "신고", "환불", "사기", "도박", "코인리딩"
+  ],
+  "sales_words_blocked_in_auto_reply": [
+    "http://", "https://", "www.", "프로필 링크", "링크 클릭", "상담 신청", "구매", "결제", "무료운세 보러", "사이트에서", "앱에서"
+  ]
+}

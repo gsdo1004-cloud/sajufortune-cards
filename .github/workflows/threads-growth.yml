@@ -1,0 +1,131 @@
+name: Threads 성장 자동화 (공식 API 안전모드)
+
+# 공식 Threads API만 사용한다. 브라우저 자동댓글/스크래핑 폴백은 없다.
+# KST 09:17 / 14:17 / 19:17, 회당 외부댓글 최대 1개.
+on:
+  schedule:
+    - cron: '17 0 * * *'
+    - cron: '17 5 * * *'
+    - cron: '17 10 * * *'
+  workflow_dispatch:
+    inputs:
+      send:
+        description: 'true면 실제 발송, false면 드라이런'
+        required: false
+        default: 'false'
+      external:
+        description: '큰 사주계정 댓글 후보 처리'
+        required: false
+        default: 'true'
+      inbound:
+        description: '내 글 댓글/대댓글 처리'
+        required: false
+        default: 'true'
+      clear_pause:
+        description: 'true면 안전정지(PAUSED) 해제 후 실행'
+        required: false
+        default: 'false'
+  push:
+    branches: [main]
+    paths:
+      - 'threads_growth.py'
+      - 'threads_growth_config.json'
+      - 'test_threads_growth.py'
+      - '.github/workflows/threads-growth.yml'
+
+concurrency:
+  group: threads-growth-main
+  cancel-in-progress: false
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - name: 안전장치 단위테스트
+        run: python -m unittest -v test_threads_growth.py
+
+  preflight:
+    needs: tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+      THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEY_PAID: ${{ secrets.GEMINI_API_KEY_PAID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - name: API 권한/기능 사전검사
+        run: python threads_growth.py --preflight
+      - name: 사전검사 결과 저장
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase --autostash origin main
+          for f in threads_growth_capabilities.json threads_growth_report.md; do
+            [ -f "$f" ] && git add "$f" || true
+          done
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: Threads growth API preflight"
+            git push origin HEAD:main || true
+          fi
+
+  growth:
+    # push 이벤트는 테스트+preflight만. 실제 발송은 schedule 또는 명시적 dispatch에서만.
+    if: github.event_name != 'push'
+    needs: [tests, preflight]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+      THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEY_PAID: ${{ secrets.GEMINI_API_KEY_PAID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - name: 댓글/대댓글 성장 루프
+        shell: bash
+        run: |
+          FLAGS=""
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.send }}" = "true" ]; then
+            FLAGS="$FLAGS --send"
+          fi
+          if [ "${{ github.event.inputs.external }}" = "false" ]; then
+            FLAGS="$FLAGS --no-external"
+          fi
+          if [ "${{ github.event.inputs.inbound }}" = "false" ]; then
+            FLAGS="$FLAGS --no-inbound"
+          fi
+          if [ "${{ github.event.inputs.clear_pause }}" = "true" ]; then
+            FLAGS="$FLAGS --clear-pause"
+          fi
+          python threads_growth.py $FLAGS
+      - name: 상태/보고 저장
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase --autostash origin main
+          for f in threads_growth_state.json threads_growth_report.md threads_growth_capabilities.json threads_growth_PAUSED.json; do
+            [ -f "$f" ] && git add "$f" || true
+          done
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: Threads growth state $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push origin HEAD:main || true
+          fi
