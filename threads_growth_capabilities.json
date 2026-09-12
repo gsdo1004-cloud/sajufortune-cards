@@ -1,0 +1,11 @@
+{
+  "checked_at": "2026-09-12T23:01:58.608843+00:00",
+  "basic": true,
+  "read_replies": true,
+  "profile_posts": false,
+  "keyword_search": false,
+  "errors": {
+    "profile_posts": "HTTP 500: non-json response",
+    "keyword_search": "HTTP 500: non-json response"
+  }
+}
