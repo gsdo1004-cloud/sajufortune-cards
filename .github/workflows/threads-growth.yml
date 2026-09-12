@@ -7,9 +7,12 @@ name: Threads 성장 자동화 (공식 API 안전모드)
 # KST 09:17 / 14:17 / 19:17. 현재 Phase 1은 내 글 댓글/대댓글 전용; 외부댓글 OFF.
 on:
   schedule:
+    # KST 09:17 / 12:17 / 15:17 / 18:17 / 21:17
     - cron: '17 0 * * *'
-    - cron: '17 5 * * *'
-    - cron: '17 10 * * *'
+    - cron: '17 3 * * *'
+    - cron: '17 6 * * *'
+    - cron: '17 9 * * *'
+    - cron: '17 12 * * *'
   workflow_dispatch:
     inputs:
       send:
@@ -71,9 +74,9 @@ jobs:
         shell: bash
         run: |
           FLAGS=" --no-external"
-          # 안전 게이트: 검증 완료 전에는 정기 schedule도 드라이런만 수행한다.
-          # 실제 발송은 수동 dispatch에서 send=true로 명시한 경우에만 허용한다.
-          if [ "${{ github.event.inputs.send }}" = "true" ]; then
+          # Phase 1 실전: 정기 schedule은 내 글 댓글/대댓글만 발송한다.
+          # 외부 계정 댓글은 위 FLAGS의 --no-external로 항상 차단되어 있다.
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.send }}" = "true" ]; then
             FLAGS="$FLAGS --send"
           fi
           if [ "${{ github.event.inputs.external }}" = "false" ]; then
