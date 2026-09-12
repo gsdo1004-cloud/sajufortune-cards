@@ -4,7 +4,7 @@ name: Threads 성장 자동화 (공식 API 안전모드)
 # recheck: 2026-09-13 second token refresh
 
 # 공식 Threads API만 사용한다. 브라우저 자동댓글/스크래핑 폴백은 없다.
-# KST 09:17 / 14:17 / 19:17, 회당 외부댓글 최대 1개.
+# KST 09:17 / 14:17 / 19:17. 현재 Phase 1은 내 글 댓글/대댓글 전용; 외부댓글 OFF.
 on:
   schedule:
     - cron: '17 0 * * *'
@@ -70,7 +70,7 @@ jobs:
       - name: 댓글/대댓글 성장 루프
         shell: bash
         run: |
-          FLAGS=""
+          FLAGS=" --no-external"
           # 안전 게이트: 검증 완료 전에는 정기 schedule도 드라이런만 수행한다.
           # 실제 발송은 수동 dispatch에서 send=true로 명시한 경우에만 허용한다.
           if [ "${{ github.event.inputs.send }}" = "true" ]; then
