@@ -325,7 +325,24 @@ def generate_reply(candidate: Candidate, cfg: dict[str, Any], state: dict[str, A
 def api_capabilities(api: ThreadsAPI, cfg: dict[str, Any]) -> dict[str, Any]:
     result: dict[str, Any] = {"checked_at": utcnow().isoformat(), "basic": False,
                               "read_replies": False, "profile_posts": False,
-                              "keyword_search": False, "errors": {}}
+                              "keyword_search": False, "token_app_id": None,
+                              "token_scopes": [], "missing_recommended_scopes": [],
+                              "errors": {}}
+    # Access Token Debugger: user token itself is used as caller credential.
+    # Persist only app_id/scopes; never persist or print the token value.
+    try:
+        dbg = api.get("debug_token", {"input_token": api.token})
+        data = dbg.get("data") or {}
+        result["token_app_id"] = data.get("app_id")
+        scopes = sorted(set(data.get("scopes") or []))
+        result["token_scopes"] = scopes
+        recommended = {
+            "threads_basic", "threads_content_publish", "threads_read_replies",
+            "threads_manage_replies", "threads_keyword_search", "threads_profile_discovery"
+        }
+        result["missing_recommended_scopes"] = sorted(recommended - set(scopes))
+    except APIError as e:
+        result["errors"]["debug_token"] = str(e)[:300]
     probes = [
         ("basic", "me", {"fields": "id,username,name"}),
         ("read_replies", "me/replies", {"fields": "id,text,timestamp,replied_to,root_post", "limit": 1}),
@@ -654,6 +671,12 @@ def write_report(result: dict[str, Any], caps: dict[str, Any]) -> None:
     ]
     for k in ["basic", "read_replies", "profile_posts", "keyword_search"]:
         lines.append(f"- {k}: {'✅' if caps.get(k) else '❌'}")
+    if caps.get("token_app_id"):
+        lines.append(f"- token app id: `{caps.get('token_app_id')}`")
+    if caps.get("token_scopes"):
+        lines.append("- token scopes: `" + ", ".join(caps.get("token_scopes") or []) + "`")
+    if caps.get("missing_recommended_scopes"):
+        lines.append("- 추가 권장 scope: `" + ", ".join(caps.get("missing_recommended_scopes") or []) + "`")
     if caps.get("errors"):
         lines += ["", "## 미지원/권한 오류", ""]
         for k, v in caps["errors"].items():
