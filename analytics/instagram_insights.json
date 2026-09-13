@@ -1,22 +1,39 @@
 {
-  "collected_at": "2026-09-13T12:20:18",
+  "collected_at": "2026-09-13T14:57:06",
   "count": 30,
   "media": [
+    {
+      "id": "18111231629129357",
+      "media_type": "VIDEO",
+      "media_product_type": "REELS",
+      "timestamp": "2026-09-13T14:56:49+0000",
+      "permalink": "https://www.instagram.com/reel/DdO01KmDCHc/",
+      "like_count": 0,
+      "comments_count": 0,
+      "caption_head": "2026년 9월 14일 월요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #릴스 #사주 #운세 #무료운세",
+      "metrics": {
+        "views": 0,
+        "reach": 0,
+        "saved": 0,
+        "shares": 0,
+        "total_interactions": 0
+      }
+    },
     {
       "id": "18075375701416494",
       "media_type": "CAROUSEL_ALBUM",
       "media_product_type": "FEED",
       "timestamp": "2026-09-13T12:00:17+0000",
       "permalink": "https://www.instagram.com/p/DdOgsLem80o/",
-      "like_count": 0,
+      "like_count": 1,
       "comments_count": 0,
       "caption_head": "2026년 9월 13일 일요일 오늘의 띠별 운세 🔮 내 띠의 흐름을 먼저 보고, 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #사주 #운세 #12띠 #데일리운세",
       "metrics": {
-        "views": 2,
-        "reach": 2,
+        "views": 7,
+        "reach": 4,
         "saved": 0,
         "shares": 0,
-        "total_interactions": 0
+        "total_interactions": 1
       }
     },
     {
@@ -29,8 +46,8 @@
       "comments_count": 0,
       "caption_head": "2026년 9월 13일 일요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #릴스 #사주 #운세 #무료운세",
       "metrics": {
-        "views": 332,
-        "reach": 292,
+        "views": 343,
+        "reach": 300,
         "saved": 0,
         "shares": 4,
         "total_interactions": 9
@@ -490,23 +507,6 @@
       "metrics": {
         "views": 148,
         "reach": 132,
-        "saved": 0,
-        "shares": 0,
-        "total_interactions": 1
-      }
-    },
-    {
-      "id": "17934671019341769",
-      "media_type": "CAROUSEL_ALBUM",
-      "media_product_type": "FEED",
-      "timestamp": "2026-07-09T22:14:56+0000",
-      "permalink": "https://www.instagram.com/p/DalqkRcGJvr/",
-      "like_count": 0,
-      "comments_count": 1,
-      "caption_head": "2026년 7월 10일 금요일 오늘의 띠별 운세 🔮 내 띠는 오늘 어떤 흐름일까요?  #오늘의운세 #띠별운세 #사주 #운세 #12띠 #데일리운세",
-      "metrics": {
-        "views": 0,
-        "reach": 0,
         "saved": 0,
         "shares": 0,
         "total_interactions": 1
