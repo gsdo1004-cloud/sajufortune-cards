@@ -156,8 +156,8 @@ def discover() -> tuple[dict[str, Any], list[dict[str, Any]]]:
         "limit": int(c["recent_media_limit"]), "access_token": tok,
     }).get("data") or []
     candidates: list[dict[str, Any]] = []
-    state = load_json(STATE, {"replied_comment_ids": [], "reply_texts": [], "days": {}})
-    done = set(str(x) for x in state.get("replied_comment_ids", []))
+    state = load_json(STATE, {"replied_comment_ids": [], "uncertain_comment_ids": [], "reply_texts": [], "days": {}})
+    done = set(str(x) for x in state.get("replied_comment_ids", [])) | set(str(x) for x in state.get("uncertain_comment_ids", []))
     for m in media:
         mid = str(m.get("id") or "")
         if not mid:
@@ -195,7 +195,7 @@ def run(send: bool = False) -> int:
     c = cfg()
     uid, tok = env()
     profile, candidates = discover()
-    state = load_json(STATE, {"replied_comment_ids": [], "reply_texts": [], "days": {}})
+    state = load_json(STATE, {"replied_comment_ids": [], "uncertain_comment_ids": [], "reply_texts": [], "days": {}})
     today = dt.datetime.now(dt.timezone.utc).astimezone(dt.timezone(dt.timedelta(hours=9))).date().isoformat()
     day = state.setdefault("days", {}).setdefault(today, {"sent": 0})
     sent = int(day.get("sent", 0))
@@ -214,11 +214,21 @@ def run(send: bool = False) -> int:
             rid = str(out.get("id") or "")
             if not rid:
                 raise RuntimeError("Instagram reply returned no id")
-            # Verify the reply exists under the intended comment before recording success.
-            replies = get_replies(item["comment_id"], tok)
-            if not any(str(r.get("id") or "") == rid for r in replies):
-                raise RuntimeError("Instagram reply verification failed")
+            # Verify with short retries. If Meta accepted the write but read-after-write is delayed,
+            # quarantine the source comment so the next schedule never posts a duplicate.
+            verified = False
+            import time
+            for delay in (1, 2, 4):
+                time.sleep(delay)
+                replies = get_replies(item["comment_id"], tok)
+                if any(str(r.get("id") or "") == rid for r in replies):
+                    verified = True
+                    break
             rec["reply_id"] = rid
+            if not verified:
+                state.setdefault("uncertain_comment_ids", []).append(item["comment_id"])
+                save_json(STATE, state)
+                raise RuntimeError("Instagram reply accepted but verification delayed; source quarantined")
             state.setdefault("replied_comment_ids", []).append(item["comment_id"])
             state.setdefault("reply_texts", []).append(reply)
             sent += 1
