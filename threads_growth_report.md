@@ -16,8 +16,8 @@
 
 ## 미지원/권한 오류
 
-- profile_posts: `API code=1 subcode=None: An unknown error occurred`
-- keyword_search: `API code=1 subcode=None: An unknown error occurred`
+- profile_posts: `HTTP 500: non-json response`
+- keyword_search: `HTTP 500: non-json response`
 - mentions: `API code=1 subcode=None: An unknown error occurred`
 
 ## 이번 실행
