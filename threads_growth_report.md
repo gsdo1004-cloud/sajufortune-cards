@@ -1,4 +1,4 @@
-# Threads 성장 자동화 보고 — 2026-09-13
+# Threads 성장 자동화 보고 — 2026-09-14
 
 - 실행: 실제 발송
 - PAUSED: False
@@ -18,7 +18,7 @@
 
 - profile_posts: `HTTP 500: non-json response`
 - keyword_search: `HTTP 500: non-json response`
-- mentions: `API code=1 subcode=None: An unknown error occurred`
+- mentions: `HTTP 500: non-json response`
 
 ## 이번 실행
 
