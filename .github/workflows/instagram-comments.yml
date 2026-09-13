@@ -1,0 +1,77 @@
+name: Instagram 댓글 자동화 (공식 API 안전모드)
+
+on:
+  schedule:
+    # KST 09:27 / 12:27 / 15:27 / 18:27 / 21:27
+    - cron: '27 0 * * *'
+    - cron: '27 3 * * *'
+    - cron: '27 6 * * *'
+    - cron: '27 9 * * *'
+    - cron: '27 12 * * *'
+  workflow_dispatch:
+    inputs:
+      send:
+        description: 'true면 실제 답글 발송, false면 드라이런'
+        required: false
+        default: 'false'
+  push:
+    branches: [main]
+    paths:
+      - 'instagram_comments.py'
+      - 'instagram_comments_config.json'
+      - 'test_instagram_comments.py'
+      - '.github/workflows/instagram-comments.yml'
+
+concurrency:
+  group: instagram-comments-safe
+  cancel-in-progress: false
+
+jobs:
+  comments:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+      INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - name: 안전장치 단위테스트
+        run: python -m unittest -v test_instagram_comments.py
+      - name: 댓글 권한 사전검사
+        id: preflight
+        continue-on-error: true
+        run: python instagram_comments.py --preflight
+      - name: 댓글 루프
+        if: steps.preflight.outcome == 'success'
+        shell: bash
+        run: |
+          # 권한 검증이 완료되기 전까지 schedule은 드라이런이다.
+          # 수동 dispatch send=true만 카나리 발송을 허용한다.
+          FLAGS=""
+          if [ "${{ github.event.inputs.send }}" = "true" ]; then
+            FLAGS="--send"
+          fi
+          python instagram_comments.py $FLAGS
+      - name: 상태/보고 저장
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mkdir -p /tmp/ig-comments-state
+          for f in instagram_comments_state.json instagram_comments_report.md instagram_comments_capabilities.json; do
+            [ -f "$f" ] && cp "$f" /tmp/ig-comments-state/ || true
+          done
+          git fetch origin main
+          git reset --hard origin/main
+          for f in /tmp/ig-comments-state/*; do [ -f "$f" ] && cp "$f" . || true; done
+          git add instagram_comments_state.json instagram_comments_report.md instagram_comments_capabilities.json 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: Instagram comments state $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push origin HEAD:main || true
+          fi

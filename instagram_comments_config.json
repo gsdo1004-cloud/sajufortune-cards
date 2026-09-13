@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "account_username": "gsdo10042026",
+  "recent_media_limit": 12,
+  "max_comment_age_hours": 96,
+  "daily_cap": 5,
+  "per_run_cap": 1,
+  "blocked_terms": ["http://", "https://", "www.", "프로필 링크", "구매", "결제", "상담 신청", "카톡", "텔레그램", "오픈채팅", "DM 주세요", "디엠 주세요"],
+  "skip_comment_terms": ["광고", "홍보", "맞팔", "선팔", "코인", "도박", "대출"]
+}
