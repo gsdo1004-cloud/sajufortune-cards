@@ -1,4 +1,4 @@
-# Threads 성장 자동화 보고 — 2026-09-14
+# Threads 성장 자동화 보고 — 2026-09-15
 
 - 실행: 실제 발송
 - PAUSED: False
@@ -17,7 +17,7 @@
 ## 미지원/권한 오류
 
 - profile_posts: `API code=1 subcode=None: An unknown error occurred`
-- keyword_search: `HTTP 500: non-json response`
+- keyword_search: `API code=1 subcode=None: An unknown error occurred`
 - mentions: `API code=1 subcode=None: An unknown error occurred`
 
 ## 이번 실행
