@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-09-15T08:39:20.618629+00:00",
+  "checked_at": "2026-09-15T11:42:21.768440+00:00",
   "basic": true,
   "read_replies": true,
   "profile_posts": false,
@@ -21,7 +21,7 @@
   ],
   "errors": {
     "profile_posts": "HTTP 500: non-json response",
-    "keyword_search": "API code=1 subcode=None: An unknown error occurred",
+    "keyword_search": "HTTP 500: non-json response",
     "mentions": "HTTP 500: non-json response"
   }
 }
