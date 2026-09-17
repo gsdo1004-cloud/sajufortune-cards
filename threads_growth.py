@@ -276,6 +276,35 @@ def quality_gate(text: str, cfg: dict[str, Any], state: dict[str, Any], *, exter
     return True, "ok"
 
 
+def revenue_intent(candidate: Candidate, cfg: dict[str, Any]) -> bool:
+    """Only inbound users who explicitly show fortune-reading intent may receive a soft CTA."""
+    if candidate.kind == "external":
+        return False
+    low = (candidate.text or "").lower()
+    return any(str(w).lower() in low for w in cfg.get("revenue_intent_keywords", []))
+
+
+def revenue_used_today(state: dict[str, Any]) -> int:
+    d = date_key()
+    return sum(1 for x in state.get("sent", []) if x.get("date_kst") == d and x.get("revenue_cta"))
+
+
+def maybe_add_revenue_cta(text: str, candidate: Candidate, cfg: dict[str, Any], state: dict[str, Any]) -> tuple[str, bool]:
+    """Growth first: at most a small capped share of high-intent inbound replies gets a tracked link."""
+    if not revenue_intent(candidate, cfg):
+        return text, False
+    if revenue_used_today(state) >= int(cfg.get("revenue_link_daily_cap", 1)):
+        return text, False
+    # Stable 30% gate by target id; prevents every eligible conversation from becoming promotional.
+    share = float(cfg.get("revenue_share_target", 0.30))
+    bucket = int(hashlib.sha256((candidate.id + "|revenue").encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
+    if bucket >= share:
+        return text, False
+    from threads_conversion import tracked_url
+    url = tracked_url("reply", date_key())
+    return text.rstrip() + "\n내 사주 기준으로 직접 확인하려면 여기서 무료로 먼저 볼 수 있어요. " + url, True
+
+
 def generate_reply(candidate: Candidate, cfg: dict[str, Any], state: dict[str, Any]) -> str | None:
     if llm is None:
         return None
@@ -606,6 +635,7 @@ def run_growth(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, Any], caps
                 # 같은 댓글을 다음 실행마다 무한 재시도하지 않게 품질 실패도 처리완료로 기록
                 mark_inbound_handled(state, c.id)
                 continue
+            text, revenue_cta = maybe_add_revenue_cta(text, c, cfg, state)
             log(f"{('[SEND]' if send else '[DRY]')} {c.kind} @{c.username}: {text}")
             reply = {"id": "dry", "replied_to": {"id": c.id}}
             if send:
@@ -616,8 +646,11 @@ def run_growth(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, Any], caps
                     # 권한/대상 오류가 반복되는 것을 막기 위해 이 실행은 중단
                     break
             record_send(state, c, text, reply, dry_run=not send)
+            if state.get("sent"):
+                state["sent"][-1]["revenue_cta"] = bool(revenue_cta)
+                state["sent"][-1]["date_kst"] = date_key()
             actions.append({"kind": c.kind, "target": c.id, "username": c.username,
-                            "text": text, "sent": bool(send)})
+                            "text": text, "sent": bool(send), "revenue_cta": bool(revenue_cta)})
             n += 1
 
     # 2) 외부 큰 계정 댓글. 공식 discovery/search 권한이 있을 때만.

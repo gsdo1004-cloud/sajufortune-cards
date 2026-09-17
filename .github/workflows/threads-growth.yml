@@ -4,7 +4,7 @@ name: Threads 성장 자동화 (공식 API 안전모드)
 # recheck: 2026-09-13 second token refresh
 
 # 공식 Threads API만 사용한다. 브라우저 자동댓글/스크래핑 폴백은 없다.
-# KST 09:17 / 14:17 / 19:17. 현재 Phase 1은 내 글 댓글/대댓글 전용; 외부댓글 OFF.
+# KST 09:17 / 12:17 / 15:17 / 18:17 / 21:17. 성장 70 / 전환 30 안전모드.
 on:
   schedule:
     # KST 09:17 / 12:17 / 15:17 / 18:17 / 21:17
@@ -73,9 +73,9 @@ jobs:
       - name: 댓글/대댓글 성장 루프
         shell: bash
         run: |
-          FLAGS=" --no-external"
-          # Phase 1 실전: 정기 schedule은 내 글 댓글/대댓글만 발송한다.
-          # 외부 계정 댓글은 위 FLAGS의 --no-external로 항상 차단되어 있다.
+          FLAGS=""
+          # 외부 대화는 API discovery 권한이 있을 때만 코드 내부 capability gate가 허용한다.
+          # 권한이 없으면 자동으로 건너뛰므로 브라우저 우회/스크래핑은 하지 않는다.
           if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.send }}" = "true" ]; then
             FLAGS="$FLAGS --send"
           fi

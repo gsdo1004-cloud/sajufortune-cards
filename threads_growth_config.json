@@ -1,11 +1,11 @@
 {
   "schema": 1,
   "account_username": "gsdo10042026",
-  "external_daily_cap": 0,
-  "external_per_run": 0,
-  "inbound_daily_cap": 6,
-  "inbound_per_run": 1,
-  "total_daily_cap": 6,
+  "external_daily_cap": 3,
+  "external_per_run": 1,
+  "inbound_daily_cap": 8,
+  "inbound_per_run": 2,
+  "total_daily_cap": 10,
   "per_target_daily_cap": 1,
   "max_target_age_hours": 36,
   "recent_own_posts": 12,
@@ -68,5 +68,26 @@
     "무료운세 보러",
     "사이트에서",
     "앱에서"
-  ]
+  ],
+  "mode": "growth70_revenue30",
+  "revenue_share_target": 0.3,
+  "revenue_daily_cap": 2,
+  "revenue_link_daily_cap": 1,
+  "revenue_intent_keywords": [
+    "무료",
+    "어디서",
+    "볼 수",
+    "확인",
+    "궁금",
+    "내 사주",
+    "제 사주",
+    "재물운",
+    "직업운",
+    "궁합",
+    "대운",
+    "세운",
+    "풀이",
+    "해석"
+  ],
+  "growth_question_share": 0.7
 }

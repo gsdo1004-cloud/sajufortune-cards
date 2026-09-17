@@ -58,3 +58,27 @@ class GrowthSafetyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class RevenueGateTests(unittest.TestCase):
+    def test_external_never_gets_revenue_cta(self):
+        c = g.Candidate(id="external-1", username="other", text="무료 사주 궁금", timestamp="2026-09-17T00:00:00Z", kind="external")
+        cfg = {"revenue_intent_keywords": ["무료"], "revenue_share_target": 1.0, "revenue_link_daily_cap": 1}
+        text, used = g.maybe_add_revenue_cta("대화 답글", c, cfg, {"sent": []})
+        self.assertFalse(used)
+        self.assertEqual(text, "대화 답글")
+
+    def test_high_intent_inbound_can_get_tracked_cta_when_gate_selected(self):
+        c = g.Candidate(id="inbound-fixed", username="visitor", text="제 사주 무료로 어디서 확인해요?", timestamp="2026-09-17T00:00:00Z", kind="inbound")
+        cfg = {"revenue_intent_keywords": ["무료", "확인"], "revenue_share_target": 1.0, "revenue_link_daily_cap": 1}
+        text, used = g.maybe_add_revenue_cta("확인해보실 수 있어요.", c, cfg, {"sent": []})
+        self.assertTrue(used)
+        self.assertIn("utm_source=threads", text)
+        self.assertIn("sajufortune.kr", text)
+
+    def test_daily_revenue_link_cap_blocks_second_cta(self):
+        c = g.Candidate(id="inbound-2", username="visitor", text="재물운 확인하고 싶어요", timestamp="2026-09-17T00:00:00Z", kind="inbound")
+        cfg = {"revenue_intent_keywords": ["재물운"], "revenue_share_target": 1.0, "revenue_link_daily_cap": 1}
+        state = {"sent": [{"date_kst": g.date_key(), "revenue_cta": True}]}
+        text, used = g.maybe_add_revenue_cta("답글", c, cfg, state)
+        self.assertFalse(used)
+        self.assertEqual(text, "답글")

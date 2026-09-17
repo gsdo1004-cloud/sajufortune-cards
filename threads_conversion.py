@@ -2,7 +2,7 @@
 """Threads -> 프로필 -> 사주홈페이지 전환 문구 제어.
 
 매 게시물이 광고처럼 보이면 대화/추천 도달이 죽는다. 그래서 채널+날짜를 고정 seed로
-70% reach / 20% bridge / 10% conversion으로 배분한다. URL/DM 유도는 하지 않는다.
+70% growth / 20% bridge / 10% direct conversion으로 배분한다. 직접 URL은 고의도 전환 슬롯에만 쓴다.
 """
 from __future__ import annotations
 import datetime as dt
@@ -38,7 +38,7 @@ def stage(channel: str, date_iso: str) -> str:
     """하루 3개 주요 게시물 중 정확히 1개만 프로필 유도를 넣는다.
 
     선택된 1개는 2/3 확률 bridge, 1/3 conversion이라 장기 평균은
-    reach 66.7% / bridge 22.2% / conversion 11.1%다. 같은 날 광고 CTA가 겹치지 않는다.
+    growth 약 70%를 우선하고 나머지를 bridge/conversion으로 제한한다. 같은 날 광고 CTA가 겹치지 않는다.
     """
     chosen = CHANNELS[_h("promo|" + date_iso) % len(CHANNELS)]
     if channel != chosen:
