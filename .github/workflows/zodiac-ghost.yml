@@ -46,6 +46,7 @@ jobs:
           python3 - <<'PYTOKEN'
           import json, os, sys, urllib.parse, urllib.request, urllib.error
           tok=os.environ.get('THREADS_ACCESS_TOKEN','')
+          configured_uid=os.environ.get('THREADS_USER_ID','').strip()
           if not tok:
               print('[FAIL] THREADS_ACCESS_TOKEN secret is missing')
               sys.exit(78)
@@ -53,9 +54,17 @@ jobs:
           try:
               with urllib.request.urlopen(url, timeout=15) as r:
                   data=json.load(r)
-              if not data.get('id'):
+              resolved_uid=str(data.get('id') or '').strip()
+              if not resolved_uid:
                   raise RuntimeError('token validation returned no id')
-              print('[OK] Threads token valid')
+              if configured_uid != resolved_uid:
+                  print('[WARN] THREADS_USER_ID secret differs from token owner; using token owner for this run')
+              github_env=os.environ.get('GITHUB_ENV','').strip()
+              if not github_env:
+                  raise RuntimeError('GITHUB_ENV is missing')
+              with open(github_env, 'a', encoding='utf-8') as f:
+                  f.write(f'THREADS_USER_ID={resolved_uid}\n')
+              print('[OK] Threads token valid; runtime user id synchronized')
           except urllib.error.HTTPError as e:
               body=e.read().decode('utf-8','replace')[:1500]
               body=body.replace(tok,'[REDACTED]')
