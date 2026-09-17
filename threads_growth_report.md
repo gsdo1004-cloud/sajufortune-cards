@@ -18,7 +18,7 @@
 
 - profile_posts: `HTTP 500: non-json response`
 - keyword_search: `HTTP 500: non-json response`
-- mentions: `API code=1 subcode=None: An unknown error occurred`
+- mentions: `HTTP 500: non-json response`
 
 ## 이번 실행
 
