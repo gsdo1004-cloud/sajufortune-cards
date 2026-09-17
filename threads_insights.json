@@ -5753,7 +5753,8 @@
     }
    ],
    "timestamp": "2026-09-03T01:11:24+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DczmfO1kVMX"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DczmfO1kVMX",
+   "closed": true
   },
   "18110155367591155": {
    "channel": "ghost",
@@ -5866,6 +5867,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-17T11:29:28Z",
+     "age_h": 292.4,
+     "views": 22,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-05T07:07:12+0000",
@@ -5958,6 +5969,16 @@
     {
      "t": "2026-09-16T11:21:06Z",
      "age_h": 291.9,
+     "views": 24,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-17T11:29:28Z",
+     "age_h": 316.0,
      "views": 24,
      "likes": 0,
      "replies": 0,
@@ -6065,7 +6086,8 @@
     }
    ],
    "timestamp": "2026-09-03T07:23:59+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc0QybvjuQp"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc0QybvjuQp",
+   "closed": true
   },
   "17933913183365888": {
    "channel": "signal_video",
@@ -6692,6 +6714,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-17T11:29:28Z",
+     "age_h": 220.1,
+     "views": 20,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-08T07:24:37+0000",
@@ -6784,6 +6816,16 @@
     {
      "t": "2026-09-16T11:21:06Z",
      "age_h": 219.8,
+     "views": 14,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-17T11:29:28Z",
+     "age_h": 244.0,
      "views": 14,
      "likes": 2,
      "replies": 0,
@@ -6888,6 +6930,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-17T11:29:28Z",
+     "age_h": 266.5,
+     "views": 8,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-06T09:02:25+0000",
@@ -6986,6 +7038,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-17T11:29:28Z",
+     "age_h": 292.4,
+     "views": 9,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-05T07:07:36+0000",
@@ -7078,6 +7140,16 @@
     {
      "t": "2026-09-16T11:21:06Z",
      "age_h": 291.9,
+     "views": 16,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-17T11:29:28Z",
+     "age_h": 316.0,
      "views": 16,
      "likes": 1,
      "replies": 0,
@@ -7185,7 +7257,8 @@
     }
    ],
    "timestamp": "2026-09-03T07:24:26+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc0RK8BmwhW"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc0RK8BmwhW",
+   "closed": true
   },
   "18123389287880943": {
    "channel": "signal_carousel",
@@ -7867,6 +7940,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-17T11:29:28Z",
+     "age_h": 195.9,
+     "views": 11,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-09T07:33:45+0000",
@@ -7963,6 +8046,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-17T11:29:28Z",
+     "age_h": 172.0,
+     "views": 16,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-10T07:27:46+0000",
@@ -8049,6 +8142,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-17T11:29:28Z",
+     "age_h": 148.1,
+     "views": 28,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-11T07:25:57+0000",
@@ -8125,6 +8228,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-17T11:29:28Z",
+     "age_h": 124.2,
+     "views": 15,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-12T07:18:07+0000",
@@ -8147,6 +8260,24 @@
    ],
    "timestamp": "2026-09-12T01:11:20+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/DdKxoixjhjm"
+  },
+  "18020421377725706": {
+   "channel": "ghost",
+   "head": "9월 17일(목) 아침.\n오늘은 갑오일 — 새로 벌이기보다 정리에 어울리는 기운.\n너는 오늘 밀어붙이는 쪽이야, 한 번 지켜보",
+   "snapshots": [
+    {
+     "t": "2026-09-17T11:29:28Z",
+     "age_h": 9.3,
+     "views": 0,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-17T02:13:03+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DdXwq4qje_T"
   }
  }
 }
