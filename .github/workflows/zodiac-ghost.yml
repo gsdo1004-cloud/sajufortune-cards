@@ -57,6 +57,7 @@ jobs:
               resolved_uid=str(data.get('id') or '').strip()
               if not resolved_uid:
                   raise RuntimeError('token validation returned no id')
+              print(f"::add-mask::{resolved_uid}")
               if configured_uid != resolved_uid:
                   print('[WARN] THREADS_USER_ID secret differs from token owner; using token owner for this run')
               github_env=os.environ.get('GITHUB_ENV','').strip()
