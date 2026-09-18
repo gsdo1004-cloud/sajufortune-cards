@@ -5772,7 +5772,8 @@
     }
    ],
    "timestamp": "2026-09-04T01:03:46+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc2KaStlfPm"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc2KaStlfPm",
+   "closed": true
   },
   "18120477679908017": {
    "channel": "signal_video",
@@ -5871,6 +5872,16 @@
     {
      "t": "2026-09-17T11:29:28Z",
      "age_h": 292.4,
+     "views": 22,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-18T11:02:46Z",
+     "age_h": 315.9,
      "views": 22,
      "likes": 2,
      "replies": 0,
@@ -5988,7 +5999,8 @@
     }
    ],
    "timestamp": "2026-09-04T07:26:32+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc214O8CELF"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc214O8CELF",
+   "closed": true
   },
   "18123935788848626": {
    "channel": "signal_video",
@@ -6724,6 +6736,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-18T11:02:46Z",
+     "age_h": 243.6,
+     "views": 20,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-08T07:24:37+0000",
@@ -6827,6 +6849,16 @@
      "t": "2026-09-17T11:29:28Z",
      "age_h": 244.0,
      "views": 14,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-18T11:02:46Z",
+     "age_h": 267.5,
+     "views": 15,
      "likes": 2,
      "replies": 0,
      "reposts": 0,
@@ -6940,6 +6972,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-18T11:02:46Z",
+     "age_h": 290.0,
+     "views": 8,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-06T09:02:25+0000",
@@ -7042,6 +7084,16 @@
     {
      "t": "2026-09-17T11:29:28Z",
      "age_h": 292.4,
+     "views": 9,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-18T11:02:46Z",
+     "age_h": 315.9,
      "views": 9,
      "likes": 2,
      "replies": 0,
@@ -7159,7 +7211,8 @@
     }
    ],
    "timestamp": "2026-09-04T07:27:03+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc22QdPFZQ0"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc22QdPFZQ0",
+   "closed": true
   },
   "17993969862009675": {
    "channel": "signal_carousel",
@@ -7950,6 +8003,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-18T11:02:46Z",
+     "age_h": 219.5,
+     "views": 12,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-09T07:33:45+0000",
@@ -8056,6 +8119,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-18T11:02:46Z",
+     "age_h": 195.6,
+     "views": 17,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-10T07:27:46+0000",
@@ -8152,6 +8225,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-18T11:02:46Z",
+     "age_h": 171.6,
+     "views": 30,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-11T07:25:57+0000",
@@ -8238,6 +8321,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-18T11:02:46Z",
+     "age_h": 147.7,
+     "views": 17,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-12T07:18:07+0000",
@@ -8278,6 +8371,24 @@
    ],
    "timestamp": "2026-09-17T02:13:03+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/DdXwq4qje_T"
+  },
+  "18168479830459414": {
+   "channel": "ghost",
+   "head": "잘 풀리는 날이랑 아닌 날, 뭐가 다른가 싶을 때가 있다.\n9월 18일 오늘은 을미일. 토끼띠, 말띠, 양띠가 앞서 나가는 날",
+   "snapshots": [
+    {
+     "t": "2026-09-18T11:02:46Z",
+     "age_h": 9.7,
+     "views": 4,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-18T01:18:46+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DdaPQSBkR4X"
   }
  }
 }
