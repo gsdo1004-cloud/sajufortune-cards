@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-09-19T22:02:03.841577+00:00",
+  "checked_at": "2026-09-19T22:03:52.404882+00:00",
   "basic": true,
   "read_replies": true,
   "profile_posts": false,
@@ -22,7 +22,7 @@
   "errors": {
     "profile_posts": "API code=1 subcode=None: An unknown error occurred",
     "keyword_search": "HTTP 500: non-json response",
-    "mentions": "API code=1 subcode=None: An unknown error occurred"
+    "mentions": "HTTP 500: non-json response"
   },
   "identity_id": "37628586400087916",
   "identity_username": "gsdo10042026"
