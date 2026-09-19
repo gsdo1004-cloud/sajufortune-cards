@@ -11,12 +11,6 @@ on:
     # 두면 확률이 낮아진다. 다만 누락을 완전히 막아주지는 않는다.
     - cron: '23 23 * * *'    # KST 08:23
     - cron: '53 0 * * *'     # KST 09:53 백업 (멱등 마커로 중복 방지)
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/zodiac-ghost.yml'
-      - 'zodiac_ghost.py'
-      - 'threads_conversion.py'
   workflow_dispatch:
     inputs:
       date:
@@ -27,6 +21,10 @@ on:
         description: 'true 면 문구만 출력하고 발행하지 않음'
         required: false
         default: 'false'
+
+concurrency:
+  group: zodiac-ghost-main
+  cancel-in-progress: false
 
 jobs:
   ghost:
@@ -82,6 +80,7 @@ jobs:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             zodiac_ghost.py
+            zodiac_cardnews.py
             zodiac_seo.py
             ganzhi_zodiac.py
             threads_conversion.py

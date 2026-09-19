@@ -31,6 +31,10 @@ on:
         required: false
         default: 'false'
 
+concurrency:
+  group: zodiac-signal-main
+  cancel-in-progress: false
+
 jobs:
   signal:
     runs-on: ubuntu-latest
