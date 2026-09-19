@@ -74,79 +74,116 @@ def _run(cmd, cwd=None, timeout=600):
 
 
 def git_push(dates: list[str], alerts: list[str]) -> bool:
-    """cards/{dates}, reels 커밋·푸시. Actions와의 경합은 pull --rebase로 해소.
+    """Generated cards/reel are published through an isolated clean worktree.
 
-    2026-07-30 수리 — 7/28·7/29 이틀 연속 발행이 죽은 실제 원인:
-    인덱스에 미해결 병합(cards/ai_news/2026-07-27_0.png, 3-way)이 남아 있어
-    git pull 과 git commit 이 "unmerged files" 로 계속 거부됐다. 그런데 옛 코드는
-      ① pull 의 종료코드를 안 봤고,
-      ② commit 실패도 "nothing to commit" 이 아니면 그냥 통과시켜 push 로 넘어갔다.
-    그래서 로그에는 non-fast-forward push 실패만 남아 원인이 가려졌고, 원격에
-    카드·릴스가 없는 상태로 Actions 가 "[FAIL] 카드 없음" 을 내며 죽었다.
-    → 이제 각 단계의 실패를 로그·경보로 드러내고, 커밋이 안 됐으면 push 하지 않는다.
-    미해결 병합은 자동 해결하지 않는다(어느 쪽이 정본인지는 사람이 판단할 일).
+    The development tree (BASE) may contain unrelated uncommitted work. Pull/rebase
+    in that tree can fail or autostash/conflict with active work, which previously
+    broke the 19:00 publication handoff. Only generated daily assets are overlaid
+    on a detached worktree created from origin/main.
     """
-    def _unmerged() -> list[str]:
-        u = _run(["git", "diff", "--name-only", "--diff-filter=U"], cwd=BASE)
-        return [ln for ln in u.stdout.splitlines() if ln.strip()]
+    pub = BASE.parent / "_publish_runtime"
+    generated_names = {"shorts_meta.json", "uploaded.json"}
 
-    def _pull(tag: str) -> bool:
-        p = _run(["git", "pull", "--rebase", "--autostash", "origin", "main"], cwd=BASE)
-        if p.returncode != 0:
-            log(f"git pull 실패({tag}): {(p.stderr or p.stdout)[-300:]}")
+    def _copy_generated() -> list[str]:
+        stage_paths: list[str] = []
+        for d in dates:
+            src_dir = BASE / "cards" / d
+            dst_dir = pub / "cards" / d
+            if not src_dir.exists():
+                continue
+            dst_dir.mkdir(parents=True, exist_ok=True)
+            copied = False
+            for src in src_dir.iterdir():
+                if not src.is_file():
+                    continue
+                if src.name.startswith("card_") and src.suffix.lower() in {".png", ".jpg", ".jpeg"}:
+                    shutil.copy2(src, dst_dir / src.name)
+                    copied = True
+                elif src.name in generated_names:
+                    shutil.copy2(src, dst_dir / src.name)
+                    copied = True
+            if copied:
+                stage_paths.append(f"cards/{d}")
+
+            reel_src = BASE / "reels" / f"{d}_tts.mp4"
+            if reel_src.exists() and reel_src.stat().st_size > 0:
+                reel_dst = pub / "reels" / reel_src.name
+                reel_dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(reel_src, reel_dst)
+                stage_paths.append(f"reels/{reel_src.name}")
+        return stage_paths
+
+    def _prepare() -> bool:
+        f = _run(["git", "fetch", "--prune", "origin", "main"], cwd=BASE)
+        if f.returncode != 0:
+            log(f"publication fetch 실패: {(f.stderr or f.stdout)[-300:]}")
             return False
+
+        if pub.exists():
+            chk = _run(["git", "rev-parse", "--is-inside-work-tree"], cwd=pub)
+            if chk.returncode != 0:
+                stale = pub.with_name(pub.name + ".stale-" + dt.datetime.now().strftime("%Y%m%d%H%M%S"))
+                pub.rename(stale)
+                log(f"비정상 publication 폴더 격리: {stale}")
+        if not pub.exists():
+            a = _run(["git", "worktree", "add", "--detach", str(pub), "origin/main"], cwd=BASE)
+            if a.returncode != 0:
+                log(f"publication worktree 생성 실패: {(a.stderr or a.stdout)[-300:]}")
+                return False
         return True
 
     try:
-        # 0) 미해결 병합이 남아 있으면 여기서 끊는다 — 그대로 두면 pull·commit 이
-        #    전부 거부되고 push 만 non-FF 로 실패해 원인이 안 보인다.
-        stuck = _unmerged()
-        if stuck:
-            msg = ("git 인덱스에 미해결 병합 잔존 → 커밋·푸시 불가. "
-                   "수동 해결 필요: " + ", ".join(stuck[:5]))
-            log(msg)
-            alerts.append(msg)
+        if not _prepare():
+            alerts.append("Git 발행용 clean worktree 준비 실패")
             return False
 
-        if not _pull("사전"):
-            alerts.append("git pull 실패 — 원격 반영 없이 진행하면 발행이 깨진다")
-            return False
-
-        _run(["git", "add", "-A", "--"] +
-             [f"cards/{d}" for d in dates] + ["reels"], cwd=BASE)
-        r = _run(["git", "commit", "-m",
-                  f"topview cards+shorts {dates[0]} (+D+1 buffer)"], cwd=BASE)
-        if r.returncode != 0:
-            out = r.stdout + r.stderr
-            # "변경 없음" 판정은 문자열로 하지 않는다 — git 은 미추적 파일이 있으면
-            # "nothing to commit" 대신 "no changes added to commit" 을 쓰고, 로케일에
-            # 따라 문구가 또 달라진다(옛 코드가 여기서 새는 것을 이번에 확인).
-            # 스테이지가 비어 있으면 올릴 게 없는 정상 상황이다.
-            staged = _run(["git", "diff", "--cached", "--name-only"], cwd=BASE)
-            if not staged.stdout.strip():
-                log("커밋할 변경 없음")
-                return True
-            # 커밋이 안 된 상태로 push 해도 non-FF 로만 실패한다 → 여기서 끊는다.
-            msg = f"git commit 실패 → 푸시 중단: {out[-300:]}"
-            log(msg)
-            alerts.append(msg)
-            return False
+        _run(["git", "config", "user.name", "zodiac-daily-bot"], cwd=pub)
+        _run(["git", "config", "user.email", "zodiac-daily-bot@users.noreply.github.com"], cwd=pub)
 
         for attempt in (1, 2, 3):
-            p = _run(["git", "push", "origin", "main"], cwd=BASE)
-            if p.returncode == 0:
-                log("repo 푸시 완료")
+            f = _run(["git", "fetch", "--prune", "origin", "main"], cwd=pub)
+            if f.returncode != 0:
+                log(f"publication fetch 실패(시도{attempt}): {(f.stderr or f.stdout)[-300:]}")
+                continue
+            r = _run(["git", "reset", "--hard", "origin/main"], cwd=pub)
+            if r.returncode != 0:
+                log(f"publication reset 실패(시도{attempt}): {(r.stderr or r.stdout)[-300:]}")
+                continue
+
+            stage_paths = _copy_generated()
+            if not stage_paths:
+                alerts.append("Git 발행할 카드·릴스 산출물이 없음")
+                return False
+
+            a = _run(["git", "add", "-A", "--"] + stage_paths, cwd=pub)
+            if a.returncode != 0:
+                log(f"publication add 실패: {(a.stderr or a.stdout)[-300:]}")
+                alerts.append("Git 발행 파일 stage 실패")
+                return False
+
+            staged = _run(["git", "diff", "--cached", "--name-only"], cwd=pub)
+            if not staged.stdout.strip():
+                log("원격에 카드·릴스가 이미 반영됨")
                 return True
-            log(f"push 실패(시도{attempt}): {(p.stderr or p.stdout)[-300:]}")
-            if attempt < 3 and not _pull(f"재시도{attempt}"):
-                break
-        alerts.append("git push 실패 — 원격에 오늘치 카드·릴스가 없어 "
-                      "쓰레드 발행(21시 Actions)이 '카드 없음'으로 죽는다")
+
+            c = _run(["git", "commit", "-m",
+                      f"topview cards+shorts {dates[0]} (+D+1 buffer)"], cwd=pub)
+            if c.returncode != 0:
+                log(f"publication commit 실패: {(c.stderr or c.stdout)[-300:]}")
+                alerts.append("Git 발행 커밋 실패")
+                return False
+
+            p = _run(["git", "push", "origin", "HEAD:main"], cwd=pub)
+            if p.returncode == 0:
+                log("repo 푸시 완료(clean publication worktree)")
+                return True
+            log(f"publication push 경합(시도{attempt}): {(p.stderr or p.stdout)[-300:]}")
+
+        alerts.append("git push 실패 — clean publication worktree 3회 재시도 실패")
         return False
     except Exception as e:
-        alerts.append(f"git 단계 예외: {e}")
+        alerts.append(f"git 발행 단계 예외: {e}")
         return False
-
 
 def _is_our_shorts(date_iso: str) -> bool:
     """이 날짜 mp4가 '우리가 만든 Topview 쇼츠'인지 판정.
