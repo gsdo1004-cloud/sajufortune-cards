@@ -50,7 +50,9 @@ def do_carousel(key: str) -> None:
     if len(files) < 2:
         raise SystemExit(f"[FAIL] 카드가 없습니다: promo/{key}")
     urls = [f"{RAW_BASE}/promo/{key}/{f.name}" for f in files]
-    pid = publish_carousel(urls, s["caption"])
+    # publish_carousel now also needs a date for Threads topic attribution.
+    date_iso = dt.datetime.now(dt.timezone(dt.timedelta(hours=9))).date().isoformat()
+    pid = publish_carousel(urls, s["caption"], date_iso)
     print(f"[OK] promo carousel: {pid}")
     try:
         publish_reply(pid, FIRST_COMMENT)

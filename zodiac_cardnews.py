@@ -190,14 +190,44 @@ def render_pngs(date_iso, outdir):
 
 
 # ── Threads 캐러셀 발행 ──
+_THREADS_UID_CACHE = None
+
+
 def _post(url, data):
     import requests
     return requests.post(url, data=data, timeout=30).json()
 
 
+def _threads_uid(tok: str) -> str:
+    """Resolve the current token owner instead of trusting a stale secret user id."""
+    global _THREADS_UID_CACHE
+    if _THREADS_UID_CACHE:
+        return _THREADS_UID_CACHE
+    import requests
+    configured = os.environ.get("THREADS_USER_ID", "").strip()
+    try:
+        r = requests.get(
+            "https://graph.threads.net/v1.0/me",
+            params={"fields": "id", "access_token": tok},
+            timeout=15,
+        )
+        data = r.json()
+    except Exception as e:
+        raise SystemExit(f"[FAIL] Threads token owner lookup failed: {type(e).__name__}") from e
+    resolved = str(data.get("id") or "").strip() if isinstance(data, dict) else ""
+    if not resolved:
+        err = data.get("error", {}) if isinstance(data, dict) else {}
+        code = err.get("code", "unknown") if isinstance(err, dict) else "unknown"
+        raise SystemExit(f"[FAIL] Threads token validation returned no user id (code={code})")
+    if configured and configured != resolved:
+        print("[WARN] THREADS_USER_ID secret differs from token owner; using token owner")
+    _THREADS_UID_CACHE = resolved
+    return resolved
+
+
 def publish_carousel(image_urls, caption, date_iso):
     tok = os.environ["THREADS_ACCESS_TOKEN"]
-    uid = os.environ["THREADS_USER_ID"]
+    uid = _threads_uid(tok)
     base = f"https://graph.threads.net/v1.0/{uid}"
 
     children = []
@@ -234,7 +264,7 @@ def publish_carousel(image_urls, caption, date_iso):
 
 def publish_reply(post_id, text):
     tok = os.environ["THREADS_ACCESS_TOKEN"]
-    uid = os.environ["THREADS_USER_ID"]
+    uid = _threads_uid(tok)
     base = f"https://graph.threads.net/v1.0/{uid}"
     j = _post(f"{base}/threads", {
         "media_type": "TEXT", "text": text,
