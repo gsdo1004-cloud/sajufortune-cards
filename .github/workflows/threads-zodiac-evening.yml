@@ -51,11 +51,28 @@ jobs:
         run: |
           set -euo pipefail
           DI="$(python - <<'PY'
+          import datetime as dt
+          import os
           import zodiac_seo as zs
-          print(zs.target_iso())
+
+          if os.environ.get("GITHUB_EVENT_NAME") == "schedule":
+              # This is an evening KST schedule. GitHub can delay cron runs by hours;
+              # if it starts after midnight but before 06:00, keep the previous
+              # evening as the base day so "next day" does not jump by two days.
+              base = dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=9)
+              if base.hour < 6:
+                  base -= dt.timedelta(days=1)
+              try:
+                  offset = int(os.environ.get("ZODIAC_PUBLISH_OFFSET_DAYS", "1"))
+              except ValueError:
+                  offset = 1
+              print((base.date() + dt.timedelta(days=offset)).isoformat())
+          else:
+              print(zs.target_iso())
           PY
           )"
           echo "date=$DI" >> "$GITHUB_OUTPUT"
+          echo "ZODIAC_TARGET_DATE=$DI" >> "$GITHUB_ENV"
           echo "Target: $DI (offset=$ZODIAC_PUBLISH_OFFSET_DAYS)"
 
           git fetch --quiet --no-tags origin main
