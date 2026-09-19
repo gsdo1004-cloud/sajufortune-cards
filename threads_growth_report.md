@@ -1,6 +1,6 @@
 # Threads 성장 자동화 보고 — 2026-09-20
 
-- 실행: 실제 발송
+- 실행: 드라이런/점검
 - PAUSED: False
 - 오늘 카운트: `{"external": 0, "inbound": 0, "nested": 0, "total": 0, "per_target": {}}`
 
@@ -17,7 +17,7 @@
 ## 미지원/권한 오류
 
 - profile_posts: `API code=1 subcode=None: An unknown error occurred`
-- keyword_search: `API code=1 subcode=None: An unknown error occurred`
+- keyword_search: `HTTP 500: non-json response`
 - mentions: `API code=1 subcode=None: An unknown error occurred`
 
 ## 이번 실행
