@@ -5891,7 +5891,8 @@
     }
    ],
    "timestamp": "2026-09-05T07:07:12+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc5YdVoEWcD"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc5YdVoEWcD",
+   "closed": true
   },
   "17954297370211439": {
    "channel": "signal_video",
@@ -6746,6 +6747,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-19T10:46:09Z",
+     "age_h": 267.4,
+     "views": 20,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-08T07:24:37+0000",
@@ -6864,6 +6875,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-19T10:46:09Z",
+     "age_h": 291.3,
+     "views": 15,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-07T07:30:12+0000",
@@ -6976,6 +6997,16 @@
     {
      "t": "2026-09-18T11:02:46Z",
      "age_h": 290.0,
+     "views": 8,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-19T10:46:09Z",
+     "age_h": 313.7,
      "views": 8,
      "likes": 0,
      "replies": 0,
@@ -7103,7 +7134,8 @@
     }
    ],
    "timestamp": "2026-09-05T07:07:36+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc5Y1fflUM9"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dc5Y1fflUM9",
+   "closed": true
   },
   "17997632507991213": {
    "channel": "signal_carousel",
@@ -8013,6 +8045,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-19T10:46:09Z",
+     "age_h": 243.2,
+     "views": 12,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-09T07:33:45+0000",
@@ -8129,6 +8171,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-19T10:46:09Z",
+     "age_h": 219.3,
+     "views": 17,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-10T07:27:46+0000",
@@ -8235,6 +8287,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-19T10:46:09Z",
+     "age_h": 195.3,
+     "views": 31,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-11T07:25:57+0000",
@@ -8331,6 +8393,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-19T10:46:09Z",
+     "age_h": 171.5,
+     "views": 18,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-12T07:18:07+0000",
@@ -8389,6 +8461,24 @@
    ],
    "timestamp": "2026-09-18T01:18:46+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/DdaPQSBkR4X"
+  },
+  "18028666649683880": {
+   "channel": "ghost",
+   "head": "쥐띠, 용띠, 뱀띠.\n9월 19일(토) 오늘 기운 좋은 띠다. 일진은 병신일.\n내 띠 없다고 서운해할 것 없다. 흐름은 매일 ",
+   "snapshots": [
+    {
+     "t": "2026-09-19T10:46:09Z",
+     "age_h": 9.5,
+     "views": 1,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-19T01:14:38+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Ddczk78jR8J"
   }
  }
 }
