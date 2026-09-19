@@ -373,8 +373,17 @@ def api_capabilities(api: ThreadsAPI, cfg: dict[str, Any]) -> dict[str, Any]:
         result["missing_recommended_scopes"] = sorted(recommended - set(scopes))
     except APIError as e:
         result["errors"]["debug_token"] = str(e)[:300]
+    # Identity is a hard safety boundary: this repository must never reply as
+    # the support-benefits account (or any other account) if a secret is mixed up.
+    try:
+        me = api.get("me", {"fields": "id,username,name"})
+        result["basic"] = True
+        result["identity_id"] = str(me.get("id") or "")
+        result["identity_username"] = str(me.get("username") or "").strip().lstrip("@").lower()
+    except APIError as e:
+        result["errors"]["basic"] = str(e)[:300]
+
     probes = [
-        ("basic", "me", {"fields": "id,username,name"}),
         ("read_replies", "me/replies", {"fields": "id,text,timestamp,replied_to,root_post", "limit": 1}),
         ("profile_posts", "profile_posts", {"username": cfg["target_accounts"][0],
                                              "fields": THREAD_FIELDS, "limit": 1}),
@@ -756,6 +765,16 @@ def main() -> int:
         write_report({"date_kst": date_key(), "send": False, "day": today_bucket(state),
                       "actions": [], "paused": PAUSE_PATH.exists()}, caps)
         return 3
+
+    expected_user = str(cfg.get("account_username") or "").strip().lstrip("@").lower()
+    actual_user = str(caps.get("identity_username") or "").strip().lstrip("@").lower()
+    if expected_user and actual_user != expected_user:
+        pause("threads_identity_mismatch", {"expected": expected_user, "actual": actual_user or "unknown"})
+        log(f"[FAIL] Threads 계정 불일치: expected=@{expected_user}, actual=@{actual_user or 'unknown'}")
+        write_report({"date_kst": date_key(), "send": False, "day": today_bucket(state),
+                      "actions": [], "paused": True}, caps)
+        return 4
+
     if a.preflight:
         write_report({"date_kst": date_key(), "send": False, "day": today_bucket(state),
                       "actions": [], "paused": PAUSE_PATH.exists()}, caps)

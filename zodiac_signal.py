@@ -406,8 +406,9 @@ def build_text(date_iso: str, slug: str | None = None) -> str:
 def publish(text: str, date_iso: str) -> str:
     """일반 게시물로 낸다. 유령글과 달리 계정에 남아야 검색·프로필 유입에 쓰인다."""
     import requests
+    from zodiac_cardnews import _threads_uid
     tok = os.environ["THREADS_ACCESS_TOKEN"]
-    uid = os.environ["THREADS_USER_ID"]
+    uid = _threads_uid(tok)
     base = f"{GRAPH}/{uid}"
 
     payload = {"media_type": "TEXT", "text": text, "access_token": tok,
@@ -437,8 +438,9 @@ RAW_BASE = "https://raw.githubusercontent.com/gsdo1004-cloud/sajufortune-cards/m
 
 def publish_carousel(image_urls: list[str], caption: str, date_iso: str) -> str:
     import requests
+    from zodiac_cardnews import _threads_uid
     tok = os.environ["THREADS_ACCESS_TOKEN"]
-    uid = os.environ["THREADS_USER_ID"]
+    uid = _threads_uid(tok)
     base = f"{GRAPH}/{uid}"
 
     def _post(url, data):

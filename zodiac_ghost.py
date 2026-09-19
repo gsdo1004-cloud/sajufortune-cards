@@ -183,8 +183,9 @@ def build_text(date_iso: str) -> str:
 
 def publish_ghost(text: str, date_iso: str) -> str:
     import requests
+    from zodiac_cardnews import _threads_uid
     tok = os.environ["THREADS_ACCESS_TOKEN"]
-    uid = os.environ["THREADS_USER_ID"]
+    uid = _threads_uid(tok)
     base = f"{GRAPH}/{uid}"
 
     payload = {"media_type": "TEXT", "text": text,

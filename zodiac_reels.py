@@ -270,8 +270,9 @@ def _post(url, data):
 
 def publish_video(video_url, caption):
     import requests
+    from zodiac_cardnews import _threads_uid
     tok = os.environ["THREADS_ACCESS_TOKEN"]
-    uid = os.environ["THREADS_USER_ID"]
+    uid = _threads_uid(tok)
     base = f"https://graph.threads.net/v1.0/{uid}"
 
     j = _post(f"{base}/threads", {
@@ -302,8 +303,9 @@ def publish_video(video_url, caption):
 
 
 def publish_reply(post_id, text):
+    from zodiac_cardnews import _threads_uid
     tok = os.environ["THREADS_ACCESS_TOKEN"]
-    uid = os.environ["THREADS_USER_ID"]
+    uid = _threads_uid(tok)
     base = f"https://graph.threads.net/v1.0/{uid}"
     j = _post(f"{base}/threads", {
         "media_type": "TEXT", "text": text,

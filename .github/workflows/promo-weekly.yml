@@ -12,9 +12,18 @@ on:
         required: false
         default: 'engine'
       mode:
-        description: 'carousel (정통명리엔진 카드뉴스)'
+        description: 'carousel / reel / all'
         required: false
         default: 'carousel'
+      publish:
+        description: '수동 실행에서 실제 발행 여부. false면 사전검증만'
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: threads-promo-weekly
+  cancel-in-progress: false
 
 jobs:
   promo:
@@ -32,11 +41,66 @@ jobs:
       - name: 의존성 설치
         run: pip install requests
 
+      - name: 홍보 사전검증
+        env:
+          PROMO_KEY: ${{ github.event.inputs.set_key || 'engine' }}
+          PROMO_MODE: ${{ github.event.inputs.mode || 'carousel' }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import promo_content as pc
+          from zodiac_cardnews import _threads_uid
+
+          key = os.environ["PROMO_KEY"]
+          mode = os.environ["PROMO_MODE"]
+          if key not in pc.BY_KEY:
+              raise SystemExit(f"[FAIL] unknown promo set: {key}")
+          if mode not in {"carousel", "reel", "all"}:
+              raise SystemExit(f"[FAIL] unknown promo mode: {mode}")
+          base = Path("promo") / key
+          if mode in {"carousel", "all"} and len(list(base.glob("card_*.png"))) < 2:
+              raise SystemExit(f"[FAIL] promo cards missing: {base}")
+          if mode in {"reel", "all"} and not (base / "shorts.mp4").exists():
+              raise SystemExit(f"[FAIL] promo reel missing: {base / 'shorts.mp4'}")
+          _threads_uid(os.environ["THREADS_ACCESS_TOKEN"])
+          print(f"[OK] promo preflight: key={key} mode={mode}")
+          PY
+
       - name: raw URL 전파 대기
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.publish == 'true' }}
         run: sleep 20
 
       - name: 홍보 발행
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.publish == 'true' }}
+        env:
+          PROMO_KEY: ${{ github.event.inputs.set_key || 'engine' }}
+          PROMO_MODE: ${{ github.event.inputs.mode || 'carousel' }}
         run: |
-          # 2026-08-22: 종료된 무제한 이용권 프로모션을 폐기하고,
-          # 정통명리엔진 카드뉴스만 발행한다. 새 쇼츠는 별도 검수 후 추가한다.
-          python promo_publish.py carousel engine
+          python promo_publish.py "$PROMO_MODE" "$PROMO_KEY"
+
+      - name: 중복방지 마커 저장
+        if: ${{ success() && (github.event_name == 'schedule' || github.event.inputs.publish == 'true') }}
+        shell: bash
+        env:
+          PROMO_KEY: ${{ github.event.inputs.set_key || 'engine' }}
+        run: |
+          shopt -s nullglob
+          MARKERS=(promo/"$PROMO_KEY"/pub_*.json)
+          if [ "${#MARKERS[@]}" -eq 0 ]; then
+            echo "[FAIL] publish marker missing"
+            exit 1
+          fi
+          mkdir -p /tmp/promo-markers
+          cp "${MARKERS[@]}" /tmp/promo-markers/
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git reset --hard origin/main
+          mkdir -p promo/"$PROMO_KEY"
+          cp /tmp/promo-markers/*.json promo/"$PROMO_KEY"/
+          git add promo/"$PROMO_KEY"/pub_*.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: remember Threads promo publish $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push origin HEAD:main
+          fi

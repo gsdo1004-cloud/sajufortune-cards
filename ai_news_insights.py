@@ -377,6 +377,10 @@ def main() -> int:
         log("[FAIL] THREADS_ACCESS_TOKEN 이 없습니다. (--dry-run 은 토큰 없이 됩니다)")
         return 1
 
+    if not a.dry_run:
+        from zodiac_cardnews import _threads_uid
+        uid = _threads_uid(tok)
+
     store = collect(tok, dry=a.dry_run)
     if not a.dry_run:
         harvest_targets(tok, uid)

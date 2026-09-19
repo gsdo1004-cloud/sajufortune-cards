@@ -199,26 +199,30 @@ def _post(url, data):
 
 
 def _threads_uid(tok: str) -> str:
-    """Resolve the current token owner instead of trusting a stale secret user id."""
+    """Resolve token owner and refuse to publish from an unexpected Threads account."""
     global _THREADS_UID_CACHE
     if _THREADS_UID_CACHE:
         return _THREADS_UID_CACHE
     import requests
     configured = os.environ.get("THREADS_USER_ID", "").strip()
+    expected_user = os.environ.get("THREADS_EXPECTED_USERNAME", "gsdo10042026").strip().lstrip("@").lower()
     try:
         r = requests.get(
             "https://graph.threads.net/v1.0/me",
-            params={"fields": "id", "access_token": tok},
+            params={"fields": "id,username", "access_token": tok},
             timeout=15,
         )
         data = r.json()
     except Exception as e:
         raise SystemExit(f"[FAIL] Threads token owner lookup failed: {type(e).__name__}") from e
     resolved = str(data.get("id") or "").strip() if isinstance(data, dict) else ""
+    resolved_user = str(data.get("username") or "").strip().lstrip("@").lower() if isinstance(data, dict) else ""
     if not resolved:
         err = data.get("error", {}) if isinstance(data, dict) else {}
         code = err.get("code", "unknown") if isinstance(err, dict) else "unknown"
         raise SystemExit(f"[FAIL] Threads token validation returned no user id (code={code})")
+    if expected_user and resolved_user != expected_user:
+        raise SystemExit(f"[FAIL] Threads account mismatch: expected @{expected_user}, got @{resolved_user or 'unknown'}")
     if configured and configured != resolved:
         print("[WARN] THREADS_USER_ID secret differs from token owner; using token owner")
     _THREADS_UID_CACHE = resolved
