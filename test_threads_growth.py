@@ -82,3 +82,37 @@ class RevenueGateTests(unittest.TestCase):
         text, used = g.maybe_add_revenue_cta("답글", c, cfg, state)
         self.assertFalse(used)
         self.assertEqual(text, "답글")
+
+    def test_general_inbound_can_get_soft_profile_cta_after_warmup(self):
+        c = g.Candidate(id="inbound-soft", username="visitor", text="설명이 이해가 잘 되네요", timestamp="2026-09-20T00:00:00Z", kind="inbound")
+        cfg = {
+            "revenue_intent_keywords": ["무료"],
+            "revenue_share_target": 0.0,
+            "revenue_link_daily_cap": 2,
+            "revenue_daily_cap": 3,
+            "revenue_profile_share_target": 1.0,
+            "revenue_profile_daily_cap": 2,
+        }
+        text, used = g.maybe_add_revenue_cta("답글입니다.", c, cfg, {"sent": []})
+        self.assertTrue(used)
+        self.assertIn("프로필 첫 버튼", text)
+        self.assertNotIn("https://", text)
+
+    def test_total_promo_daily_cap_blocks_more_ctas(self):
+        c = g.Candidate(id="inbound-cap", username="visitor", text="제 사주가 궁금해요", timestamp="2026-09-20T00:00:00Z", kind="inbound")
+        cfg = {
+            "revenue_intent_keywords": ["궁금"],
+            "revenue_share_target": 1.0,
+            "revenue_link_daily_cap": 3,
+            "revenue_daily_cap": 3,
+            "revenue_profile_share_target": 1.0,
+            "revenue_profile_daily_cap": 3,
+        }
+        state = {"sent": [
+            {"date_kst": g.date_key(), "revenue_cta": True, "text": "https://sajufortune.kr/a"},
+            {"date_kst": g.date_key(), "revenue_cta": True, "text": "프로필 첫 버튼에서 확인"},
+            {"date_kst": g.date_key(), "revenue_cta": True, "text": "https://sajufortune.kr/b"},
+        ]}
+        text, used = g.maybe_add_revenue_cta("답글", c, cfg, state)
+        self.assertFalse(used)
+        self.assertEqual(text, "답글")

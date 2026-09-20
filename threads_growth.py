@@ -11,7 +11,7 @@
 금지
 ----
 - 브라우저 스크래핑/자동 클릭 폴백 없음.
-- 링크/사이트/상담 홍보 댓글 자동발송 없음.
+- 외부 계정에는 홍보 댓글 금지. 내 글에 들어온 댓글에는 일일 상한 내에서만 사주홈페이지 CTA 허용.
 - 동일문구 복붙 없음.
 - 공식 API 권한이 없으면 해당 기능은 조용히 건너뛴다.
 
@@ -284,25 +284,63 @@ def revenue_intent(candidate: Candidate, cfg: dict[str, Any]) -> bool:
     return any(str(w).lower() in low for w in cfg.get("revenue_intent_keywords", []))
 
 
-def revenue_used_today(state: dict[str, Any]) -> int:
+def _revenue_counts_today(state: dict[str, Any]) -> tuple[int, int, int]:
+    """Return (total promo replies, direct-link promos, profile-only promos) for today."""
     d = date_key()
-    return sum(1 for x in state.get("sent", []) if x.get("date_kst") == d and x.get("revenue_cta"))
+    total = direct = profile = 0
+    for x in state.get("sent", []):
+        if x.get("date_kst") != d or not x.get("revenue_cta"):
+            continue
+        total += 1
+        body = str(x.get("text") or "")
+        # Old state entries may have revenue_cta=True without text. Count them as
+        # direct to keep the historical cap conservative after an upgrade.
+        if not body or URL_RE.search(body):
+            direct += 1
+        else:
+            profile += 1
+    return total, direct, profile
+
+
+def revenue_used_today(state: dict[str, Any]) -> int:
+    """Backward-compatible direct-link CTA counter."""
+    return _revenue_counts_today(state)[1]
 
 
 def maybe_add_revenue_cta(text: str, candidate: Candidate, cfg: dict[str, Any], state: dict[str, Any]) -> tuple[str, bool]:
-    """Growth first: at most a small capped share of high-intent inbound replies gets a tracked link."""
-    if not revenue_intent(candidate, cfg):
+    """After warm-up, promote gently on inbound replies while keeping a hard 30% daily ceiling.
+
+    - External-account engagement is always non-promotional.
+    - High-intent inbound comments may receive a tracked sajufortune.kr link.
+    - Other inbound comments may receive a softer profile CTA without a URL.
+    - Total promotional replies remain capped independently of the random gates.
+    """
+    if candidate.kind == "external":
         return text, False
-    if revenue_used_today(state) >= int(cfg.get("revenue_link_daily_cap", 1)):
+
+    total_used, direct_used, profile_used = _revenue_counts_today(state)
+    if total_used >= int(cfg.get("revenue_daily_cap", 3)):
         return text, False
-    # Stable 30% gate by target id; prevents every eligible conversation from becoming promotional.
-    share = float(cfg.get("revenue_share_target", 0.30))
-    bucket = int(hashlib.sha256((candidate.id + "|revenue").encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
-    if bucket >= share:
-        return text, False
-    from threads_conversion import tracked_url
-    url = tracked_url("reply", date_key())
-    return text.rstrip() + "\n내 사주 기준으로 직접 확인하려면 여기서 무료로 먼저 볼 수 있어요. " + url, True
+
+    # Direct link: only when the commenter explicitly asks about their own fortune,
+    # a reading, or where/how to check it. This avoids unrelated link-dropping.
+    if revenue_intent(candidate, cfg) and direct_used < int(cfg.get("revenue_link_daily_cap", 2)):
+        share = float(cfg.get("revenue_share_target", 0.55))
+        bucket = int(hashlib.sha256((candidate.id + "|revenue-link").encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
+        if bucket < share:
+            from threads_conversion import tracked_url
+            url = tracked_url("reply", date_key())
+            return text.rstrip() + "\n내 사주 기준으로 더 자세히 확인하려면 무료로 먼저 볼 수 있어요. " + url, True
+
+    # Soft promotion: no raw URL, just a profile-first CTA. It is intentionally
+    # lower frequency and still counts toward the same daily promotional ceiling.
+    if profile_used < int(cfg.get("revenue_profile_daily_cap", 2)):
+        share = float(cfg.get("revenue_profile_share_target", 0.35))
+        bucket = int(hashlib.sha256((candidate.id + "|revenue-profile").encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
+        if bucket < share:
+            return text.rstrip() + "\n개인 사주 기준 흐름은 프로필 첫 버튼에서 무료로 확인해보실 수 있어요.", True
+
+    return text, False
 
 
 def generate_reply(candidate: Candidate, cfg: dict[str, Any], state: dict[str, Any]) -> str | None:

@@ -70,9 +70,9 @@
     "앱에서"
   ],
   "mode": "growth70_revenue30",
-  "revenue_share_target": 0.3,
-  "revenue_daily_cap": 2,
-  "revenue_link_daily_cap": 1,
+  "revenue_share_target": 0.55,
+  "revenue_daily_cap": 3,
+  "revenue_link_daily_cap": 2,
   "revenue_intent_keywords": [
     "무료",
     "어디서",
@@ -89,5 +89,7 @@
     "풀이",
     "해석"
   ],
-  "growth_question_share": 0.7
+  "growth_question_share": 0.7,
+  "revenue_profile_share_target": 0.35,
+  "revenue_profile_daily_cap": 2
 }
