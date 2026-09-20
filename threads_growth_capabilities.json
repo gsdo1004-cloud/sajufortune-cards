@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-09-19T23:42:28.683513+00:00",
+  "checked_at": "2026-09-20T01:30:34.894127+00:00",
   "basic": true,
   "read_replies": true,
   "profile_posts": false,
@@ -9,20 +9,20 @@
   "token_scopes": [
     "threads_basic",
     "threads_content_publish",
+    "threads_delete",
     "threads_manage_insights",
     "threads_manage_replies",
     "threads_read_replies"
   ],
   "missing_recommended_scopes": [
-    "threads_delete",
     "threads_keyword_search",
     "threads_manage_mentions",
     "threads_profile_discovery"
   ],
   "errors": {
     "profile_posts": "API code=1 subcode=None: An unknown error occurred",
-    "keyword_search": "API code=1 subcode=None: An unknown error occurred",
-    "mentions": "API code=1 subcode=None: An unknown error occurred"
+    "keyword_search": "HTTP 500: non-json response",
+    "mentions": "HTTP 500: non-json response"
   },
   "identity_id": "37628586400087916",
   "identity_username": "gsdo10042026"
