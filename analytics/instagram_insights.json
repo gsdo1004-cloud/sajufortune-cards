@@ -1,22 +1,39 @@
 {
-  "collected_at": "2026-09-20T11:51:41",
+  "collected_at": "2026-09-20T14:44:26",
   "count": 30,
   "media": [
     {
-      "id": "18089509292678885",
-      "media_type": "CAROUSEL_ALBUM",
-      "media_product_type": "FEED",
-      "timestamp": "2026-09-20T11:33:14+0000",
-      "permalink": "https://www.instagram.com/p/DdgfKKsnMUP/",
+      "id": "18065761307603667",
+      "media_type": "VIDEO",
+      "media_product_type": "REELS",
+      "timestamp": "2026-09-20T14:44:08+0000",
+      "permalink": "https://www.instagram.com/reel/Ddg07ttD_mS/",
       "like_count": 0,
       "comments_count": 0,
-      "caption_head": "2026년 9월 20일 일요일 오늘의 띠별 운세 🔮 내 띠의 흐름을 먼저 보고, 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #사주 #운세 #12띠 #데일리운세",
+      "caption_head": "2026년 9월 21일 월요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #릴스 #사주 #운세 #무료운세",
       "metrics": {
         "views": 0,
         "reach": 0,
         "saved": 0,
         "shares": 0,
         "total_interactions": 0
+      }
+    },
+    {
+      "id": "18089509292678885",
+      "media_type": "CAROUSEL_ALBUM",
+      "media_product_type": "FEED",
+      "timestamp": "2026-09-20T11:33:14+0000",
+      "permalink": "https://www.instagram.com/p/DdgfKKsnMUP/",
+      "like_count": 1,
+      "comments_count": 0,
+      "caption_head": "2026년 9월 20일 일요일 오늘의 띠별 운세 🔮 내 띠의 흐름을 먼저 보고, 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #사주 #운세 #12띠 #데일리운세",
+      "metrics": {
+        "views": 3,
+        "reach": 4,
+        "saved": 0,
+        "shares": 0,
+        "total_interactions": 1
       }
     },
     {
@@ -493,23 +510,6 @@
         "saved": 0,
         "shares": 0,
         "total_interactions": 1
-      }
-    },
-    {
-      "id": "18111037520010543",
-      "media_type": "VIDEO",
-      "media_product_type": "REELS",
-      "timestamp": "2026-08-12T03:54:12+0000",
-      "permalink": "https://www.instagram.com/reel/Db7PkLrhLjD/",
-      "like_count": 18,
-      "comments_count": 0,
-      "caption_head": "#오늘의운세",
-      "metrics": {
-        "views": 1800,
-        "reach": 1643,
-        "saved": 0,
-        "shares": 0,
-        "total_interactions": 18
       }
     }
   ]
