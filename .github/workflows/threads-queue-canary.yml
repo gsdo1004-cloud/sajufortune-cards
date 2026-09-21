@@ -1,0 +1,30 @@
+name: Threads Queue Canary
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '37 11 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Canary safety assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$THREADS_QUEUE_LIVE"
+        env:
+          THREADS_QUEUE_LIVE: ""
+      - name: Queue unit tests
+        run: python -m pytest -q test_threads_publish_queue.py test_threads_publisher_adapter.py test_threads_queue_watchdog.py
+      - name: Queue watchdog dry run
+        run: python threads_queue_watchdog.py
