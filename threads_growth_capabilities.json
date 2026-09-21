@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-09-21T18:15:41.331037+00:00",
+  "checked_at": "2026-09-21T20:43:57.931497+00:00",
   "basic": true,
   "read_replies": true,
   "profile_posts": false,
@@ -21,8 +21,6 @@
   ],
   "errors": {
     "profile_posts": "OAuthException code=10 subcode=4279067: Application does not have permission for this action",
-    "mentions": "API code=1 subcode=None: An unknown error occurred"
-  },
-  "identity_id": "37628586400087916",
-  "identity_username": "gsdo10042026"
+    "mentions": "HTTP 500: non-json response"
+  }
 }
