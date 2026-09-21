@@ -309,11 +309,15 @@ def do_publish():
                     f"내 띠는 오늘 어떤 흐름일까요?")
     caption = conv.apply(base_caption, "carousel", date_iso)
     pid = publish_carousel(urls, caption, date_iso)
+    # 캐러셀 성공 직후 영수증을 먼저 저장한다. 댓글 단계가 실패해도 재실행 시
+    # 멱등 가드가 캐러셀 중복 발행을 막아야 한다.
+    tmp_marker = marker.with_suffix(marker.suffix + ".tmp")
+    tmp_marker.write_text(json.dumps({"post_id": pid}, ensure_ascii=False), encoding="utf-8")
+    tmp_marker.replace(marker)
     # [2026-07-16] 스레드 외부링크 도달저하 회피 — 첫댓글을 일진 풀이·사주 상식 훅으로.
     # 사주포춘 링크는 주 1회(일요일 캐러셀)만. comment_hooks 참조.
     from comment_hooks import build_first_comment
     publish_reply(pid, build_first_comment(date_iso, "carousel"))
-    marker.write_text(json.dumps({"post_id": pid}, ensure_ascii=False), encoding="utf-8")
 
 
 if __name__ == "__main__":
