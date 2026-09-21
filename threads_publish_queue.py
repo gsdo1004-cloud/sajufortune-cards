@@ -125,6 +125,22 @@ def complete(key: str, threads_id: str, at: str | None = None) -> dict:
     return {"ok": False, "reason": "not_running", "key": key}
 
 
+def complete_ui(key: str, verification: dict, at: str | None = None) -> dict:
+    """Complete a UI publish only with explicit on-screen verification metadata."""
+    at = at or utcnow()
+    if not verification.get("account") or not verification.get("exact_text"):
+        return {"ok": False, "reason": "ui_verification_incomplete", "key": key}
+    rows = load()
+    for row in rows:
+        if row.get("key") == key and row.get("status") == "RUNNING":
+            row.update(status="PUBLISHED", published_at=at, lease_until=None, last_error=None,
+                       updated_at=at, ui_verification=verification)
+            save(rows)
+            audit({"at": at, "event": "UI_PUBLISHED_VERIFIED", "key": key, "verification": verification})
+            return {"ok": True, "item": row}
+    return {"ok": False, "reason": "not_running", "key": key}
+
+
 def fail(key: str, error: str, at: str | None = None) -> dict:
     at = at or utcnow()
     rows = load()
