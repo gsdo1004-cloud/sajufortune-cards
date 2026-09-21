@@ -10,6 +10,8 @@
   "max_target_age_hours": 36,
   "keyword_discovery_enabled": true,
   "keyword_discovery_min_relevance": 2,
+  "keyword_search_types": ["TOP", "RECENT"],
+  "keyword_top_bonus": 18,
   "recent_own_posts": 12,
   "target_accounts": [
     "saju.pharmacy",

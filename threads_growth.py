@@ -482,35 +482,40 @@ def external_candidates(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, A
     if caps.get("keyword_search") and len(out) < 5:
         allowed = {x.lower() for x in targets}
         discovery = bool(cfg.get("keyword_discovery_enabled", True))
+        search_types = list(cfg.get("keyword_search_types", ["TOP", "RECENT"]))
         for q in cfg.get("topic_keywords", [])[:6]:
-            try:
-                j = api.get("keyword_search", {"q": q, "search_type": "RECENT",
-                                               "fields": THREAD_FIELDS, "limit": 25})
-            except APIError as e:
-                log(f"keyword_search '{q}' 건너뜀: {e}")
-                continue
-            for p in j.get("data", []):
-                username = str(p.get("username") or "")
-                if not discovery and username.lower() not in allowed:
+            for search_type in search_types:
+                try:
+                    j = api.get("keyword_search", {"q": q, "search_type": search_type,
+                                                   "fields": THREAD_FIELDS, "limit": 25})
+                except APIError as e:
+                    log(f"keyword_search '{q}'/{search_type} 건너뜀: {e}")
                     continue
-                pid = str(p.get("id") or "")
-                text = (p.get("text") or "").strip()
-                if not pid or pid in seen or not text or len(text) < 30 or p.get("is_reply"):
-                    continue
-                age = age_hours(p.get("timestamp"))
-                if age > max_age or is_skippable_text(text, cfg):
-                    continue
-                rel = relevant_score(text, cfg)
-                min_rel = int(cfg.get("keyword_discovery_min_relevance", 2 if discovery else 1))
-                if rel < min_rel:
-                    continue
-                score = 95.0 - age + rel * 15 + (8 if p.get("has_replies") else 0)
-                cur = out.get(pid)
-                if cur is None or score > cur.score:
-                    out[pid] = Candidate(id=pid, username=username, text=text,
-                                         timestamp=str(p.get("timestamp") or ""), permalink=str(p.get("permalink") or ""),
-                                         kind="external", score=score)
-    return sorted(out.values(), key=lambda c: c.score, reverse=True)
+                for p in j.get("data", []):
+                    username = str(p.get("username") or "")
+                    if not discovery and username.lower() not in allowed:
+                        continue
+                    pid = str(p.get("id") or "")
+                    text = (p.get("text") or "").strip()
+                    if not pid or pid in seen or not text or len(text) < 30 or p.get("is_reply"):
+                        continue
+                    age = age_hours(p.get("timestamp"))
+                    if age > max_age or is_skippable_text(text, cfg):
+                        continue
+                    rel = relevant_score(text, cfg)
+                    min_rel = int(cfg.get("keyword_discovery_min_relevance", 2 if discovery else 1))
+                    if rel < min_rel:
+                        continue
+                    # TOP 결과는 Threads가 제공하는 인기/관련성 신호로 활용한다.
+                    # 공개 API가 제공하지 않는 조회수/팔로워 수를 추정해서 만들지는 않는다.
+                    top_bonus = float(cfg.get("keyword_top_bonus", 18)) if search_type == "TOP" else 0.0
+                    score = 95.0 - age + rel * 15 + (8 if p.get("has_replies") else 0) + top_bonus
+                    cur = out.get(pid)
+                    if cur is None or score > cur.score:
+                        out[pid] = Candidate(id=pid, username=username, text=text,
+                                             timestamp=str(p.get("timestamp") or ""), permalink=str(p.get("permalink") or ""),
+                                             kind="external", score=score)
+        return sorted(out.values(), key=lambda c: c.score, reverse=True)
 
 
 def verify_target(api: ThreadsAPI, target_id: str) -> dict[str, Any]:
