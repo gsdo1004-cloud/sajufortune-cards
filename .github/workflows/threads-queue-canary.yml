@@ -24,7 +24,18 @@ jobs:
           test -z "$THREADS_QUEUE_LIVE"
         env:
           THREADS_QUEUE_LIVE: ""
-      - name: Queue unit tests
-        run: python -m pytest -q test_threads_publish_queue.py test_threads_publisher_adapter.py test_threads_queue_watchdog.py
+      - name: Queue and shadow unit tests
+        run: python -m pytest -q test_threads_publish_queue.py test_threads_publisher_adapter.py test_threads_queue_watchdog.py test_threads_queue_shadow.py
       - name: Queue watchdog dry run
         run: python threads_queue_watchdog.py
+      - name: Shadow observer read-only run
+        run: |
+          python threads_queue_shadow.py | tee /tmp/threads-shadow.json
+          python - <<'PY'
+          import json
+          data = json.load(open("/tmp/threads-shadow.json", encoding="utf-8"))
+          assert data["ok"] is True
+          assert data["mode"] == "SHADOW_READ_ONLY"
+          assert data["external_calls"] == 0
+          assert data["queue_mutations"] == 0
+          PY
