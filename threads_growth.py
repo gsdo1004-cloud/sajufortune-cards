@@ -47,6 +47,11 @@ REPORT_PATH = BASE / "threads_growth_report.md"
 CAP_PATH = BASE / "threads_growth_capabilities.json"
 PAUSE_PATH = BASE / "threads_growth_PAUSED.json"
 
+try:
+    import threads_publish_queue as publish_queue
+except Exception:
+    publish_queue = None
+
 THREAD_FIELDS = "id,text,timestamp,username,permalink,is_reply,has_replies"
 REPLY_FIELDS = (
     "id,text,timestamp,username,permalink,is_reply,is_reply_owned_by_me,"
@@ -290,19 +295,29 @@ def revenue_used_today(state: dict[str, Any]) -> int:
 
 
 def maybe_add_revenue_cta(text: str, candidate: Candidate, cfg: dict[str, Any], state: dict[str, Any]) -> tuple[str, bool]:
-    """Growth first: at most a small capped share of high-intent inbound replies gets a tracked link."""
-    if not revenue_intent(candidate, cfg):
+    """Capped inbound conversion CTA. External conversations are never promotional."""
+    if candidate.kind == "external":
         return text, False
-    if revenue_used_today(state) >= int(cfg.get("revenue_link_daily_cap", 1)):
+    used_total = revenue_used_today(state)
+    if used_total >= int(cfg.get("revenue_daily_cap", 3)):
         return text, False
-    # Stable 30% gate by target id; prevents every eligible conversation from becoming promotional.
-    share = float(cfg.get("revenue_share_target", 0.30))
-    bucket = int(hashlib.sha256((candidate.id + "|revenue").encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
-    if bucket >= share:
+    high_intent = revenue_intent(candidate, cfg)
+    if high_intent and revenue_used_today(state) < int(cfg.get("revenue_link_daily_cap", 1)):
+        share = float(cfg.get("revenue_share_target", 0.30))
+        bucket = int(hashlib.sha256((candidate.id + "|revenue").encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
+        if bucket < share:
+            from threads_conversion import tracked_url
+            url = tracked_url("reply", date_key())
+            return text.rstrip() + "\n내 사주 기준으로 직접 확인하려면 여기서 무료로 먼저 볼 수 있어요. " + url, True
+    # Warm/general inbound: a softer profile CTA, separately capped, no direct URL.
+    profile_used = sum(1 for x in state.get("sent", []) if x.get("date_kst") == date_key() and x.get("revenue_cta") and "프로필 첫 버튼" in str(x.get("text", "")))
+    if profile_used >= int(cfg.get("revenue_profile_daily_cap", 0)):
         return text, False
-    from threads_conversion import tracked_url
-    url = tracked_url("reply", date_key())
-    return text.rstrip() + "\n내 사주 기준으로 직접 확인하려면 여기서 무료로 먼저 볼 수 있어요. " + url, True
+    share = float(cfg.get("revenue_profile_share_target", 0.0))
+    bucket = int(hashlib.sha256((candidate.id + "|profile").encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
+    if bucket < share:
+        return text.rstrip() + "\n더 궁금하시면 프로필 첫 버튼에서 가볍게 확인해보실 수 있어요.", True
+    return text, False
 
 
 def generate_reply(candidate: Candidate, cfg: dict[str, Any], state: dict[str, Any]) -> str | None:
@@ -621,6 +636,8 @@ def mark_inbound_handled(state: dict[str, Any], cid: str) -> None:
 def run_growth(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, Any], caps: dict[str, Any],
                *, send: bool, do_external: bool, do_inbound: bool) -> dict[str, Any]:
     actions: list[dict[str, Any]] = []
+    publisher_backend = str(cfg.get("publisher_backend", "api")).lower()
+    api_send = bool(send and publisher_backend == "api")
     if PAUSE_PATH.exists() and send:
         p = load_json(PAUSE_PATH, {})
         log(f"PAUSED 파일 존재 — 실제 발송 안 함: {p.get('reason')}")
@@ -643,21 +660,22 @@ def run_growth(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, Any], caps
                 mark_inbound_handled(state, c.id)
                 continue
             text, revenue_cta = maybe_add_revenue_cta(text, c, cfg, state)
-            log(f"{('[SEND]' if send else '[DRY]')} {c.kind} @{c.username}: {text}")
+            log(f"{('[SEND]' if api_send else '[QUEUE]')} {c.kind} @{c.username}: {text}")
             reply = {"id": "dry", "replied_to": {"id": c.id}}
-            if send:
+            if api_send:
                 try:
                     reply = publish_reply(api, c, text)
                 except (APIError, LocationMismatch) as e:
                     log(f"발송 실패({c.kind}): {e}")
                     # 권한/대상 오류가 반복되는 것을 막기 위해 이 실행은 중단
                     break
-            record_send(state, c, text, reply, dry_run=not send)
-            if state.get("sent"):
-                state["sent"][-1]["revenue_cta"] = bool(revenue_cta)
-                state["sent"][-1]["date_kst"] = date_key()
+            if api_send:
+                record_send(state, c, text, reply, dry_run=False)
+                if state.get("sent"):
+                    state["sent"][-1]["revenue_cta"] = bool(revenue_cta)
+                    state["sent"][-1]["date_kst"] = date_key()
             actions.append({"kind": c.kind, "target": c.id, "username": c.username,
-                            "text": text, "sent": bool(send), "revenue_cta": bool(revenue_cta)})
+                            "text": text, "sent": bool(api_send), "ui_required": not api_send, "revenue_cta": bool(revenue_cta)})
             n += 1
 
     # 2) 외부 큰 계정 댓글. 공식 discovery/search 권한이 있을 때만.
@@ -676,9 +694,9 @@ def run_growth(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, Any], caps
             text = generate_reply(c, cfg, state)
             if not text:
                 continue
-            log(f"{('[SEND]' if send else '[DRY]')} external @{c.username}: {text}")
+            log(f"{('[SEND]' if api_send else '[QUEUE]')} external @{c.username}: {text}")
             reply = {"id": "dry", "replied_to": {"id": c.id}}
-            if send:
+            if api_send:
                 try:
                     reply = publish_reply(api, c, text)
                 except LocationMismatch:
@@ -686,12 +704,27 @@ def run_growth(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, Any], caps
                 except APIError as e:
                     log(f"외부 댓글 발송 실패: {e}")
                     break
-            record_send(state, c, text, reply, dry_run=not send)
+            if api_send:
+                record_send(state, c, text, reply, dry_run=False)
             actions.append({"kind": "external", "target": c.id, "username": c.username,
-                            "permalink": c.permalink, "text": text, "sent": bool(send)})
+                            "permalink": c.permalink, "timestamp": c.timestamp, "text": text, "sent": bool(api_send), "ui_required": not api_send})
             n += 1
     elif do_external:
         log("외부댓글 기능은 공식 profile_posts/keyword_search 권한이 없어 비활성 상태")
+
+    # Android UI backend: discovery/drafting happens here; the logged-in phone is the only writer.
+    if send and publisher_backend == "android_ui" and publish_queue is not None:
+        for action in actions:
+            if not action.get("ui_required"):
+                continue
+            target = str(action.get("target", "")); text = str(action.get("text", ""))
+            if not target or not text:
+                continue
+            key = hashlib.sha256((target + "|" + text).encode("utf-8")).hexdigest()[:24]
+            payload = {k: action.get(k) for k in ("kind", "target", "username", "permalink", "timestamp", "text", "revenue_cta") if k in action}
+            queued = publish_queue.enqueue(key, utcnow().isoformat(), "threads_ui_reply", target, payload=payload, max_retries=0)
+            action["queue_key"] = key
+            action["queued"] = bool(queued.get("ok")) or queued.get("reason") == "duplicate_active_key"
 
     state["last_run_at"] = utcnow().isoformat()
     trim_state(state)

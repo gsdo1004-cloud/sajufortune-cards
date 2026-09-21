@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parent
 STATE = ROOT / "state" / "threads_publish_queue.jsonl"
 AUDIT = ROOT / "state" / "threads_publish_queue_audit.jsonl"
 ACTIVE = {"PENDING", "RETRY", "RUNNING"}
+TERMINAL = {"PUBLISHED", "FAILED", "FAILED_UNVERIFIED"}
 
 
 def utcnow() -> str:
@@ -50,13 +51,14 @@ def audit(event: dict) -> None:
         fh.write(json.dumps(event, ensure_ascii=False) + "\n")
 
 
-def enqueue(key: str, scheduled_at: str, kind: str, target: str) -> dict:
+def enqueue(key: str, scheduled_at: str, kind: str, target: str, payload: dict | None = None, max_retries: int = 3) -> dict:
     rows = load()
     if any(x.get("key") == key and x.get("status") in ACTIVE for x in rows):
         return {"ok": False, "reason": "duplicate_active_key", "key": key}
     row = {
         "key": key, "scheduled_at": scheduled_at, "kind": kind, "target": target,
-        "status": "PENDING", "retry_count": 0, "max_retries": 3,
+        "status": "PENDING", "retry_count": 0, "max_retries": max_retries,
+        "payload": payload or {},
         "lease_until": None, "last_error": None,
         "created_at": utcnow(), "updated_at": utcnow(),
     }
@@ -140,6 +142,17 @@ def fail(key: str, error: str, at: str | None = None) -> dict:
     return {"ok": False, "reason": "not_running", "key": key}
 
 
+
+def fail_unverified(key: str, error: str = "receipt_not_verified", at: str | None = None) -> dict:
+    """Terminal failure after a submit attempt; never auto-retry because publish may have succeeded."""
+    at = at or utcnow()
+    rows = load()
+    for row in rows:
+        if row.get("key") == key and row.get("status") == "RUNNING":
+            row.update(status="FAILED_UNVERIFIED", lease_until=None, last_error=error[:1000], updated_at=at)
+            save(rows); audit({"at": at, "event": "FAILED_UNVERIFIED", "key": key})
+            return {"ok": True, "item": row}
+    return {"ok": False, "reason": "not_running", "key": key}
 
 def reconcile_zodiac_receipts(cards_root: Path | None = None, at: str | None = None) -> dict:
     """Mark queued zodiac jobs published when the existing publisher receipt exists."""
@@ -235,7 +248,7 @@ def main() -> None:
     en = sp.add_parser("enqueue")
     en.add_argument("--key", required=True)
     en.add_argument("--scheduled-at", required=True)
-    en.add_argument("--kind", choices=["zodiac_carousel", "text", "promo"], required=True)
+    en.add_argument("--kind", choices=["zodiac_carousel", "text", "promo", "threads_ui_reply"], required=True)
     en.add_argument("--target", required=True)
     sp.add_parser("dry-run")
     sp.add_parser("status")
