@@ -1,6 +1,6 @@
 # Threads 성장 자동화 보고 — 2026-09-22
 
-- 실행: 드라이런/점검
+- 실행: 실제 발송
 - PAUSED: False
 - 오늘 카운트: `{"external": 0, "inbound": 0, "nested": 0, "total": 0, "per_target": {}}`
 
