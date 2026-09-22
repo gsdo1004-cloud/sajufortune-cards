@@ -5,6 +5,28 @@
   "max_comment_age_hours": 96,
   "daily_cap": 5,
   "per_run_cap": 1,
-  "blocked_terms": ["http://", "https://", "www.", "프로필 링크", "구매", "결제", "상담 신청", "카톡", "텔레그램", "오픈채팅", "DM 주세요", "디엠 주세요"],
-  "skip_comment_terms": ["광고", "홍보", "맞팔", "선팔", "코인", "도박", "대출"]
+  "blocked_terms": [
+    "http://",
+    "https://",
+    "www.",
+    "구매",
+    "결제",
+    "상담 신청",
+    "카톡",
+    "텔레그램",
+    "오픈채팅",
+    "DM 주세요",
+    "디엠 주세요"
+  ],
+  "skip_comment_terms": [
+    "광고",
+    "홍보",
+    "맞팔",
+    "선팔",
+    "코인",
+    "도박",
+    "대출"
+  ],
+  "homepage_cta_every": 5,
+  "homepage_cta": "더 자세한 개인 운세가 궁금하시면 sajufortune.kr의 무료 운세도 참고해보세요 🔮"
 }
