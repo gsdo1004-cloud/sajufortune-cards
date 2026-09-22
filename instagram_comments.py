@@ -32,6 +32,8 @@ DEFAULT_CONFIG = {
     "max_comment_age_hours": 96,
     "daily_cap": 5,
     "per_run_cap": 1,
+    "homepage_cta_every": 5,
+    "homepage_cta": "더 자세한 개인 운세가 궁금하시면 sajufortune.kr의 무료 운세도 참고해보세요 🔮",
     "blocked_terms": [
         "http://", "https://", "www.", "프로필 링크", "구매", "결제", "상담 신청",
         "카톡", "텔레그램", "오픈채팅", "DM 주세요", "디엠 주세요"
@@ -110,16 +112,17 @@ def norm(s: str) -> str:
     return re.sub(r"\s+", " ", (s or "").strip().lower())
 
 
-def safe_reply(comment: str, username: str) -> str:
+def safe_reply(comment: str, username: str, media_caption: str = "") -> str:
     text = norm(comment)
+    caption = norm(media_caption)
     # Keep replies conversational and non-commercial. No fortune claims or diagnosis.
     if any(k in text for k in ["감사", "고마"]):
         return "댓글 남겨주셔서 감사합니다 😊 오늘도 편안한 하루 보내세요."
-    if any(k in text for k in ["재물", "돈", "금전"]):
+    if any(k in text for k in ["재물", "돈", "금전"]) or any(k in caption for k in ["재물", "돈", "금전"]):
         return "재물운은 한 가지 신호보다 시기와 선택을 함께 보는 게 중요해요. 요즘 가장 궁금한 부분이 수입, 지출, 기회 중 어느 쪽인가요?"
-    if any(k in text for k in ["궁합", "연애", "사랑"]):
+    if any(k in text for k in ["궁합", "연애", "사랑"]) or any(k in caption for k in ["궁합", "연애", "사랑"]):
         return "관계운은 상대와의 흐름을 같이 볼 때 해석이 더 풍부해져요. 요즘 가장 신경 쓰이는 부분이 소통인지, 시기인지 궁금합니다."
-    if any(k in text for k in ["직장", "취업", "사업", "이직"]):
+    if any(k in text for k in ["직장", "취업", "사업", "이직"]) or any(k in caption for k in ["직장", "취업", "사업", "이직"]):
         return "일운은 변화 시점과 실제 선택지를 함께 보는 게 좋아요. 지금은 유지와 변화 중 어느 쪽을 더 고민하고 계신가요?"
     if "?" in comment or "？" in comment or any(k in text for k in ["어떻게", "언제", "왜", "뭔가", "궁금"]):
         return "좋은 질문이에요. 한 가지로 단정하기보다 지금 상황과 시기를 같이 보는 게 좋습니다. 어떤 부분이 가장 궁금하신가요?"
@@ -186,6 +189,7 @@ def discover() -> tuple[dict[str, Any], list[dict[str, Any]]]:
             candidates.append({
                 "comment_id": cid, "media_id": mid, "username": author,
                 "text": text, "timestamp": cm.get("timestamp"), "permalink": m.get("permalink"),
+                "media_caption": str(m.get("caption") or ""),
             })
     candidates.sort(key=lambda x: x.get("timestamp") or "", reverse=True)
     return profile, candidates
@@ -204,7 +208,12 @@ def run(send: bool = False) -> int:
     for item in candidates:
         if len(actions) >= int(c["per_run_cap"]) or sent >= int(c["daily_cap"]):
             break
-        reply = safe_reply(item["text"], item["username"])
+        reply = safe_reply(item["text"], item["username"], item.get("media_caption", ""))
+        intent = norm(item["text"])
+        high_intent = any(k in intent for k in ["재물", "돈", "금전", "직장", "취업", "사업", "이직", "궁합", "연애", "사랑", "사주", "운세", "궁금"])
+        cta_every = max(1, int(c.get("homepage_cta_every", 5)))
+        if high_intent and (sent + 1) % cta_every == 0:
+            reply = f"{reply} {c.get('homepage_cta', '').strip()}".strip()
         ok, why = quality_ok(reply, c, history)
         if not ok:
             continue
