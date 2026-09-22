@@ -1,0 +1,45 @@
+name: 수익최적화 숏폼 B라인 생성
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: '생성일 YYYY-MM-DD (비우면 KST 내일)'
+        required: false
+        default: ''
+  schedule:
+    - cron: '30 4 * * *' # KST 13:30
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      REVENUE_SUPERTONIC_VOICE: F3
+      SUPERTONIC_OFF: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: ffmpeg 설치
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-noto-cjk
+      - name: Supertonic 캐시
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/supertonic3
+          key: supertonic3-model-v1
+      - name: TTS 의존성
+        run: pip install Pillow edge-tts supertonic
+      - name: B라인 영상 생성
+        run: |
+          TARGET='${{ inputs.date }}'
+          if [ -z "$TARGET" ]; then TARGET=$(TZ=Asia/Seoul date -d '+1 day' +%F); fi
+          python revenue_video_pipeline.py --date "$TARGET"
+      - name: 결과 커밋
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add revenue_cards/ reels_revenue/
+          git commit -m 'revenue shortform assets' || echo '변경 없음'
+          git pull --rebase --autostash
+          git push
