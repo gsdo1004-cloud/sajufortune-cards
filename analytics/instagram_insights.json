@@ -1,7 +1,24 @@
 {
-  "collected_at": "2026-09-23T12:18:11",
+  "collected_at": "2026-09-23T15:29:36",
   "count": 30,
   "media": [
+    {
+      "id": "17904176829572461",
+      "media_type": "VIDEO",
+      "media_product_type": "REELS",
+      "timestamp": "2026-09-23T15:29:20+0000",
+      "permalink": "https://www.instagram.com/reel/DdoofGdCgb8/",
+      "like_count": 0,
+      "comments_count": 0,
+      "caption_head": "2026년 9월 24일 목요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #릴스 #사주 #운세 #무료운세",
+      "metrics": {
+        "views": 0,
+        "reach": 0,
+        "saved": 0,
+        "shares": 0,
+        "total_interactions": 0
+      }
+    },
     {
       "id": "18213554815358870",
       "media_type": "VIDEO",
@@ -12,8 +29,8 @@
       "comments_count": 0,
       "caption_head": "2026년 9월 23일 수요일 오늘 눈여겨볼 띠 한 가지 🔮 짧은 영상은 공통 신호만 보여드립니다. 내 사주 기준 흐름은 프로필 첫 링크의 무료 오늘운세에서 확인하세요.  #사주 #띠별운세 #오늘의운세 #릴스 #운세",
       "metrics": {
-        "views": 1,
-        "reach": 0,
+        "views": 44,
+        "reach": 42,
         "saved": 0,
         "shares": 0,
         "total_interactions": 0
@@ -63,8 +80,8 @@
       "comments_count": 0,
       "caption_head": "2026년 9월 22일 화요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #릴스 #사주 #운세 #무료운세",
       "metrics": {
-        "views": 252,
-        "reach": 230,
+        "views": 253,
+        "reach": 231,
         "saved": 0,
         "shares": 0,
         "total_interactions": 5
@@ -493,23 +510,6 @@
         "saved": 2,
         "shares": 2,
         "total_interactions": 12
-      }
-    },
-    {
-      "id": "17932635588124775",
-      "media_type": "VIDEO",
-      "media_product_type": "REELS",
-      "timestamp": "2026-08-17T11:43:01+0000",
-      "permalink": "https://www.instagram.com/reel/DcI9Mp8h8TP/",
-      "like_count": 1,
-      "comments_count": 1,
-      "caption_head": "#오늘의운세 #띠별운세",
-      "metrics": {
-        "views": 194,
-        "reach": 174,
-        "saved": 0,
-        "shares": 0,
-        "total_interactions": 2
       }
     }
   ]
