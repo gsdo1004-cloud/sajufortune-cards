@@ -8290,7 +8290,8 @@
     }
    ],
    "timestamp": "2026-09-10T07:27:46+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DdGTHghm-W_"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DdGTHghm-W_",
+   "closed": true
   },
   "18110619713033593": {
    "channel": "ghost",
@@ -8308,7 +8309,8 @@
     }
    ],
    "timestamp": "2026-09-10T01:08:15+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DdFnsPEGFj2"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DdFnsPEGFj2",
+   "closed": true
   },
   "18077068496441631": {
    "channel": "signal_carousel",
@@ -8437,6 +8439,16 @@
     {
      "t": "2026-09-23T11:21:50Z",
      "age_h": 291.9,
+     "views": 31,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-24T11:35:40Z",
+     "age_h": 316.2,
      "views": 31,
      "likes": 2,
      "replies": 0,
@@ -8589,6 +8601,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-24T11:35:40Z",
+     "age_h": 292.3,
+     "views": 18,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-12T07:18:07+0000",
@@ -8709,6 +8731,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-24T11:35:40Z",
+     "age_h": 99.7,
+     "views": 19,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-20T07:53:37+0000",
@@ -8765,6 +8797,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-24T11:35:40Z",
+     "age_h": 75.5,
+     "views": 4,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-21T08:08:11+0000",
@@ -8797,6 +8839,16 @@
     {
      "t": "2026-09-23T11:21:50Z",
      "age_h": 67.4,
+     "views": 7,
+     "likes": 1,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-24T11:35:40Z",
+     "age_h": 91.6,
      "views": 7,
      "likes": 1,
      "replies": 1,
@@ -8849,6 +8901,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-24T11:35:40Z",
+     "age_h": 51.7,
+     "views": 9,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-22T07:54:10+0000",
@@ -8871,6 +8933,16 @@
     {
      "t": "2026-09-23T11:21:50Z",
      "age_h": 41.2,
+     "views": 18,
+     "likes": 2,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-24T11:35:40Z",
+     "age_h": 65.4,
      "views": 18,
      "likes": 2,
      "replies": 1,
@@ -8913,6 +8985,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-24T11:35:40Z",
+     "age_h": 27.6,
+     "views": 5,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-23T07:56:49+0000",
@@ -8926,6 +9008,16 @@
      "t": "2026-09-23T11:21:50Z",
      "age_h": 18.5,
      "views": 18,
+     "likes": 2,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-24T11:35:40Z",
+     "age_h": 42.7,
+     "views": 23,
      "likes": 2,
      "replies": 1,
      "reposts": 0,
@@ -8953,6 +9045,60 @@
    ],
    "timestamp": "2026-09-23T01:32:05+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/DdnIwXVFPq-"
+  },
+  "18217816303347405": {
+   "channel": "signal_carousel",
+   "head": "돼지띠, 오늘은 좋은 운·나쁜 운보다 어디에 힘을 쓸지가 더 중요해.\n\n오늘의 선택: 오늘은 신축일, 오늘 기운이 나를 눌러오",
+   "snapshots": [
+    {
+     "t": "2026-09-24T11:35:40Z",
+     "age_h": 3.8,
+     "views": 2,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-24T07:46:21+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DdqYX18G-ys"
+  },
+  "18029163563905496": {
+   "channel": "carousel",
+   "head": "",
+   "snapshots": [
+    {
+     "t": "2026-09-24T11:35:40Z",
+     "age_h": 18.8,
+     "views": 14,
+     "likes": 2,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-23T16:49:33+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DdoxvfAGjIR"
+  },
+  "17886546891476236": {
+   "channel": "ghost",
+   "head": "신축일. 9월 24일(목)의 기운.\n쥐띠, 소띠, 뱀띠 — 오늘 이 띠들은 하려던 거 밀어붙여도 되는 날.\n비슷하게 느끼는 사",
+   "snapshots": [
+    {
+     "t": "2026-09-24T11:35:40Z",
+     "age_h": 10.1,
+     "views": 1,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-24T01:28:26+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DdptIQ4FU1c"
   }
  }
 }
