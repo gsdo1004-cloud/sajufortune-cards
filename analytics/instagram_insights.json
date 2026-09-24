@@ -1,22 +1,39 @@
 {
-  "collected_at": "2026-09-24T12:19:13",
+  "collected_at": "2026-09-24T15:51:21",
   "count": 30,
   "media": [
+    {
+      "id": "18104851289230568",
+      "media_type": "VIDEO",
+      "media_product_type": "REELS",
+      "timestamp": "2026-09-24T15:51:04+0000",
+      "permalink": "https://www.instagram.com/reel/DdrPxXzCUHO/",
+      "like_count": 0,
+      "comments_count": 0,
+      "caption_head": "2026년 9월 25일 금요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #릴스 #사주 #운세 #무료운세",
+      "metrics": {
+        "views": 0,
+        "reach": 0,
+        "saved": 0,
+        "shares": 0,
+        "total_interactions": 0
+      }
+    },
     {
       "id": "18176361400439565",
       "media_type": "CAROUSEL_ALBUM",
       "media_product_type": "FEED",
       "timestamp": "2026-09-24T11:55:44+0000",
       "permalink": "https://www.instagram.com/p/Ddq06bEm1Pi/",
-      "like_count": 1,
+      "like_count": 2,
       "comments_count": 0,
       "caption_head": "2026년 9월 24일 목요일 오늘의 띠별 운세 🔮 내 띠의 흐름을 먼저 보고, 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #사주 #운세 #12띠 #데일리운세",
       "metrics": {
-        "views": 4,
-        "reach": 2,
+        "views": 8,
+        "reach": 5,
         "saved": 0,
         "shares": 0,
-        "total_interactions": 1
+        "total_interactions": 2
       }
     },
     {
@@ -29,8 +46,8 @@
       "comments_count": 0,
       "caption_head": "2026년 9월 24일 목요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #릴스 #사주 #운세 #무료운세",
       "metrics": {
-        "views": 264,
-        "reach": 248,
+        "views": 265,
+        "reach": 249,
         "saved": 0,
         "shares": 0,
         "total_interactions": 3
@@ -492,23 +509,6 @@
         "reach": 119,
         "saved": 0,
         "shares": 1,
-        "total_interactions": 2
-      }
-    },
-    {
-      "id": "18168514414459769",
-      "media_type": "VIDEO",
-      "media_product_type": "REELS",
-      "timestamp": "2026-08-21T14:44:17+0000",
-      "permalink": "https://www.instagram.com/reel/DcTkQ4lBiuJ/",
-      "like_count": 2,
-      "comments_count": 0,
-      "caption_head": "오늘의 운세 #띠별운세풀이",
-      "metrics": {
-        "views": 144,
-        "reach": 122,
-        "saved": 0,
-        "shares": 0,
         "total_interactions": 2
       }
     }
