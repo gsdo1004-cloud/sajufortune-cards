@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-09-25T14:44:38.400385+00:00",
+  "checked_at": "2026-09-25T17:19:00.200315+00:00",
   "basic": true,
   "read_replies": true,
   "profile_posts": false,
@@ -21,6 +21,6 @@
   ],
   "errors": {
     "profile_posts": "OAuthException code=10 subcode=4279067: Application does not have permission for this action",
-    "mentions": "API code=1 subcode=None: An unknown error occurred"
+    "mentions": "HTTP 500: non-json response"
   }
 }
