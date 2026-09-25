@@ -8458,7 +8458,8 @@
     }
    ],
    "timestamp": "2026-09-11T07:25:57+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DdI3tIVlu9S"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DdI3tIVlu9S",
+   "closed": true
   },
   "18187867039406429": {
    "channel": "ghost",
@@ -8476,7 +8477,8 @@
     }
    ],
    "timestamp": "2026-09-11T01:09:53+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DdIMrJeGKX3"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DdIMrJeGKX3",
+   "closed": true
   },
   "17991569721015583": {
    "channel": "signal_carousel",
@@ -8605,6 +8607,16 @@
     {
      "t": "2026-09-24T11:35:40Z",
      "age_h": 292.3,
+     "views": 18,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-25T11:41:15Z",
+     "age_h": 316.4,
      "views": 18,
      "likes": 2,
      "replies": 0,
@@ -8741,6 +8753,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-25T11:41:15Z",
+     "age_h": 123.8,
+     "views": 19,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-20T07:53:37+0000",
@@ -8807,6 +8829,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-25T11:41:15Z",
+     "age_h": 99.6,
+     "views": 4,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-21T08:08:11+0000",
@@ -8850,6 +8882,16 @@
      "t": "2026-09-24T11:35:40Z",
      "age_h": 91.6,
      "views": 7,
+     "likes": 1,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-25T11:41:15Z",
+     "age_h": 115.7,
+     "views": 8,
      "likes": 1,
      "replies": 1,
      "reposts": 0,
@@ -8911,6 +8953,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-25T11:41:15Z",
+     "age_h": 75.8,
+     "views": 10,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-22T07:54:10+0000",
@@ -8944,6 +8996,16 @@
      "t": "2026-09-24T11:35:40Z",
      "age_h": 65.4,
      "views": 18,
+     "likes": 2,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-25T11:41:15Z",
+     "age_h": 89.5,
+     "views": 20,
      "likes": 2,
      "replies": 1,
      "reposts": 0,
@@ -8995,6 +9057,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-25T11:41:15Z",
+     "age_h": 51.7,
+     "views": 6,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-23T07:56:49+0000",
@@ -9018,6 +9090,16 @@
      "t": "2026-09-24T11:35:40Z",
      "age_h": 42.7,
      "views": 23,
+     "likes": 2,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-25T11:41:15Z",
+     "age_h": 66.8,
+     "views": 32,
      "likes": 2,
      "replies": 1,
      "reposts": 0,
@@ -9059,6 +9141,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-25T11:41:15Z",
+     "age_h": 27.9,
+     "views": 6,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-24T07:46:21+0000",
@@ -9073,6 +9165,16 @@
      "age_h": 18.8,
      "views": 14,
      "likes": 2,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-25T11:41:15Z",
+     "age_h": 42.9,
+     "views": 17,
+     "likes": 3,
      "replies": 1,
      "reposts": 0,
      "quotes": 0,
@@ -9099,6 +9201,60 @@
    ],
    "timestamp": "2026-09-24T01:28:26+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/DdptIQ4FU1c"
+  },
+  "18117713920962885": {
+   "channel": "signal_carousel",
+   "head": "2026년 9월 25일 임인일\n쥐띠 돈 흐름\n\n오늘 쥐띠, 돈은 크게 벌리기보다 이 한 곳을 먼저 살펴봐.\n오늘은 임인일, 내",
+   "snapshots": [
+    {
+     "t": "2026-09-25T11:41:15Z",
+     "age_h": 3.6,
+     "views": 6,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-25T08:05:09+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dds_UXbG_HV"
+  },
+  "18119560108893765": {
+   "channel": "carousel",
+   "head": "",
+   "snapshots": [
+    {
+     "t": "2026-09-25T11:41:15Z",
+     "age_h": 18.6,
+     "views": 18,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-24T17:04:28+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DdrYP01lIdF"
+  },
+  "18115116148791137": {
+   "channel": "ghost",
+   "head": "오늘 뭐부터 할지 정했나.\n9월 25일 일진 임인일로 보면 호랑이띠, 말띠, 개띠한테 유리한 흐름이다.\n오늘은 무엇을 먼저 챙",
+   "snapshots": [
+    {
+     "t": "2026-09-25T11:41:15Z",
+     "age_h": 10.1,
+     "views": 0,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-25T01:35:16+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DdsStaXHP6A"
   }
  }
 }
