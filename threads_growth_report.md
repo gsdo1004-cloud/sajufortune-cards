@@ -17,8 +17,8 @@
 ## 미지원/권한 오류
 
 - profile_posts: `OAuthException code=10 subcode=4279067: Application does not have permission for this action`
-- mentions: `HTTP 500: non-json response`
+- mentions: `API code=1 subcode=None: An unknown error occurred`
 
 ## 이번 실행
 
-- 발송/초안 대상 없음
+- external @gsdo10042026: 띠별 운세는 하루의 큰 기운을 보기에 참 좋지요. 혹시 오늘 일진에서 유독 눈여겨보신 십성이나 신살의 흐름이 있으셨는지 궁금하네요. (dry)
