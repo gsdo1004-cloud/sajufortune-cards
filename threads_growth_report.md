@@ -17,8 +17,8 @@
 ## 미지원/권한 오류
 
 - profile_posts: `OAuthException code=10 subcode=4279067: Application does not have permission for this action`
-- mentions: `API code=1 subcode=None: An unknown error occurred`
+- mentions: `HTTP 500: non-json response`
 
 ## 이번 실행
 
-- external @gsdo10042026: 본인의 일간이 무엇인지와 태어난 계절(월지)을 알려주시면, 어떤 십성의 기운이 가장 강하게 작용하는지 바로 짚어드릴 수 있습니다. 혹시 알고 계신가요? (dry)
+- external @gsdo10042026: 일간을 기준으로 나를 둘러싼 오행의 관계를 뜯어봐야 정확한 십성이 나오지요. 혹시 본인의 생년월일시에서 가장 강한 기운을 차지하는 오행이 무엇인지 알고 계신가요? (dry)
