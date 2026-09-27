@@ -17,8 +17,8 @@
 ## 미지원/권한 오류
 
 - profile_posts: `OAuthException code=10 subcode=4279067: Application does not have permission for this action`
-- mentions: `API code=1 subcode=None: An unknown error occurred`
+- mentions: `HTTP 500: non-json response`
 
 ## 이번 실행
 
-- external @gsdo10042026: 일운을 볼 때 띠별 흐름과 개인의 일간 대비 글자들의 합충을 함께 비교해 보면 확실히 해석의 깊이가 달라지더라고요. 오늘 일진에서 특히 주목하신 간지 조합이 있으신가요? (dry)
+- external @gsdo10042026: 일간을 기준으로 월지와 주변 글자들의 세력을 봐야 정확한 격국과 주된 십성이 잡히더군요. 혹시 본인의 일간이 어떤 오행이신지 알 수 있을까요? (dry)
