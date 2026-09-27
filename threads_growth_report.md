@@ -17,8 +17,8 @@
 ## 미지원/권한 오류
 
 - profile_posts: `OAuthException code=10 subcode=4279067: Application does not have permission for this action`
-- mentions: `HTTP 500: non-json response`
+- mentions: `API code=1 subcode=None: An unknown error occurred`
 
 ## 이번 실행
 
-- external @gsdo10042026: 일간을 기준으로 나를 둘러싼 오행의 관계를 뜯어봐야 정확한 십성이 나오지요. 혹시 본인의 생년월일시에서 가장 강한 기운을 차지하는 오행이 무엇인지 알고 계신가요? (dry)
+- 발송/초안 대상 없음
