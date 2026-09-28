@@ -57,6 +57,18 @@ def youtube_publish_at(date_iso: str) -> str:
     day = dt.date.fromisoformat(date_iso) - dt.timedelta(days=1)
     return f"{day.isoformat()}T{YT_PUBLISH_HOUR}"
 
+def youtube_tracked_url(date_iso: str) -> str:
+    """Per-content website URL for exact YouTube -> site attribution."""
+    from urllib.parse import urlencode
+    compact=date_iso.replace('-', '')
+    q=urlencode({
+        "utm_source":"youtube",
+        "utm_medium":"description",
+        "utm_campaign":f"yt_{compact}_shorts",
+        "utm_content":f"FORTUNE-ZODIAC-DAILY-{compact}",
+    })
+    return f"https://sajufortune.kr/links?{q}"
+
 
 def log(msg: str):
     line = f"[pipeline {dt.datetime.now().strftime('%H:%M:%S')}] {msg}"
@@ -325,6 +337,7 @@ def queue_youtube_shorts(date_iso: str, alerts: list[str],
         lead = (f"{d.year}년 {d.month}월 {d.day}일 {wd}요일, 12띠 오늘의 운세를 정리했습니다.\n"
                 f"내 띠의 오늘 흐름, 금전운·연애운·건강운까지 확인해 보세요.")
     desc = (f"{lead}\n\n"
+            f"오늘의 운세 무료 확인: {youtube_tracked_url(date_iso)}\n\n"
             f"매일 아침 새로운 띠별운세가 올라옵니다. 구독하시면 놓치지 않아요.\n\n"
             f"#띠별운세 #오늘의운세 #12띠 #사주 #운세 #shorts\n\n"
             f"※ 본 콘텐츠는 전통 명리의 일진 풀이를 바탕으로 한 재미와 참고용입니다. "
