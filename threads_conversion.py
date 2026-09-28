@@ -48,8 +48,19 @@ def stage(channel: str, date_iso: str) -> str:
 def campaign_key(channel: str, date_iso: str) -> str:
     return f"th_{date_iso.replace('-', '')}_{channel}"[:100]
 
+def content_id(channel: str, date_iso: str) -> str:
+    # Preserve the legacy campaign key for historical reports while adding the
+    # canonical editorial content id for exact purchase/visit attribution.
+    kind = "ZODIAC-DAILY" if channel == "carousel" else "SAJU-SIGNAL" if channel == "signal" else "THREADS-GHOST"
+    return f"FORTUNE-{kind}-{date_iso.replace('-', '')}"
+
 def tracked_url(channel: str, date_iso: str) -> str:
-    q=urlencode({"utm_source":"threads","utm_medium":"organic","utm_campaign":campaign_key(channel,date_iso)})
+    q=urlencode({
+        "utm_source":"threads",
+        "utm_medium":"organic",
+        "utm_campaign":campaign_key(channel,date_iso),
+        "utm_content":content_id(channel,date_iso),
+    })
     return f"https://sajufortune.kr/links?{q}"
 
 def cta(channel: str, date_iso: str, sign: str = "", focus: str = "") -> str:
