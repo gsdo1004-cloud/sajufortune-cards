@@ -42,6 +42,9 @@ DEFAULT_CONFIG = {
     "skip_comment_terms": ["광고", "홍보", "맞팔", "선팔", "코인", "도박", "대출"],
     "fortune_shadow_enabled": True,
     "fortune_trigger_terms": ["사주", "재물", "재물운", "직장", "직장운", "연애", "연애운", "궁합", "사업", "사업운", "운세"],
+    "fortune_private_reply_canary_enabled": False,
+    "fortune_private_reply_canary_cap": 3,
+    "fortune_private_reply_text": "사주 간단풀이 도와드릴게요 🔮\n양력/음력 + 생년월일 + 태어난 시간 + 성별 + 궁금한 점 하나 보내주세요.\n예) 양력 1990.03.12 14:00 여 / 재물운\n자동으로 보내는 첫 안내예요.",
 }
 
 
@@ -83,6 +86,23 @@ def api_get(path: str, params: dict[str, Any]) -> dict[str, Any]:
 
 def api_post(path: str, data: dict[str, Any]) -> dict[str, Any]:
     r = requests.post(f"{GRAPH}/{path.lstrip('/')}", data=data, timeout=30)
+    try:
+        out = r.json()
+    except Exception:
+        raise RuntimeError(f"POST {path}: HTTP {r.status_code} non-json")
+    if r.status_code >= 400 or out.get("error"):
+        err = out.get("error") or {}
+        raise RuntimeError(f"POST {path}: code={err.get('code')} {str(err.get('message') or out)[:250]}")
+    return out
+
+
+def api_post_json(path: str, payload: dict[str, Any], tok: str) -> dict[str, Any]:
+    r = requests.post(
+        f"{GRAPH}/{path.lstrip('/')}",
+        json=payload,
+        headers={"Authorization": f"Bearer {tok}"},
+        timeout=30,
+    )
     try:
         out = r.json()
     except Exception:
@@ -222,6 +242,63 @@ def discover() -> tuple[dict[str, Any], list[dict[str, Any]]]:
     return profile, candidates
 
 
+def _record_recent_within_days(rec: dict[str, Any], days: int) -> bool:
+    ts = parse_ts(rec.get("timestamp"))
+    if not ts:
+        return False
+    if not ts.tzinfo:
+        ts = ts.replace(tzinfo=dt.timezone.utc)
+    age = dt.datetime.now(dt.timezone.utc) - ts.astimezone(dt.timezone.utc)
+    return age.total_seconds() <= days * 86400
+
+
+def maybe_run_fortune_private_canary(
+    uid: str, tok: str, c: dict[str, Any], state: dict[str, Any]
+) -> list[dict[str, Any]]:
+    if not c.get("fortune_private_reply_canary_enabled", False):
+        return []
+    if os.environ.get("INSTAGRAM_FORTUNE_PRIVATE_REPLY_ENABLED", "") != "1":
+        return []
+
+    shadow = list(state.get("fortune_shadow_records", []))
+    already = set(str(x) for x in state.get("fortune_private_reply_comment_ids", []))
+    # Do not start canary until enough real shadow evidence exists.
+    if len(shadow) < 30:
+        return []
+
+    cap = max(1, min(3, int(c.get("fortune_private_reply_canary_cap", 3))))
+    message = str(c.get("fortune_private_reply_text") or "").strip()
+    if not message:
+        return []
+
+    sent = []
+    for rec in shadow:
+        if len(sent) >= cap:
+            break
+        cid = str(rec.get("comment_id") or "")
+        if not cid or cid in already:
+            continue
+        if not _record_recent_within_days(rec, 7):
+            continue
+        out = api_post_json(
+            f"{uid}/messages",
+            {"recipient": {"comment_id": cid}, "message": {"text": message}},
+            tok,
+        )
+        mid = str(out.get("message_id") or out.get("id") or "")
+        if not mid:
+            raise RuntimeError("Instagram private reply returned no id")
+        state.setdefault("fortune_private_reply_comment_ids", []).append(cid)
+        state.setdefault("fortune_private_reply_receipts", []).append({
+            "comment_id": cid,
+            "message_id": mid,
+            "at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        })
+        sent.append({"comment_id": cid, "message_id": mid})
+        save_json(STATE, state)
+    return sent
+
+
 def run(send: bool = False) -> int:
     c = cfg()
     uid, tok = env()
@@ -283,6 +360,11 @@ def run(send: bool = False) -> int:
             day["sent"] = sent
             save_json(STATE, state)
         actions.append(rec)
+
+    private_canary = []
+    if send:
+        private_canary = maybe_run_fortune_private_canary(uid, tok, c, state)
+
     lines = [
         f"# Instagram 댓글 자동화 보고 — {today}", "",
         f"- 계정: `{profile.get('username','?')}`",
@@ -290,6 +372,7 @@ def run(send: bool = False) -> int:
         f"- 후보: {len(candidates)}건",
         f"- 이번 처리: {len(actions)}건",
         f"- 무료사주 Shadow 후보: {len(fortune_shadow)}건",
+        f"- 무료사주 Private Reply Canary: {len(private_canary)}건",
         f"- 오늘 발송: {sent}/{c['daily_cap']}", "",
     ]
     if actions:
@@ -302,6 +385,10 @@ def run(send: bool = False) -> int:
         lines += ["", "## 무료사주 Shadow", ""]
         for a in fortune_shadow:
             lines += [f"- trigger={a['trigger']} / comment={a['comment_id']} / text_hash={a['text_hash']}"]
+    if private_canary:
+        lines += ["", "## 무료사주 Private Reply Canary", ""]
+        for a in private_canary:
+            lines += [f"- comment={a['comment_id']} / message_id={a['message_id']}"]
     REPORT.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
     return 0

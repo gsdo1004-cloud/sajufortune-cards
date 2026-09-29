@@ -38,5 +38,18 @@ class InstagramCommentSafetyTests(unittest.TestCase):
         self.assertNotIn("username",rec)
         self.assertIn("text_hash",rec)
 
+    def test_private_canary_blocked_until_30_shadow_samples(self):
+        c={**m.DEFAULT_CONFIG,"fortune_private_reply_canary_enabled":True}
+        state={"fortune_shadow_records":[{"comment_id":"1","timestamp":"2026-09-30T00:00:00Z"}]}
+        old=m.os.environ.get("INSTAGRAM_FORTUNE_PRIVATE_REPLY_ENABLED")
+        try:
+            m.os.environ["INSTAGRAM_FORTUNE_PRIVATE_REPLY_ENABLED"]="1"
+            self.assertEqual(m.maybe_run_fortune_private_canary("uid","tok",c,state),[])
+        finally:
+            if old is None:
+                m.os.environ.pop("INSTAGRAM_FORTUNE_PRIVATE_REPLY_ENABLED",None)
+            else:
+                m.os.environ["INSTAGRAM_FORTUNE_PRIVATE_REPLY_ENABLED"]=old
+
 if __name__ == '__main__':
     unittest.main()

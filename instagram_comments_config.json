@@ -43,5 +43,8 @@
     "사업운",
     "운세"
   ],
-  "fortune_dm_tone": "soft_polite_haeyo"
+  "fortune_dm_tone": "soft_polite_haeyo",
+  "fortune_private_reply_canary_enabled": false,
+  "fortune_private_reply_canary_cap": 3,
+  "fortune_private_reply_text": "사주 간단풀이 도와드릴게요 🔮\n양력/음력 + 생년월일 + 태어난 시간 + 성별 + 궁금한 점 하나 보내주세요.\n예) 양력 1990.03.12 14:00 여 / 재물운\n자동으로 보내는 첫 안내예요."
 }
