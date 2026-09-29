@@ -17,8 +17,8 @@
 ## 미지원/권한 오류
 
 - profile_posts: `OAuthException code=10 subcode=4279067: Application does not have permission for this action`
-- mentions: `HTTP 500: non-json response`
+- mentions: `API code=1 subcode=None: An unknown error occurred`
 
 ## 이번 실행
 
-- 발송/초안 대상 없음
+- external @gsdo10042026: 띠별 운세는 년지 기준이라 큰 흐름을 보기 좋지요. 일간 기준의 일운과 비교했을 때 어느 쪽이 체감이 더 잘 되시던가요? (dry)
