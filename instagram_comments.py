@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import difflib
+import hashlib
 import json
 import os
 import re
@@ -39,6 +40,8 @@ DEFAULT_CONFIG = {
         "카톡", "텔레그램", "오픈채팅", "DM 주세요", "디엠 주세요"
     ],
     "skip_comment_terms": ["광고", "홍보", "맞팔", "선팔", "코인", "도박", "대출"],
+    "fortune_shadow_enabled": True,
+    "fortune_trigger_terms": ["사주", "재물", "재물운", "직장", "직장운", "연애", "연애운", "궁합", "사업", "사업운", "운세"],
 }
 
 
@@ -112,6 +115,26 @@ def norm(s: str) -> str:
     return re.sub(r"\s+", " ", (s or "").strip().lower())
 
 
+def fortune_trigger(text: str, c: dict[str, Any]) -> str | None:
+    t = norm(text)
+    for word in c.get("fortune_trigger_terms", []):
+        if norm(word) in t:
+            return str(word)
+    return None
+
+
+def fortune_shadow_record(item: dict[str, Any], trigger: str) -> dict[str, Any]:
+    # Persist no raw birth data or username. Keep only anonymous routing evidence.
+    text = str(item.get("text") or "")
+    return {
+        "comment_id": str(item.get("comment_id") or ""),
+        "media_id": str(item.get("media_id") or ""),
+        "trigger": trigger,
+        "timestamp": item.get("timestamp"),
+        "text_hash": hashlib.sha256(text.encode("utf-8")).hexdigest()[:16],
+    }
+
+
 def safe_reply(comment: str, username: str, media_caption: str = "") -> str:
     text = norm(comment)
     caption = norm(media_caption)
@@ -160,7 +183,11 @@ def discover() -> tuple[dict[str, Any], list[dict[str, Any]]]:
     }).get("data") or []
     candidates: list[dict[str, Any]] = []
     state = load_json(STATE, {"replied_comment_ids": [], "uncertain_comment_ids": [], "reply_texts": [], "days": {}})
-    done = set(str(x) for x in state.get("replied_comment_ids", [])) | set(str(x) for x in state.get("uncertain_comment_ids", []))
+    done = (
+        set(str(x) for x in state.get("replied_comment_ids", []))
+        | set(str(x) for x in state.get("uncertain_comment_ids", []))
+        | set(str(x) for x in state.get("fortune_shadow_comment_ids", []))
+    )
     for m in media:
         mid = str(m.get("id") or "")
         if not mid:
@@ -205,9 +232,21 @@ def run(send: bool = False) -> int:
     sent = int(day.get("sent", 0))
     history = list(state.get("reply_texts", []))
     actions = []
+    fortune_shadow = []
     for item in candidates:
         if len(actions) >= int(c["per_run_cap"]) or sent >= int(c["daily_cap"]):
             break
+
+        trig = fortune_trigger(item.get("text",""), c) if c.get("fortune_shadow_enabled", True) else None
+        if trig:
+            rec = fortune_shadow_record(item, trig)
+            fortune_shadow.append(rec)
+            state.setdefault("fortune_shadow_comment_ids", []).append(item["comment_id"])
+            state.setdefault("fortune_shadow_records", []).append(rec)
+            state["fortune_shadow_records"] = state.get("fortune_shadow_records", [])[-500:]
+            save_json(STATE, state)
+            continue
+
         reply = safe_reply(item["text"], item["username"], item.get("media_caption", ""))
         intent = norm(item["text"])
         high_intent = any(k in intent for k in ["재물", "돈", "금전", "직장", "취업", "사업", "이직", "궁합", "연애", "사랑", "사주", "운세", "궁금"])
@@ -250,6 +289,7 @@ def run(send: bool = False) -> int:
         f"- 모드: {'실전 발송' if send else '드라이런'}",
         f"- 후보: {len(candidates)}건",
         f"- 이번 처리: {len(actions)}건",
+        f"- 무료사주 Shadow 후보: {len(fortune_shadow)}건",
         f"- 오늘 발송: {sent}/{c['daily_cap']}", "",
     ]
     if actions:
@@ -257,7 +297,11 @@ def run(send: bool = False) -> int:
         for a in actions:
             lines += [f"- @{a['username']}: {a['text'][:100]}", f"  - 답글: {a['reply']}"]
     else:
-        lines += ["- 처리할 새 댓글이 없습니다."]
+        lines += ["- 처리할 일반 새 댓글이 없습니다."]
+    if fortune_shadow:
+        lines += ["", "## 무료사주 Shadow", ""]
+        for a in fortune_shadow:
+            lines += [f"- trigger={a['trigger']} / comment={a['comment_id']} / text_hash={a['text_hash']}"]
     REPORT.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
     return 0

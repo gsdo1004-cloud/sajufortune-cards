@@ -28,5 +28,20 @@
     "대출"
   ],
   "homepage_cta_every": 5,
-  "homepage_cta": "더 자세한 개인 운세가 궁금하시면 sajufortune.kr의 무료 운세도 참고해보세요 🔮"
+  "homepage_cta": "더 자세한 개인 운세가 궁금하시면 sajufortune.kr의 무료 운세도 참고해보세요 🔮",
+  "fortune_shadow_enabled": true,
+  "fortune_trigger_terms": [
+    "사주",
+    "재물",
+    "재물운",
+    "직장",
+    "직장운",
+    "연애",
+    "연애운",
+    "궁합",
+    "사업",
+    "사업운",
+    "운세"
+  ],
+  "fortune_dm_tone": "soft_polite_haeyo"
 }

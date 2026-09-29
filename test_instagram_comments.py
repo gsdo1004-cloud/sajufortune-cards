@@ -24,5 +24,19 @@ class InstagramCommentSafetyTests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertEqual(why, "near_duplicate")
 
+    def test_fortune_trigger_shadow(self):
+        c={**m.DEFAULT_CONFIG,"fortune_trigger_terms":["사주","재물","직장"]}
+        self.assertEqual(m.fortune_trigger("재물 궁금해요",c),"재물")
+        self.assertIsNone(m.fortune_trigger("감사합니다",c))
+
+    def test_fortune_shadow_does_not_store_raw_text_or_username(self):
+        rec=m.fortune_shadow_record({
+            "comment_id":"1","media_id":"2","username":"private_user",
+            "text":"양력 1990-03-12 14:00 여 재물운","timestamp":"2026-09-30T00:00:00Z"
+        },"재물")
+        self.assertNotIn("text",rec)
+        self.assertNotIn("username",rec)
+        self.assertIn("text_hash",rec)
+
 if __name__ == '__main__':
     unittest.main()
