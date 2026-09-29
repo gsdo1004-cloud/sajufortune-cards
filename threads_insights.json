@@ -8795,6 +8795,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-29T12:39:49Z",
+     "age_h": 220.8,
+     "views": 19,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-20T07:53:37+0000",
@@ -8901,6 +8911,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-29T12:39:49Z",
+     "age_h": 196.5,
+     "views": 5,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-21T08:08:11+0000",
@@ -8984,6 +9004,16 @@
      "t": "2026-09-28T13:38:41Z",
      "age_h": 189.7,
      "views": 8,
+     "likes": 1,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-29T12:39:49Z",
+     "age_h": 212.7,
+     "views": 9,
      "likes": 1,
      "replies": 1,
      "reposts": 0,
@@ -9085,6 +9115,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-29T12:39:49Z",
+     "age_h": 172.8,
+     "views": 12,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-22T07:54:10+0000",
@@ -9158,6 +9198,16 @@
      "t": "2026-09-28T13:38:41Z",
      "age_h": 163.4,
      "views": 20,
+     "likes": 2,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-29T12:39:49Z",
+     "age_h": 186.5,
+     "views": 21,
      "likes": 2,
      "replies": 1,
      "reposts": 0,
@@ -9249,6 +9299,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-29T12:39:49Z",
+     "age_h": 148.7,
+     "views": 7,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-23T07:56:49+0000",
@@ -9312,6 +9372,16 @@
      "t": "2026-09-28T13:38:41Z",
      "age_h": 140.8,
      "views": 64,
+     "likes": 2,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-29T12:39:49Z",
+     "age_h": 163.8,
+     "views": 66,
      "likes": 2,
      "replies": 1,
      "reposts": 0,
@@ -9393,6 +9463,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-29T12:39:49Z",
+     "age_h": 124.9,
+     "views": 10,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-24T07:46:21+0000",
@@ -9446,6 +9526,16 @@
      "t": "2026-09-28T13:38:41Z",
      "age_h": 116.8,
      "views": 19,
+     "likes": 3,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-29T12:39:49Z",
+     "age_h": 139.8,
+     "views": 20,
      "likes": 3,
      "replies": 1,
      "reposts": 0,
@@ -9517,6 +9607,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-29T12:39:49Z",
+     "age_h": 100.6,
+     "views": 119,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-25T08:05:09+0000",
@@ -9560,6 +9660,16 @@
      "t": "2026-09-28T13:38:41Z",
      "age_h": 92.6,
      "views": 43,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-29T12:39:49Z",
+     "age_h": 115.6,
+     "views": 44,
      "likes": 0,
      "replies": 1,
      "reposts": 0,
@@ -9621,6 +9731,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-29T12:39:49Z",
+     "age_h": 76.7,
+     "views": 13,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-26T07:58:04+0000",
@@ -9654,6 +9774,16 @@
      "t": "2026-09-28T13:38:41Z",
      "age_h": 68.6,
      "views": 85,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-29T12:39:49Z",
+     "age_h": 91.6,
+     "views": 88,
      "likes": 0,
      "replies": 1,
      "reposts": 0,
@@ -9705,6 +9835,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-29T12:39:49Z",
+     "age_h": 52.2,
+     "views": 8,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-27T08:26:37+0000",
@@ -9728,6 +9868,16 @@
      "t": "2026-09-28T13:38:41Z",
      "age_h": 45.3,
      "views": 15,
+     "likes": 1,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-09-29T12:39:49Z",
+     "age_h": 68.4,
+     "views": 16,
      "likes": 1,
      "replies": 1,
      "reposts": 0,
@@ -9769,6 +9919,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-09-29T12:39:49Z",
+     "age_h": 27.8,
+     "views": 5,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-28T08:52:43+0000",
@@ -9791,6 +9951,60 @@
    ],
    "timestamp": "2026-09-28T01:43:27+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/Dd0CByLmhcP"
+  },
+  "18128408797791621": {
+   "channel": "signal_carousel",
+   "head": "용띠, 오늘은 좋은 운·나쁜 운보다 어디에 힘을 쓸지가 더 중요해.\n\n돈 흐름: 재물운이 상승하는 흐름입니다. 오래 준비한 일",
+   "snapshots": [
+    {
+     "t": "2026-09-29T12:39:49Z",
+     "age_h": 3.8,
+     "views": 3,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-29T08:49:06+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dd3XhygFUu4"
+  },
+  "17939337624364285": {
+   "channel": "carousel",
+   "head": "",
+   "snapshots": [
+    {
+     "t": "2026-09-29T12:39:49Z",
+     "age_h": 17.0,
+     "views": 22,
+     "likes": 2,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-28T19:38:16+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dd19BgGj1aK"
+  },
+  "18164524720485371": {
+   "channel": "ghost",
+   "head": "9월 29일 병오일.\n사주는 정해진 답이 아니라 그날 기운의 결이다. 오늘은 호랑이띠, 용띠, 양띠가 그 결을 탄다.\n너는 오",
+   "snapshots": [
+    {
+     "t": "2026-09-29T12:39:49Z",
+     "age_h": 10.1,
+     "views": 1,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-09-29T02:35:52+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dd2s0WNjnVU"
   }
  }
 }
