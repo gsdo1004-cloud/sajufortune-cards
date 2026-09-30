@@ -4,6 +4,13 @@ class T(unittest.TestCase):
   s=pathlib.Path('tiktok_longform_renderer.py').read_text(encoding='utf-8'); self.assertIn("youtube_touched':False",s); self.assertNotIn('make_reel_tts(',s)
  def test_gate(self):
   s=pathlib.Path('tiktok_longform_renderer.py').read_text(encoding='utf-8'); self.assertIn('360<=sec<=540',s)
+ def test_narration_not_triplicated(self):
+  import tiktok_longform_renderer as r
+  base='기준 문장'
+  text=r.narration_text(base)
+  self.assertEqual(text.count(base),1)
+  self.assertEqual(len(r.EXPANSION_LINES),3)
  def test_avatar_plan(self):
   import tiktok_longform_revenue as m; p=m.plan('2026-09-23'); self.assertEqual(p['pngtuber'],'existing young male/female'); self.assertFalse(p['youtube'])
-unittest.main()
+if __name__=='__main__':
+ unittest.main()
