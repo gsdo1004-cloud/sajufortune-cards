@@ -17,7 +17,7 @@
 ## 미지원/권한 오류
 
 - profile_posts: `OAuthException code=10 subcode=4279067: Application does not have permission for this action`
-- mentions: `API code=1 subcode=None: An unknown error occurred`
+- mentions: `HTTP 500: non-json response`
 
 ## 이번 실행
 
