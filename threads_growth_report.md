@@ -1,4 +1,4 @@
-# Threads 성장 자동화 보고 — 2026-10-01
+# Threads 성장 자동화 보고 — 2026-10-02
 
 - 실행: 실제 발송
 - PAUSED: False
@@ -17,7 +17,7 @@
 ## 미지원/권한 오류
 
 - profile_posts: `OAuthException code=10 subcode=4279067: Application does not have permission for this action`
-- mentions: `HTTP 500: non-json response`
+- mentions: `API code=1 subcode=None: An unknown error occurred`
 
 ## 이번 실행
 
