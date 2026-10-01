@@ -1,16 +1,16 @@
 {
-  "collected_at": "2026-09-30T17:01:34",
+  "collected_at": "2026-10-01T13:29:03",
   "count": 30,
   "media": [
     {
-      "id": "18158098171506433",
-      "media_type": "VIDEO",
-      "media_product_type": "REELS",
-      "timestamp": "2026-09-30T16:52:25+0000",
-      "permalink": "https://www.instagram.com/reel/Dd6zkN8DFkK/",
+      "id": "18108175306923261",
+      "media_type": "CAROUSEL_ALBUM",
+      "media_product_type": "FEED",
+      "timestamp": "2026-10-01T13:28:49+0000",
+      "permalink": "https://www.instagram.com/p/Dd9BIPkG3rq/",
       "like_count": 0,
       "comments_count": 0,
-      "caption_head": "2026년 10월 1일 목요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #릴스 #사주 #운세 #무료운세",
+      "caption_head": "2026년 10월 1일 목요일 오늘의 띠별 운세 🔮 내 띠의 흐름을 먼저 보고, 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #사주 #운세 #12띠 #데일리운세",
       "metrics": {
         "views": 0,
         "reach": 0,
@@ -20,20 +20,37 @@
       }
     },
     {
+      "id": "18158098171506433",
+      "media_type": "VIDEO",
+      "media_product_type": "REELS",
+      "timestamp": "2026-09-30T16:52:25+0000",
+      "permalink": "https://www.instagram.com/reel/Dd6zkN8DFkK/",
+      "like_count": 6,
+      "comments_count": 0,
+      "caption_head": "2026년 10월 1일 목요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #릴스 #사주 #운세 #무료운세",
+      "metrics": {
+        "views": 272,
+        "reach": 246,
+        "saved": 0,
+        "shares": 0,
+        "total_interactions": 6
+      }
+    },
+    {
       "id": "18134179624654679",
       "media_type": "VIDEO",
       "media_product_type": "REELS",
       "timestamp": "2026-09-30T12:44:53+0000",
       "permalink": "https://www.instagram.com/reel/Dd6XR4UGER0/",
-      "like_count": 1,
+      "like_count": 2,
       "comments_count": 0,
       "caption_head": "2026년 9월 30일 수요일 오늘 눈여겨볼 띠 한 가지 🔮 짧은 영상은 공통 신호만 보여드립니다. 내 사주 기준 흐름은 프로필 첫 링크의 무료 오늘운세에서 확인하세요.  #사주 #띠별운세 #오늘의운세 #릴스 #운세",
       "metrics": {
-        "views": 135,
-        "reach": 109,
+        "views": 202,
+        "reach": 193,
         "saved": 0,
         "shares": 0,
-        "total_interactions": 1
+        "total_interactions": 2
       }
     },
     {
@@ -46,8 +63,8 @@
       "comments_count": 0,
       "caption_head": "2026년 9월 30일 수요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #릴스 #사주 #운세 #무료운세",
       "metrics": {
-        "views": 472,
-        "reach": 404,
+        "views": 478,
+        "reach": 409,
         "saved": 2,
         "shares": 2,
         "total_interactions": 15
@@ -63,8 +80,8 @@
       "comments_count": 0,
       "caption_head": "2026년 9월 29일 화요일 오늘의 띠별 운세 🔮 내 띠의 흐름을 먼저 보고, 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #사주 #운세 #12띠 #데일리운세",
       "metrics": {
-        "views": 28,
-        "reach": 19,
+        "views": 33,
+        "reach": 22,
         "saved": 1,
         "shares": 0,
         "total_interactions": 6
@@ -131,8 +148,8 @@
       "comments_count": 0,
       "caption_head": "2026년 9월 27일 일요일 오늘의 띠별 운세 🔮 내 띠의 흐름을 먼저 보고, 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #사주 #운세 #12띠 #데일리운세",
       "metrics": {
-        "views": 26,
-        "reach": 17,
+        "views": 27,
+        "reach": 18,
         "saved": 0,
         "shares": 0,
         "total_interactions": 3
@@ -493,23 +510,6 @@
         "saved": 0,
         "shares": 0,
         "total_interactions": 8
-      }
-    },
-    {
-      "id": "18075375701416494",
-      "media_type": "CAROUSEL_ALBUM",
-      "media_product_type": "FEED",
-      "timestamp": "2026-09-13T12:00:17+0000",
-      "permalink": "https://www.instagram.com/p/DdOgsLem80o/",
-      "like_count": 2,
-      "comments_count": 0,
-      "caption_head": "2026년 9월 13일 일요일 오늘의 띠별 운세 🔮 내 띠의 흐름을 먼저 보고, 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #사주 #운세 #12띠 #데일리운세",
-      "metrics": {
-        "views": 33,
-        "reach": 17,
-        "saved": 0,
-        "shares": 0,
-        "total_interactions": 2
       }
     }
   ]
