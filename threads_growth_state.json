@@ -52,7 +52,14 @@
       "nested": 0,
       "total": 0,
       "per_target": {}
+    },
+    "2026-10-02": {
+      "external": 0,
+      "inbound": 0,
+      "nested": 0,
+      "total": 0,
+      "per_target": {}
     }
   },
-  "last_run_at": "2026-10-01T16:28:43.447855+00:00"
+  "last_run_at": "2026-10-01T18:29:38.470313+00:00"
 }
