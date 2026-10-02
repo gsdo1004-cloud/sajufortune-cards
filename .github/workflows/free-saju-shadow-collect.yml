@@ -1,0 +1,48 @@
+name: Free Saju Shadow Collect (read-only)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: free-saju-shadow-readonly
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+      INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+      THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+      FREE_SAJU_SHADOW_HASH_SALT: ${{ secrets.FREE_SAJU_SHADOW_HASH_SALT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - name: Shadow collector unit test
+        run: python -m unittest -v test_free_saju_shadow_collect.py
+      - name: Read-only collect
+        run: python free_saju_shadow_collect.py --channel all
+      - name: Reject raw identifiers or text fields
+        run: |
+          python - <<'PY'
+          import json
+          p=json.load(open("free_saju_shadow_artifact.json",encoding="utf-8"))
+          banned={"text","username","comment_id","media_id","permalink","birth_date","birth_time"}
+          for r in p.get("records",[]):
+              bad=banned.intersection(r)
+              if bad:
+                  raise SystemExit("unsafe artifact keys: "+",".join(sorted(bad)))
+          print("artifact privacy gate OK",len(p.get("records",[])))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: free-saju-shadow-${{ github.run_id }}
+          path: free_saju_shadow_artifact.json
+          retention-days: 7
+          if-no-files-found: error
