@@ -8683,7 +8683,8 @@
     }
    ],
    "timestamp": "2026-09-18T01:18:46+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/DdaPQSBkR4X"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DdaPQSBkR4X",
+   "closed": true
   },
   "18028666649683880": {
    "channel": "ghost",
@@ -8826,6 +8827,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 292.5,
+     "views": 19,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-20T07:53:37+0000",
@@ -8962,6 +8973,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 268.2,
+     "views": 5,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-21T08:08:11+0000",
@@ -9074,6 +9095,16 @@
     {
      "t": "2026-10-01T12:59:33Z",
      "age_h": 261.0,
+     "views": 9,
+     "likes": 1,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 284.4,
      "views": 9,
      "likes": 1,
      "replies": 1,
@@ -9206,6 +9237,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 244.5,
+     "views": 12,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-22T07:54:10+0000",
@@ -9308,6 +9349,16 @@
     {
      "t": "2026-10-01T12:59:33Z",
      "age_h": 234.8,
+     "views": 21,
+     "likes": 2,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 258.2,
      "views": 21,
      "likes": 2,
      "replies": 1,
@@ -9430,6 +9481,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 220.4,
+     "views": 7,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-23T07:56:49+0000",
@@ -9522,6 +9583,16 @@
     {
      "t": "2026-10-01T12:59:33Z",
      "age_h": 212.1,
+     "views": 70,
+     "likes": 2,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 235.5,
      "views": 70,
      "likes": 2,
      "replies": 1,
@@ -9634,6 +9705,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 196.6,
+     "views": 10,
+     "likes": 0,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-24T07:46:21+0000",
@@ -9716,6 +9797,16 @@
     {
      "t": "2026-10-01T12:59:33Z",
      "age_h": 188.2,
+     "views": 20,
+     "likes": 3,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 211.5,
      "views": 20,
      "likes": 3,
      "replies": 1,
@@ -9818,6 +9909,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 172.3,
+     "views": 120,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-25T08:05:09+0000",
@@ -9890,6 +9991,16 @@
     {
      "t": "2026-10-01T12:59:33Z",
      "age_h": 163.9,
+     "views": 44,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 187.3,
      "views": 44,
      "likes": 0,
      "replies": 1,
@@ -9982,6 +10093,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 148.4,
+     "views": 14,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-26T07:58:04+0000",
@@ -10044,6 +10165,16 @@
     {
      "t": "2026-10-01T12:59:33Z",
      "age_h": 139.9,
+     "views": 91,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 163.3,
      "views": 91,
      "likes": 0,
      "replies": 1,
@@ -10126,6 +10257,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 123.9,
+     "views": 9,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-27T08:26:37+0000",
@@ -10178,6 +10319,16 @@
     {
      "t": "2026-10-01T12:59:33Z",
      "age_h": 116.7,
+     "views": 17,
+     "likes": 1,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 140.1,
      "views": 17,
      "likes": 1,
      "replies": 1,
@@ -10250,6 +10401,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 99.5,
+     "views": 6,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-28T08:52:43+0000",
@@ -10306,6 +10467,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 75.5,
+     "views": 10,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-29T08:49:06+0000",
@@ -10339,6 +10510,16 @@
      "t": "2026-10-01T12:59:33Z",
      "age_h": 65.4,
      "views": 42,
+     "likes": 2,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 88.7,
+     "views": 47,
      "likes": 2,
      "replies": 1,
      "reposts": 0,
@@ -10390,6 +10571,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 51.5,
+     "views": 10,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-09-30T08:50:05+0000",
@@ -10413,6 +10604,16 @@
      "t": "2026-10-01T12:59:33Z",
      "age_h": 42.9,
      "views": 15,
+     "likes": 1,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 66.3,
+     "views": 16,
      "likes": 1,
      "replies": 1,
      "reposts": 0,
@@ -10454,6 +10655,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 27.2,
+     "views": 3,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-10-01T09:12:50+0000",
@@ -10467,6 +10678,16 @@
      "t": "2026-10-01T12:59:33Z",
      "age_h": 19.0,
      "views": 11,
+     "likes": 0,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 42.4,
+     "views": 15,
      "likes": 0,
      "replies": 1,
      "reposts": 0,
@@ -10494,6 +10715,60 @@
    ],
    "timestamp": "2026-10-01T02:11:57+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/Dd7zrFCltYO"
+  },
+  "17971780305155005": {
+   "channel": "signal_carousel",
+   "head": "양띠, 오늘은 좋은 운·나쁜 운보다 어디에 힘을 쓸지가 더 중요해.\n\n컨디션 흐름: 마음의 안정이 곧 건강입니다. 잠깐의 산책",
+   "snapshots": [
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 3.6,
+     "views": 3,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-10-02T08:45:59+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dd_FjkuFgIq"
+  },
+  "18110541731150092": {
+   "channel": "carousel",
+   "head": "",
+   "snapshots": [
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 18.0,
+     "views": 21,
+     "likes": 1,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-10-01T18:25:03+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dd9jB-Rmdx8"
+  },
+  "18287959180291977": {
+   "channel": "ghost",
+   "head": "아침부터 마음이 분주하면 잠깐 멈춰볼 것.\n10월 2일 일진은 기유일. 서두르는 것보다 한 박자 늦추는 게 나은 날이다.\n비슷",
+   "snapshots": [
+    {
+     "t": "2026-10-02T12:22:03Z",
+     "age_h": 10.1,
+     "views": 2,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-10-02T02:18:44+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/Dd-ZPvxkdl5"
   }
  }
 }
