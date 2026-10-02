@@ -17,8 +17,8 @@
 ## 미지원/권한 오류
 
 - profile_posts: `OAuthException code=10 subcode=4279067: Application does not have permission for this action`
-- mentions: `API code=1 subcode=None: An unknown error occurred`
+- mentions: `THApiException code=10 subcode=None: Application does not have permission for this action`
 
 ## 이번 실행
 
-- external @gsdo10042026: 띠별 운세는 하루의 큰 기운을 읽기에 좋지요. 혹시 오늘 일진에서 천간 합이나 지지 충이 겹치는 띠들은 일간 대비 변화가 더 다이내믹하게 나타날까요? (dry)
+- external @gsdo10042026: 띠별 운세는 하루의 큰 기운을 보기에 참 좋지요. 혹시 오늘 일진에서 유독 천간의 합을 주의 깊게 봐야 하는 띠가 있을까요? (dry)
