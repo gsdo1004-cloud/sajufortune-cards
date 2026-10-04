@@ -252,7 +252,8 @@ def quality_gate(text: str, cfg: dict[str, Any], state: dict[str, Any], *, exter
     t = clean_model_text(text)
     if len(t) < 10:
         return False, "too_short"
-    if len(t) > 120:
+    max_len = 120 if external else 480
+    if len(t) > max_len:
         return False, "too_long"
     if not KOREAN_OR_ALNUM_RE.search(t):
         return False, "no_content"
@@ -327,7 +328,7 @@ def maybe_add_revenue_cta(text: str, candidate: Candidate, cfg: dict[str, Any], 
 
 def generate_reply(candidate: Candidate, cfg: dict[str, Any], state: dict[str, Any]) -> str | None:
     # 내 글의 띠/출생연도 댓글은 LLM보다 정본 띠엔진을 먼저 사용한다.
-    # 생년월일·출생시간이 공개 댓글에 있으면 원문을 되풀이하지 않고 DM으로 유도한다.
+    # 생년월일·출생시간이 공개 댓글에 있으면 원문을 되풀이하지 않고 상세 공개풀이한다.
     if candidate.kind != "external" and public_fortune_reply is not None:
         special = public_fortune_reply(candidate.text, date_key())
         if special:
