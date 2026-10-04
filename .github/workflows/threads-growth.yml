@@ -35,8 +35,10 @@ on:
     branches: [main]
     paths:
       - 'threads_growth.py'
+      - 'threads_fortune_public.py'
       - 'threads_growth_config.json'
       - 'test_threads_growth.py'
+      - 'test_threads_fortune_public.py'
       - '.github/workflows/threads-growth.yml'
 
 concurrency:
@@ -65,7 +67,7 @@ jobs:
       - run: pip install requests
 
       - name: 안전장치 단위테스트
-        run: python -m unittest -v test_threads_growth.py
+        run: python -m unittest -v test_threads_growth.py test_threads_fortune_public.py
 
       - name: API 권한/기능 사전검사
         run: python threads_growth.py --preflight
