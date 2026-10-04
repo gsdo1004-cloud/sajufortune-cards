@@ -21,4 +21,4 @@
 
 ## 이번 실행
 
-- nested @gongbubangpanamthinkbig: 양띠 인연·가족 흐름은 귀한 인연이 들어오는 따뜻한 흐름입니다. (sent)
+- 발송/초안 대상 없음
