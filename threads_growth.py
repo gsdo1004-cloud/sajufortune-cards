@@ -40,9 +40,13 @@ except Exception:
     llm = None
 
 try:
-    from threads_fortune_public import public_reply as public_fortune_reply
+    from threads_fortune_public import (
+        public_reply as public_fortune_reply,
+        has_birth_detail as public_birth_detail,
+    )
 except Exception:
     public_fortune_reply = None
+    public_birth_detail = None
 
 BASE = Path(__file__).resolve().parent
 GRAPH = os.environ.get("THREADS_GRAPH", "https://graph.threads.net/v1.0").rstrip("/")
@@ -623,6 +627,52 @@ def can_send_inbound(cfg: dict[str, Any], state: dict[str, Any]) -> bool:
             b.get("inbound", 0) + b.get("nested", 0) < int(cfg.get("inbound_daily_cap", 8)))
 
 
+def public_saju_required_delay_minutes(candidate: Candidate, cfg: dict[str, Any]) -> int:
+    """공개 생년월일 사주 댓글은 즉답하지 않고 사람다운 검토 시간을 둔다.
+
+    지연값은 댓글 ID에서 결정적으로 계산해 재실행 때도 바뀌지 않는다.
+    일반 댓글/대화는 기존 응답 속도를 유지한다.
+    """
+    if candidate.kind == "external" or public_birth_detail is None:
+        return 0
+    try:
+        if not public_birth_detail(candidate.text):
+            return 0
+    except Exception:
+        return 0
+    lo = max(0, int(cfg.get("public_saju_reply_min_delay_minutes", 35)))
+    hi = max(lo, int(cfg.get("public_saju_reply_max_delay_minutes", 95)))
+    if hi == lo:
+        return lo
+    seed = int(hashlib.sha256((candidate.id + "|public-saju-delay").encode("utf-8")).hexdigest()[:8], 16)
+    return lo + (seed % (hi - lo + 1))
+
+
+def public_saju_ready(candidate: Candidate, cfg: dict[str, Any]) -> tuple[bool, int, int]:
+    required = public_saju_required_delay_minutes(candidate, cfg)
+    if required <= 0:
+        return True, 0, int(age_hours(candidate.timestamp) * 60)
+    age_min = int(age_hours(candidate.timestamp) * 60)
+    return age_min >= required, required, age_min
+
+
+def inbound_inter_reply_pause_seconds(candidate: Candidate, cfg: dict[str, Any]) -> int:
+    """한 실행에서 여러 공개풀이가 초 단위로 연속 발행되는 패턴을 피한다."""
+    if public_birth_detail is None:
+        return 0
+    try:
+        if not public_birth_detail(candidate.text):
+            return 0
+    except Exception:
+        return 0
+    lo = max(0, int(cfg.get("public_saju_inter_reply_min_seconds", 70)))
+    hi = max(lo, int(cfg.get("public_saju_inter_reply_max_seconds", 150)))
+    if hi == lo:
+        return lo
+    seed = int(hashlib.sha256((candidate.id + "|public-saju-gap").encode("utf-8")).hexdigest()[:8], 16)
+    return lo + (seed % (hi - lo + 1))
+
+
 def record_send(state: dict[str, Any], candidate: Candidate, text: str, reply: dict[str, Any], *, dry_run: bool) -> None:
     if dry_run:
         return
@@ -670,6 +720,10 @@ def run_growth(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, Any], caps
         for c in candidates:
             if n >= int(cfg.get("inbound_per_run", 3)) or not can_send_inbound(cfg, state):
                 break
+            ready, required_delay, age_min = public_saju_ready(c, cfg)
+            if not ready:
+                log(f"공개사주 답변 대기 @{c.username}: 댓글 {age_min}분 경과 / 목표 {required_delay}분")
+                continue
             text = generate_reply(c, cfg, state)
             if not text:
                 # 같은 댓글을 다음 실행마다 무한 재시도하지 않게 품질 실패도 처리완료로 기록
@@ -679,6 +733,12 @@ def run_growth(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, Any], caps
             log(f"{('[SEND]' if api_send else '[QUEUE]')} {c.kind} @{c.username}: {text}")
             reply = {"id": "dry", "replied_to": {"id": c.id}}
             if api_send:
+                # 같은 실행에서 공개사주 답글이 연달아 몇 초 간격으로 달리지 않도록 간격을 둔다.
+                if n > 0:
+                    pause_s = inbound_inter_reply_pause_seconds(c, cfg)
+                    if pause_s > 0:
+                        log(f"공개사주 연속답글 간격 {pause_s}초")
+                        time.sleep(pause_s)
                 try:
                     reply = publish_reply(api, c, text)
                 except (APIError, LocationMismatch) as e:
