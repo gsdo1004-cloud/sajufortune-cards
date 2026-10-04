@@ -1,0 +1,116 @@
+name: RCE Threads Pilot One-Shot Publish
+
+run-name: RCE Pilot ${{ inputs.request_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: Signed RCE request id
+        required: true
+        type: string
+      packet_b64:
+        description: Signed canonical pilot packet
+        required: true
+        type: string
+      signature_b64:
+        description: Ed25519 signature for packet
+        required: true
+        type: string
+      confirm:
+        description: Must equal PUBLISH_RCE_PILOT
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rce-threads-pilot-one-shot
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+      THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install official publisher dependencies
+        run: python -m pip install --disable-pip-version-check -q requests cryptography
+
+      - name: Signed request preflight and one-shot publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          python rce_pilot_publish.py \
+            --request-id "${{ inputs.request_id }}" \
+            --packet-b64 "${{ inputs.packet_b64 }}" \
+            --signature-b64 "${{ inputs.signature_b64 }}" \
+            --confirm "${{ inputs.confirm }}"
+
+      - name: Upload authoritative receipt artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rce-pilot-receipt-${{ inputs.request_id }}
+          path: rce_pilot_receipt_output.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Persist authoritative receipt without republishing
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s rce_pilot_receipt_output.json
+          PILOT_ID="$(python - <<'PY'
+          import json
+          x=json.load(open('rce_pilot_receipt_output.json',encoding='utf-8'))
+          print(x['pilot_id'])
+          PY
+          )"
+          RECEIPT="rce_pilot_receipts/${PILOT_ID}.json"
+          cp rce_pilot_receipt_output.json /tmp/rce_pilot_receipt.json
+
+          git config user.name "rce-pilot-bot"
+          git config user.email "actions@users.noreply.github.com"
+
+          for attempt in 1 2 3; do
+            git fetch --quiet --no-tags origin main
+            if git cat-file -e "origin/main:${RECEIPT}" 2>/dev/null; then
+              git show "origin/main:${RECEIPT}" > /tmp/existing_receipt.json
+              python - <<'PY'
+          import json
+          a=json.load(open('/tmp/existing_receipt.json',encoding='utf-8'))
+          b=json.load(open('/tmp/rce_pilot_receipt.json',encoding='utf-8'))
+          keys=('request_id','pilot_id','content_id','pilot_fingerprint','copy_fingerprint','approval_id','post_id')
+          bad=[k for k in keys if str(a.get(k) or '') != str(b.get(k) or '')]
+          if bad:
+              raise SystemExit('[FAIL] remote authoritative receipt conflict: '+','.join(bad))
+          print('[OK] identical authoritative receipt already persisted')
+          PY
+              exit 0
+            fi
+
+            git reset --hard origin/main
+            mkdir -p rce_pilot_receipts
+            cp /tmp/rce_pilot_receipt.json "${RECEIPT}"
+            git add "${RECEIPT}"
+            git commit -m "chore: persist RCE pilot receipt ${PILOT_ID}"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "[WARN] receipt push race attempt ${attempt}; retrying without republishing"
+          done
+          echo "[FAIL] publication succeeded but receipt persistence failed"
+          exit 4
