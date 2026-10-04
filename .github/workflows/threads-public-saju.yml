@@ -12,6 +12,10 @@ on:
         description: '즉시 발행 샘플 번호 1~10 (비우면 자동 선택)'
         required: false
         default: '1'
+      occasion:
+        description: '상황형 문구 키 (예: holiday_mid). 비우면 번호 템플릿'
+        required: false
+        default: ''
       publish:
         description: 'true면 즉시 실제 발행, false면 테스트만'
         type: boolean
@@ -66,10 +70,13 @@ jobs:
               echo "[FAIL] template_id must be 1..10"
               exit 1
             fi
+            OCC="${{ inputs.occasion }}"
+            EXTRA=()
+            if [ -n "$OCC" ]; then EXTRA=(--occasion "$OCC"); fi
             if [ "${{ inputs.publish }}" = "true" ]; then
-              python threads_public_saju_event.py --manual --template "$TID"
+              python threads_public_saju_event.py --manual --template "$TID" "${EXTRA[@]}"
             else
-              PUBLIC_SAJU_DRY_RUN=1 python threads_public_saju_event.py --manual --template "$TID"
+              PUBLIC_SAJU_DRY_RUN=1 python threads_public_saju_event.py --manual --template "$TID" "${EXTRA[@]}"
             fi
           else
             python threads_public_saju_event.py
