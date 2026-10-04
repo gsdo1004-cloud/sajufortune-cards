@@ -336,7 +336,8 @@ def generate_reply(candidate: Candidate, cfg: dict[str, Any], state: dict[str, A
     if candidate.kind != "external" and public_fortune_reply is not None:
         special = public_fortune_reply(candidate.text, date_key())
         if special:
-            special = clean_model_text(special)
+            # 공개 사주 정밀풀이는 6~9줄 가독성을 유지한다.
+            special = special.strip().replace("```", "")
             ok, reason = quality_gate(special, cfg, state, external=False)
             if ok:
                 return special
