@@ -27,10 +27,13 @@ class ThreadsFortunePublicTest(unittest.TestCase):
         self.assertTrue(x["time_known"])
 
     @patch("threads_fortune_public._preview_sections")
-    def test_public_birth_reply_never_echoes_birth_date(self, preview):
+    def test_public_birth_reply_is_detailed_and_never_echoes_birth_date(self, preview):
         preview.return_value = {
+            "타고난 성품": "한번 정한 일은 꾸준히 밀고 가지만 판단 전에는 오래 살피는 편입니다.",
             "재물·일": "재물은 서두르기보다 흐름을 살피고 정리하는 편이 좋습니다.",
-            "2026년 흐름": "움직임과 선택이 중요한 시기입니다.",
+            "인연·가족": "가까운 사람과의 말 한마디가 관계 흐름을 크게 좌우할 수 있습니다.",
+            "2026년 흐름": "움직임과 선택이 중요한 시기라 조건을 비교해 보는 것이 좋습니다.",
+            "개운법 한 가지": "큰 결정보다 작은 정리부터 시작하면 흐름을 잡는 데 도움이 됩니다.",
         }
         src = "1994.05.24 오전 03:31 남자 재물운"
         out = public_reply(src, "2026-10-04")
@@ -39,6 +42,8 @@ class ThreadsFortunePublicTest(unittest.TestCase):
         self.assertNotIn("03:31", out)
         self.assertNotIn("DM", out)
         self.assertIn("재물", out)
+        self.assertGreaterEqual(len(out.splitlines()), 6)
+        self.assertLessEqual(len(out), 470)
 
     def test_public_zodiac_reply(self):
         out = public_reply("1982년 개띠 재물운 궁금해요", "2026-10-04")
