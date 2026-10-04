@@ -1,16 +1,19 @@
-name: Threads 공개 사주풀이 이벤트 (주 3회)
+name: Threads 공개 사주풀이 이벤트 (주 3회 + 즉시지시)
 
 on:
   schedule:
-    # 기존 합의 주력 슬롯(KST)
-    # 화 09:00 / 목 20:00 / 일 20:00
+    # 예정 발행은 그대로 유지 (KST): 화 09:00 / 목 20:00 / 일 20:00
     - cron: '0 0 * * 2'
     - cron: '0 11 * * 4'
     - cron: '0 11 * * 0'
   workflow_dispatch:
     inputs:
+      template_id:
+        description: '즉시 발행 샘플 번호 1~10 (비우면 자동 선택)'
+        required: false
+        default: '1'
       publish:
-        description: 'true면 실제 발행, false면 문구/테스트만'
+        description: 'true면 즉시 실제 발행, false면 테스트만'
         type: boolean
         required: false
         default: false
@@ -41,7 +44,7 @@ jobs:
       - name: 의존성 설치
         run: python -m pip install --disable-pip-version-check -q requests
 
-      - name: 공개 사주 라우터/게시물 테스트
+      - name: 공개 사주 라우터/유도글 테스트
         run: |
           python -m unittest -v test_threads_fortune_public.py test_threads_public_saju_event.py
 
@@ -54,11 +57,20 @@ jobs:
           print("[OK] Threads account verified:", uid)
           PY
 
-      - name: 공개 사주 이벤트 발행
+      - name: 공개 사주 이벤트 실행
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.publish }}" != "true" ]; then
-            PUBLIC_SAJU_DRY_RUN=1 python threads_public_saju_event.py
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TID="${{ inputs.template_id }}"
+            if ! [[ "$TID" =~ ^([1-9]|10)$ ]]; then
+              echo "[FAIL] template_id must be 1..10"
+              exit 1
+            fi
+            if [ "${{ inputs.publish }}" = "true" ]; then
+              python threads_public_saju_event.py --manual --template "$TID"
+            else
+              PUBLIC_SAJU_DRY_RUN=1 python threads_public_saju_event.py --manual --template "$TID"
+            fi
           else
             python threads_public_saju_event.py
           fi
