@@ -2,7 +2,7 @@
 
 - 실행: 실제 발송
 - PAUSED: False
-- 오늘 카운트: `{"external": 0, "inbound": 0, "nested": 0, "total": 0, "per_target": {}}`
+- 오늘 카운트: `{"external": 0, "inbound": 0, "nested": 1, "total": 1, "per_target": {}}`
 
 ## API 기능
 
@@ -21,4 +21,4 @@
 
 ## 이번 실행
 
-- 발송/초안 대상 없음
+- nested @gongbubangpanamthinkbig: 양띠 인연·가족 흐름은 귀한 인연이 들어오는 따뜻한 흐름입니다. (sent)
