@@ -24,16 +24,39 @@ class ThreadsFortunePublicTest(unittest.TestCase):
         self.assertEqual(x["birth_date"], "1982-02-09")
         self.assertEqual(x["birth_time"], "12:10")
         self.assertEqual(x["cal"], "lunar")
+        self.assertEqual(x["gender"], "F")
         self.assertTrue(x["time_known"])
 
-    @patch("threads_fortune_public._preview_sections")
-    def test_public_birth_reply_is_detailed_and_never_echoes_birth_date(self, preview):
-        preview.return_value = {
-            "타고난 성품": "한번 정한 일은 꾸준히 밀고 가지만 판단 전에는 오래 살피는 편입니다.",
-            "재물·일": "재물은 서두르기보다 흐름을 살피고 정리하는 편이 좋습니다.",
-            "인연·가족": "가까운 사람과의 말 한마디가 관계 흐름을 크게 좌우할 수 있습니다.",
-            "2026년 흐름": "움직임과 선택이 중요한 시기라 조건을 비교해 보는 것이 좋습니다.",
-            "개운법 한 가지": "큰 결정보다 작은 정리부터 시작하면 흐름을 잡는 데 도움이 됩니다.",
+    def test_parse_two_digit_birth_year(self):
+        x = parse_birth_input("82.2.9 12:10 남자 이직운")
+        self.assertEqual(x["birth_date"], "1982-02-09")
+        self.assertEqual(x["gender"], "M")
+
+    @patch("threads_fortune_public._structured_facts")
+    def test_public_birth_reply_is_specific_and_never_echoes_birth_date(self, facts):
+        facts.return_value = {
+            "chart": {
+                "year": "임술", "month": "임인", "day": "경진", "hour": "경진",
+                "day_master": "경", "day_master_element": "금",
+            },
+            "advanced": {
+                "strength": "신강", "strength_ratio": 63.0,
+                "top_ten_gods": [{"name": "편재", "score": 31.0}, {"name": "식신", "score": 25.0}],
+            },
+            "current_daewoon": {"ko": "계묘", "year_from": 2023, "year_to": 2033},
+            "current_year": {
+                "ko": "병오", "stem_ten_god": "편관", "branch_ten_god": "정관",
+                "interaction_kinds": ["chung"],
+            },
+            "next_year": {
+                "ko": "정미", "stem_ten_god": "정관", "branch_ten_god": "정인",
+                "interaction_kinds": [],
+            },
+            "wealth": {
+                "chart_count": 2, "wealth_element": "목",
+                "sewoon_years": [{"year": 2028}, {"year": 2029}],
+            },
+            "love": {"dohwa": "유", "cheonul": ["축", "미"], "hap": "유", "chung": "술"},
         }
         src = "1994.05.24 오전 03:31 남자 재물운"
         out = public_reply(src, "2026-10-04")
@@ -41,7 +64,10 @@ class ThreadsFortunePublicTest(unittest.TestCase):
         self.assertNotIn("1994.05.24", out)
         self.assertNotIn("03:31", out)
         self.assertNotIn("DM", out)
-        self.assertIn("재물", out)
+        self.assertIn("명식", out)
+        self.assertIn("현재대운", out)
+        self.assertIn("2026 세운", out)
+        self.assertIn("재물근거", out)
         self.assertGreaterEqual(len(out.splitlines()), 6)
         self.assertLessEqual(len(out), 470)
 
