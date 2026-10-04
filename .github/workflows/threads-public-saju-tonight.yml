@@ -1,9 +1,6 @@
 name: Threads 공개사주 오늘밤 댓글자동답변
 
 on:
-  schedule:
-    # 2026-10-04 KST 18:00~23:55 (UTC 09:00~14:55), 5분 간격
-    - cron: '*/5 9-14 4 10 *'
   workflow_dispatch:
 
 permissions:
@@ -23,14 +20,17 @@ jobs:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_API_KEY_PAID: ${{ secrets.GEMINI_API_KEY_PAID }}
       PUBLIC_SAJU_EVENT_CAP: '40'
+      PUBLIC_SAJU_ROOT_TEXT_CONTAINS: '연휴 중간인데 사주 한번 풀어볼까'
+      PUBLIC_SAJU_COMMENT_START_UTC: '2026-10-04T08:35:00+00:00'
+      PUBLIC_SAJU_COMMENT_CUTOFF_UTC: '2026-10-04T15:00:00+00:00'
     steps:
-      - name: 2026-10-04 KST 밤만 실행
+      - name: 2026-10-04 자정 댓글 마감 + 00:15 후처리까지만 실행
         id: guard
         shell: bash
         run: |
           NOW="$(TZ=Asia/Seoul date +'%Y-%m-%d %H:%M')"
           echo "KST=$NOW"
-          if [[ "$NOW" == 2026-10-04* ]]; then
+          if [[ "$NOW" > "2026-10-04 17:30" && "$NOW" < "2026-10-05 00:16" ]]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
