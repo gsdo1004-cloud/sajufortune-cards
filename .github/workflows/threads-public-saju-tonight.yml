@@ -1,0 +1,82 @@
+name: Threads 공개사주 오늘밤 댓글자동답변
+
+on:
+  schedule:
+    # 2026-10-04 KST 18:00~23:55 (UTC 09:00~14:55), 5분 간격
+    - cron: '*/5 9-14 4 10 *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: threads-growth-main
+  cancel-in-progress: false
+
+jobs:
+  reply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+      THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEY_PAID: ${{ secrets.GEMINI_API_KEY_PAID }}
+      PUBLIC_SAJU_EVENT_CAP: '40'
+    steps:
+      - name: 2026-10-04 KST 밤만 실행
+        id: guard
+        shell: bash
+        run: |
+          NOW="$(TZ=Asia/Seoul date +'%Y-%m-%d %H:%M')"
+          echo "KST=$NOW"
+          if [[ "$NOW" == 2026-10-04* ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.guard.outputs.run == 'true'
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        if: steps.guard.outputs.run == 'true'
+        with:
+          python-version: '3.11'
+
+      - name: 의존성 설치
+        if: steps.guard.outputs.run == 'true'
+        run: python -m pip install --disable-pip-version-check -q requests
+
+      - name: 생년월일 공개 댓글만 자동답변
+        if: steps.guard.outputs.run == 'true'
+        run: python threads_growth.py --send --no-external --birth-only
+
+      - name: 답글 상태 저장
+        if: steps.guard.outputs.run == 'true' && always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/threads-growth-state
+          for f in threads_growth_state.json threads_growth_report.md threads_growth_capabilities.json threads_growth_PAUSED.json; do
+            [ -f "$f" ] && cp "$f" /tmp/threads-growth-state/ || true
+          done
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch --quiet origin main
+          git reset --hard origin/main
+
+          for f in /tmp/threads-growth-state/*; do
+            [ -f "$f" ] && cp "$f" . || true
+          done
+          for f in threads_growth_state.json threads_growth_report.md threads_growth_capabilities.json threads_growth_PAUSED.json; do
+            [ -f "$f" ] && git add "$f" || true
+          done
+
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: tonight public saju replies $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push origin HEAD:main || true
+          fi
