@@ -407,7 +407,27 @@ def preflight() -> int:
             detail = "comments read OK"
         except Exception as e:
             detail = str(e)[:300]
-    out = {"username": p.get("username"), "basic": bool(p.get("id")), "comments_read": comments_ok, "detail": detail}
+
+    # Instagram DM 자동 사주풀이 준비용 read-only capability probe.
+    # 메시지를 보내지 않고 conversations 조회 권한만 확인한다.
+    dm_read = False
+    dm_detail = "not checked"
+    try:
+        api_get(f"{uid}/conversations", {"fields": "id,updated_time", "limit": 1, "access_token": tok})
+        dm_read = True
+        dm_detail = "conversations read OK"
+    except Exception as e:
+        dm_detail = str(e)[:300]
+
+    out = {
+        "username": p.get("username"),
+        "account_type": p.get("account_type"),
+        "basic": bool(p.get("id")),
+        "comments_read": comments_ok,
+        "dm_read": dm_read,
+        "detail": detail,
+        "dm_detail": dm_detail,
+    }
     save_json(BASE / "instagram_comments_capabilities.json", out)
     print(json.dumps(out, ensure_ascii=False))
     return 0 if comments_ok else 2
