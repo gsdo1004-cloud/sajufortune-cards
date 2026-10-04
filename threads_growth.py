@@ -640,8 +640,8 @@ def public_saju_required_delay_minutes(candidate: Candidate, cfg: dict[str, Any]
             return 0
     except Exception:
         return 0
-    lo = max(0, int(cfg.get("public_saju_reply_min_delay_minutes", 35)))
-    hi = max(lo, int(cfg.get("public_saju_reply_max_delay_minutes", 95)))
+    lo = max(0, int(cfg.get("public_saju_reply_min_delay_minutes", 5)))
+    hi = max(lo, int(cfg.get("public_saju_reply_max_delay_minutes", 5)))
     if hi == lo:
         return lo
     seed = int(hashlib.sha256((candidate.id + "|public-saju-delay").encode("utf-8")).hexdigest()[:8], 16)
