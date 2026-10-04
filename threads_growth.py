@@ -39,6 +39,11 @@ try:
 except Exception:
     llm = None
 
+try:
+    from threads_fortune_public import public_reply as public_fortune_reply
+except Exception:
+    public_fortune_reply = None
+
 BASE = Path(__file__).resolve().parent
 GRAPH = os.environ.get("THREADS_GRAPH", "https://graph.threads.net/v1.0").rstrip("/")
 CONFIG_PATH = BASE / "threads_growth_config.json"
@@ -321,6 +326,16 @@ def maybe_add_revenue_cta(text: str, candidate: Candidate, cfg: dict[str, Any], 
 
 
 def generate_reply(candidate: Candidate, cfg: dict[str, Any], state: dict[str, Any]) -> str | None:
+    # 내 글의 띠/출생연도 댓글은 LLM보다 정본 띠엔진을 먼저 사용한다.
+    # 생년월일·출생시간이 공개 댓글에 있으면 원문을 되풀이하지 않고 DM으로 유도한다.
+    if candidate.kind != "external" and public_fortune_reply is not None:
+        special = public_fortune_reply(candidate.text, date_key())
+        if special:
+            special = clean_model_text(special)
+            ok, reason = quality_gate(special, cfg, state, external=False)
+            if ok:
+                return special
+            log(f"공개 띠풀이 게이트 폐기({reason}): {special[:80]}")
     if llm is None:
         return None
     if candidate.kind == "external":
