@@ -1,5 +1,5 @@
 {
-  "collected_at": "2026-10-04T12:30:26",
+  "collected_at": "2026-10-04T12:53:37",
   "count": 30,
   "media": [
     {
@@ -8,15 +8,15 @@
       "media_product_type": "FEED",
       "timestamp": "2026-10-04T12:30:08+0000",
       "permalink": "https://www.instagram.com/p/DeEoy_yFick/",
-      "like_count": 0,
+      "like_count": 1,
       "comments_count": 0,
       "caption_head": "2026년 10월 4일 일요일 오늘의 띠별 운세 🔮 내 띠의 흐름을 먼저 보고, 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #사주 #운세 #12띠 #데일리운세",
       "metrics": {
-        "views": 0,
-        "reach": 0,
+        "views": 5,
+        "reach": 2,
         "saved": 0,
         "shares": 0,
-        "total_interactions": 0
+        "total_interactions": 1
       }
     },
     {
@@ -29,8 +29,8 @@
       "comments_count": 0,
       "caption_head": "2026년 10월 4일 일요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #릴스 #사주 #운세 #무료운세",
       "metrics": {
-        "views": 16,
-        "reach": 8,
+        "views": 17,
+        "reach": 9,
         "saved": 1,
         "shares": 0,
         "total_interactions": 4
