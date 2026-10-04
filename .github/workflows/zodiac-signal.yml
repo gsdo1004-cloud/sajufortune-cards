@@ -125,10 +125,26 @@ jobs:
           [ -z "$DATE" ] && DATE=$(TZ=Asia/Seoul date +%F)
           # -A로 3~5번 레거시 카드 삭제도 함께 반영해 2장 계약을 원격에 고정한다.
           git add -A -- "cards/${DATE}/signal_*.jpg" "cards/${DATE}/signal_ai_manifest.json"
-          git diff --staged --quiet || git commit -m "chore: 띠 지목 카드"
-          git pull --rebase --autostash || true
-          git push
-          sleep 15   # raw 반영 대기
+          if git diff --staged --quiet; then
+            echo "[SKIP] 카드 변경 없음 — 불필요한 push 생략"
+          else
+            git commit -m "chore: 띠 지목 카드"
+            for ATTEMPT in 1 2 3 4 5; do
+              git fetch --quiet origin main
+              git rebase origin/main
+              if git push origin HEAD:main; then
+                echo "[OK] 카드 push 성공 (시도 ${ATTEMPT}/5)"
+                break
+              fi
+              if [ "$ATTEMPT" = "5" ]; then
+                echo "[FAIL] 카드 push가 5회 연속 충돌/실패"
+                exit 1
+              fi
+              echo "[WARN] 원격 main 갱신 감지 — rebase 후 재시도 (${ATTEMPT}/5)"
+              sleep $((ATTEMPT * 2))
+            done
+            sleep 15   # 새 카드 raw 반영 대기
+          fi
 
       # 같은 재료(signal_01..02.jpg)로 9:16 쇼츠를 만들어 유튜브 운명과학TV에
       # 예약발행한다. Threads 카드와 유튜브 쇼츠는 별도 대본 2편이 아니라 동일한 하루 1편의
@@ -200,9 +216,25 @@ jobs:
           [ -z "$DATE" ] && DATE=$(TZ=Asia/Seoul date +%F)
           git add -- "reels/${DATE}_signal.mp4" "cards/${DATE}/signal_youtube_meta.json"
           git add -- "cards/${DATE}/youtube_pub_signal.json" 2>/dev/null || true
-          git diff --staged --quiet || git commit -m "chore: 띠 지목 쇼츠 원본"
-          git pull --rebase --autostash || true
-          git push
+          if git diff --staged --quiet; then
+            echo "[SKIP] 쇼츠 원본 변경 없음 — 불필요한 push 생략"
+          else
+            git commit -m "chore: 띠 지목 쇼츠 원본"
+            for ATTEMPT in 1 2 3 4 5; do
+              git fetch --quiet origin main
+              git rebase origin/main
+              if git push origin HEAD:main; then
+                echo "[OK] 쇼츠 원본 push 성공 (시도 ${ATTEMPT}/5)"
+                break
+              fi
+              if [ "$ATTEMPT" = "5" ]; then
+                echo "[FAIL] 쇼츠 원본 push가 5회 연속 충돌/실패"
+                exit 1
+              fi
+              echo "[WARN] 원격 main 갱신 감지 — rebase 후 재시도 (${ATTEMPT}/5)"
+              sleep $((ATTEMPT * 2))
+            done
+          fi
           RAW_URL="https://raw.githubusercontent.com/gsdo1004-cloud/sajufortune-cards/main/reels/${DATE}_signal.mp4"
           for TRY in $(seq 1 12); do
             if curl --fail --silent --head "$RAW_URL" >/dev/null; then
@@ -238,6 +270,22 @@ jobs:
           git add cards/*/threads_pub_signal.json 2>/dev/null || true
           git add cards/*/threads_pub_signal_video.json 2>/dev/null || true
           git add cards/*/youtube_pub_signal.json 2>/dev/null || true
-          git diff --staged --quiet || git commit -m "chore: 띠 지목 게시물 발행 마커"
-          git pull --rebase --autostash || true
-          git push || true
+          if git diff --staged --quiet; then
+            echo "[SKIP] 새 발행 마커 없음 — push 생략"
+          else
+            git commit -m "chore: 띠 지목 게시물 발행 마커"
+            for ATTEMPT in 1 2 3 4 5; do
+              git fetch --quiet origin main
+              git rebase origin/main
+              if git push origin HEAD:main; then
+                echo "[OK] 발행 마커 push 성공 (시도 ${ATTEMPT}/5)"
+                break
+              fi
+              if [ "$ATTEMPT" = "5" ]; then
+                echo "[FAIL] 발행 마커 push가 5회 연속 충돌/실패"
+                exit 1
+              fi
+              echo "[WARN] 원격 main 갱신 감지 — rebase 후 재시도 (${ATTEMPT}/5)"
+              sleep $((ATTEMPT * 2))
+            done
+          fi
