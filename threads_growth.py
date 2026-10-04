@@ -714,6 +714,11 @@ def run_growth(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, Any], caps
     if do_inbound and caps.get("read_replies"):
         try:
             candidates = inbound_candidates(api, cfg, state)
+            if cfg.get("_birth_only"):
+                candidates = [
+                    x for x in candidates
+                    if public_birth_detail is not None and public_birth_detail(x.text)
+                ]
         except APIError as e:
             candidates = []
             log(f"inbound scan 실패: {e}")
@@ -849,6 +854,7 @@ def main() -> int:
     ap.add_argument("--send", action="store_true", help="실제 발송. 없으면 드라이런")
     ap.add_argument("--no-external", action="store_true")
     ap.add_argument("--no-inbound", action="store_true")
+    ap.add_argument("--birth-only", action="store_true", help="생년월일이 공개된 댓글만 자동답변")
     ap.add_argument("--clear-pause", action="store_true")
     a = ap.parse_args()
 
@@ -864,6 +870,12 @@ def main() -> int:
         log("[FAIL] THREADS_ACCESS_TOKEN/THREADS_USER_ID 없음")
         return 2
     cfg = load_config()
+    cfg["_birth_only"] = bool(a.birth_only)
+    event_cap = os.environ.get("PUBLIC_SAJU_EVENT_CAP", "").strip()
+    if event_cap.isdigit():
+        cap = max(1, int(event_cap))
+        cfg["inbound_daily_cap"] = cap
+        cfg["total_daily_cap"] = cap
     state = load_state()
     api = ThreadsAPI(tok)
 
