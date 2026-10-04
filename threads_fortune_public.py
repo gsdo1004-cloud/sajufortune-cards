@@ -4,7 +4,7 @@
 운영 원칙
 - 이용자가 공개 댓글에 생년월일시를 직접 남기면 공개 간단풀이를 허용한다.
 - 답글에서는 생년월일/출생시간을 다시 복사하지 않는다.
-- 개인정보 공개가 부담되는 이용자는 게시물 안내에 따라 Instagram DM을 이용한다.
+- 비공개 DM 풀이는 현재 보류한다. 공개 생년월일 입력만 정밀 공개풀이한다.
 - 원문 생년정보는 상태 파일에 저장하지 않는다.
 """
 from __future__ import annotations
@@ -169,27 +169,44 @@ def _polite(text: str) -> bool:
 
 
 def _full_birth_reply(comment: str, birth: dict[str, Any]) -> str | None:
+    """생년월일 공개 입력은 6줄 미니상담으로 답한다. 원문 개인정보는 재노출하지 않는다."""
     key, label = _intent(comment)
     try:
         sections = _preview_sections(birth)
     except Exception:
         return None
 
-    if key == "money":
-        body = sections.get("재물·일", "")
-    elif key == "love":
-        body = sections.get("인연·가족", "")
-    elif key == "career":
-        body = sections.get("2026년 흐름", "") or sections.get("재물·일", "")
-    elif key == "health":
-        body = sections.get("개운법 한 가지", "")
-    else:
-        body = sections.get("타고난 성품", "") or sections.get("2026년 흐름", "")
+    nature = _short(sections.get("타고난 성품", ""), 72)
+    now = _short(sections.get("2026년 흐름", ""), 72)
+    money = _short(sections.get("재물·일", ""), 72)
+    relation = _short(sections.get("인연·가족", ""), 68)
+    action = _short(sections.get("개운법 한 가지", ""), 68)
 
-    body = _short(body, 64)
-    suffix = "" if birth.get("time_known") else " 출생시간 미입력이라 정오 기준 간단풀이예요."
-    result = f"{label} 쪽은 {body}{suffix}"
-    return result[:118].rstrip()
+    focused = {
+        "money": money,
+        "career": now or money,
+        "love": relation,
+        "health": action,
+        "overall": now or nature,
+    }.get(key, now or nature)
+
+    time_line = (
+        "• 출생시간까지 반영한 공개 미니풀이예요."
+        if birth.get("time_known")
+        else "• 출생시간 미입력이라 정오 기준 간단풀이예요."
+    )
+    lines = [
+        "🔮 공개 미니사주",
+        f"• 기본결: {nature}",
+        f"• 지금흐름: {now}",
+        f"• {label}: {focused}",
+        f"• 관계/주변: {relation}",
+        f"• 조언: {action}",
+        time_line,
+    ]
+    # Threads 본문 한도 안에서 읽기 좋은 6~7줄을 유지한다.
+    out = "\n".join(x for x in lines if x and not x.endswith(": "))
+    return out[:470].rstrip()
 
 
 def public_reply(comment: str, date_iso: str | None = None) -> str | None:
