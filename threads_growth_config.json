@@ -97,5 +97,9 @@
     "해석"
   ],
   "growth_question_share": 0.7,
-  "publisher_backend": "api"
+  "publisher_backend": "api",
+  "public_saju_reply_min_delay_minutes": 35,
+  "public_saju_reply_max_delay_minutes": 95,
+  "public_saju_inter_reply_min_seconds": 70,
+  "public_saju_inter_reply_max_seconds": 150
 }
