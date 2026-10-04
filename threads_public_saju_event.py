@@ -29,7 +29,22 @@ KST = dt.timezone(dt.timedelta(hours=9))
 
 # 스하리는 풀이의 대가/조건으로 강제하지 않는다.
 # '마음에 들면' 수준의 선택형 표현만 일부 샘플에 넣는다.
-OPTIONAL_TIP = "풀이가 마음에 들었다면 스하리는 선택 복채로 감사히 받을게 🙂"
+OPTIONAL_TIP = "풀이가 마음에 들었다면 스하리로 복채 주면 고맙고 :)"
+
+SPECIAL_TEMPLATES = {
+    "holiday_mid": {
+        "name": "연휴중간_즉시형",
+        "text": (
+            "연휴 중간인데 사주 한번 풀어볼까 🔥\n\n"
+            "요즘 제일 답답한 거 딱 하나만 물어봐.\n"
+            "생일시 + 성별 + 고민 1개\n"
+            "구체적으로 적을수록 더 정확하게 봐줄게.\n\n"
+            "재물 / 사업 / 이직 / 연애 / 재회 다 괜찮아.\n"
+            "공개해도 괜찮은 사람만 댓글 남겨줘.\n\n"
+            + OPTIONAL_TIP
+        ),
+    },
+}
 
 TEMPLATES = {
     1: {
@@ -154,17 +169,23 @@ def kst_today() -> dt.date:
     return kst_now().date()
 
 
-def build_text(day: dt.date, template_id: int | None = None) -> str:
+def build_text(day: dt.date, template_id: int | None = None, occasion: str = "") -> str:
+    if occasion:
+        item = SPECIAL_TEMPLATES.get(occasion)
+        if not item:
+            raise ValueError(f"unknown occasion: {occasion}")
+        return item["text"]
     tid = template_id or scheduled_template_id(day)
     if tid not in TEMPLATES:
         raise ValueError(f"template_id must be 1..{len(TEMPLATES)}")
     return TEMPLATES[tid]["text"]
 
 
-def marker(day: dt.date, *, manual: bool, template_id: int) -> Path:
+def marker(day: dt.date, *, manual: bool, template_id: int, occasion: str = "") -> Path:
     if manual:
         stamp = kst_now().strftime("%Y-%m-%d_%H%M%S")
-        return OUT / f"{stamp}_manual_t{template_id}.json"
+        suffix = f"_{occasion}" if occasion else f"_t{template_id}"
+        return OUT / f"{stamp}_manual{suffix}.json"
     return OUT / f"{day.isoformat()}_scheduled.json"
 
 
@@ -205,6 +226,7 @@ def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser()
     ap.add_argument("--template", type=int, default=0, help="1..10; 0이면 예약 로테이션")
     ap.add_argument("--manual", action="store_true", help="즉시 지시 실행. 예약 중복마커와 분리")
+    ap.add_argument("--occasion", default="", help="수동 상황형 문구. 예: holiday_mid")
     return ap.parse_args()
 
 
@@ -216,13 +238,14 @@ def main() -> int:
         raise SystemExit("template must be 1..10")
 
     OUT.mkdir(parents=True, exist_ok=True)
-    mk = marker(day, manual=a.manual, template_id=tid)
+    mk = marker(day, manual=a.manual, template_id=tid, occasion=a.occasion)
     if not a.manual and mk.exists():
         print(f"[SKIP] {day} 예약 공개 사주 이벤트 이미 발행됨")
         return 0
 
-    text = build_text(day, tid)
-    print(f"[TEMPLATE] {tid} {TEMPLATES[tid]['name']}")
+    text = build_text(day, tid, a.occasion)
+    template_name = SPECIAL_TEMPLATES[a.occasion]["name"] if a.occasion else TEMPLATES[tid]["name"]
+    print(f"[TEMPLATE] {a.occasion or tid} {template_name}")
     print(text)
     if os.environ.get("PUBLIC_SAJU_DRY_RUN", "") == "1":
         print("[DRY] 발행하지 않음")
@@ -238,7 +261,8 @@ def main() -> int:
                 "kind": "public_saju_event",
                 "manual": bool(a.manual),
                 "template_id": tid,
-                "template_name": TEMPLATES[tid]["name"],
+                "occasion": a.occasion,
+                "template_name": template_name,
             },
             ensure_ascii=False,
             indent=2,
