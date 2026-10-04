@@ -1,0 +1,45 @@
+name: RCE Threads Pilot Insights
+
+run-name: RCE Pilot Insights ${{ inputs.pilot_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      pilot_id:
+        description: Existing authoritative RCE pilot id
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rce-threads-pilot-insights
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependency
+        run: python -m pip install --disable-pip-version-check -q requests
+
+      - name: Collect official Threads post insights
+        run: python rce_pilot_insights.py --pilot-id "${{ inputs.pilot_id }}"
+
+      - name: Upload insights receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: rce-pilot-insights-${{ inputs.pilot_id }}
+          path: rce_pilot_insights_output.json
+          if-no-files-found: error
+          retention-days: 7
