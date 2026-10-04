@@ -220,81 +220,117 @@ def _year_line(label: str, y: dict[str, Any] | None) -> str:
     return f"• {label}: {gj} — {mid}{tail}".rstrip(" —")
 
 
+def _natural_year_note(y: dict[str, Any] | None) -> tuple[str, str, list[str]]:
+    if not y:
+        return "", "", []
+    ko = str(y.get("ko") or y.get("ganji") or "")
+    sg = str(y.get("stem_ten_god") or "")
+    bg = str(y.get("branch_ten_god") or "")
+    kinds = [INTERACTION_KO.get(str(x), str(x)) for x in (y.get("interaction_kinds") or [])]
+    return ko, "·".join(x for x in (sg, bg) if x), kinds
+
+
 def _specific_reply(comment: str, birth: dict[str, Any], facts: dict[str, Any]) -> str:
-    key, label = _intent(comment)
+    """질문한 한 분야만, 사람 상담처럼 자연스럽고 구체적으로 답한다."""
+    key, _label = _intent(comment)
     chart = facts.get("chart") or {}
     adv = facts.get("advanced") or {}
     dw = facts.get("current_daewoon") or {}
     wealth = facts.get("wealth") or {}
     love = facts.get("love") or {}
-
-    pillars = " ".join(
-        x for x in (chart.get("year"), chart.get("month"), chart.get("day"), chart.get("hour")) if x
-    )
-    dm = f"{chart.get('day_master','')}{chart.get('day_master_element','')}"
     precise = bool(birth.get("time_known"))
-    strength = str(adv.get("strength") or "") if precise else ""
-    ratio = adv.get("strength_ratio") if precise else None
-    strength_s = f"{strength} {ratio:.0f}%" if isinstance(ratio, (int, float)) else strength
-    top = _fmt_gods(adv.get("top_ten_gods") or []) if precise else ""
 
-    lines = [
-        "🔮 공개 사주 정밀풀이",
-        f"• 명식: {pillars} / 일간 {dm}" + (f" / {strength_s}" if strength_s else ""),
-    ]
-    if top:
-        lines.append(f"• 핵심십성: {top} — 원국에서 반복해서 작동하는 성향입니다.")
+    cy_ko, cy_gods, cy_kinds = _natural_year_note(facts.get("current_year"))
+    ny_ko, ny_gods, ny_kinds = _natural_year_note(facts.get("next_year"))
+    dw_name = str(dw.get("ko") or dw.get("ganji") or "")
+    y1, y2 = dw.get("year_from"), dw.get("year_to")
 
-    if dw:
-        dw_name = str(dw.get("ko") or dw.get("ganji") or "")
-        y1, y2 = dw.get("year_from"), dw.get("year_to")
-        lines.append(f"• 현재대운: {dw_name}" + (f" ({y1}~{y2})" if y1 and y2 else ""))
+    parts: list[str] = []
 
-    cy = _year_line("2026 세운", facts.get("current_year"))
-    ny = _year_line("2027 세운", facts.get("next_year"))
-    if cy:
-        lines.append(cy)
-
-    # 질문별로 실제 계산값을 한 줄 더 붙인다.
     if key == "money":
         wc = int(wealth.get("chart_count") or 0)
-        we = str(wealth.get("wealth_element") or "")
         yrs = [str(x.get("year")) for x in (wealth.get("sewoon_years") or []) if x.get("year")]
         if precise:
-            lines.append(
-                f"• 재물근거: 원국 재성 {wc}곳" + (f", 재성 오행은 {we}" if we else "")
-                + (f"; 재성이 다시 강해지는 해 {', '.join(yrs[:3])}" if yrs else "")
+            parts.append(
+                f"재물운만 보면, 원국에 재성이 {wc}곳 잡혀 있어서 돈 흐름이 아예 약한 사주는 아니에요."
+                if wc > 0 else
+                "재물운만 보면, 원국에서 재성이 전면에 드러나는 구조는 아니라 돈은 한 번에 크게 잡기보다 흐름을 만들어가는 쪽이 맞아요."
             )
-        elif yrs:
-            lines.append(f"• 재물시기: 시주를 제외해도 재성 세운으로 확인되는 해는 {', '.join(yrs[:3])}입니다.")
+        else:
+            parts.append("재물운만 볼게요. 출생시간이 없어서 시주는 빼고, 연·월·일 기준으로 돈 흐름만 보겠습니다.")
+        if cy_gods:
+            meaning = TEN_GOD_MEANING.get(str((facts.get("current_year") or {}).get("stem_ten_god") or ""), "")
+            action = "수입·계약·현금흐름을 실제 숫자로 챙길수록 유리해요" if "정재" in cy_gods else (
+                "사업·거래·새로운 돈길은 생기지만 지출도 같이 커질 수 있어요" if "편재" in cy_gods else
+                "돈 자체보다 일의 변화가 먼저 움직이고 그 뒤에 수입이 따라오는 흐름이에요"
+            )
+            parts.append(f"올해 {cy_ko}에는 {cy_gods}가 들어와서 {meaning or '재물 쪽 움직임'}이 두드러지고, {action}.")
+        if yrs:
+            future = [y for y in yrs if y not in {"2026"}]
+            if future:
+                parts.append(f"특히 다음 재성 흐름은 {', '.join(future[:2])}년에 다시 잡히니, 지금은 무리하게 크게 벌리기보다 그때까지 돈 되는 구조를 만들어두는 게 좋아요.")
+
+    elif key == "career":
+        parts.append("직장운만 보면, 지금은 버티는 것보다 자리와 역할을 다시 고르는 흐름이 더 강합니다.")
+        if dw_name:
+            span = f" {y1}~{y2}년" if y1 and y2 else ""
+            parts.append(f"현재 {dw_name} 대운{span}이라 직업 방향을 바꾸거나 일의 성격이 달라지는 변화가 한 번 크게 들어올 수 있어요.")
+        if cy_gods:
+            meaning = TEN_GOD_MEANING.get(str((facts.get("current_year") or {}).get("stem_ten_god") or ""), "")
+            inter = f" 여기에 원국과 {'·'.join(cy_kinds)} 작용까지 있어서" if cy_kinds else ""
+            parts.append(f"올해 {cy_ko}에는 {cy_gods}가 잡혀 {meaning or '직장·조직 문제'}가 전면에 나오고,{inter} 제안이 오면 조건만 보지 말고 자리의 지속성까지 같이 보는 게 맞아요.")
+        if ny_gods:
+            parts.append(f"내년 {ny_ko}는 {ny_gods}로 흐름이 바뀌니, 올해 안에 이동할지 남을지 윤곽이 잡히는 편입니다.")
+
     elif key == "love":
         dohwa = str(love.get("dohwa") or "")
-        ch = "·".join(str(x) for x in (love.get("cheonul") or []))
+        cheonul = "·".join(str(x) for x in (love.get("cheonul") or []))
         hap = str(love.get("hap") or "")
         chung = str(love.get("chung") or "")
+        parts.append("인연운만 보면, 그냥 '사람이 들어온다'보다 관계가 들어오는 방식이 분명한 편이에요.")
         bits = []
-        if dohwa: bits.append(f"도화 {dohwa}")
-        if ch: bits.append(f"천을귀인 {ch}")
-        if hap: bits.append(f"일지합 {hap}")
-        if chung: bits.append(f"일지충 {chung}")
+        if dohwa:
+            bits.append(f"도화가 {dohwa}로 잡혀 사람 눈에 띄는 시기가 오면 인연이 빨리 붙는 편")
+        if cheonul:
+            bits.append(f"천을귀인이 {cheonul}이라 소개나 주변 사람을 통한 연결이 잘 맞는 편")
         if bits:
-            lines.append("• 인연근거: " + " / ".join(bits))
-    elif key == "career":
-        cyg = (facts.get("current_year") or {}).get("stem_ten_god") or ""
-        meaning = TEN_GOD_MEANING.get(str(cyg), "")
-        if cyg:
-            lines.append(f"• 직장포인트: 올해 천간 십성은 {cyg} — {meaning} 이슈가 전면에 옵니다.")
+            parts.append("그리고 " + ", ".join(bits) + "이에요.")
+        if hap or chung:
+            txt = []
+            if hap: txt.append(f"{hap} 쪽 합이 들어올 때는 관계가 가까워지고")
+            if chung: txt.append(f"{chung} 쪽 충이 강해질 때는 감정이 급하게 흔들릴 수 있어요")
+            parts.append("반대로 " + ", ".join(txt) + ".")
+        yrs = [str(x.get("year")) for x in (love.get("sewoon_years") or []) if x.get("year")]
+        if yrs:
+            parts.append(f"시기로 보면 {', '.join(yrs[:3])}년이 인연 변화가 크게 잡히는 해라, 그때 들어오는 사람이나 관계 변화는 그냥 지나치지 않는 게 좋아요.")
+
     elif key == "health":
-        lines.append("• 건강질문은 질병 예측 대신 생활리듬·과로 여부 참고 수준으로만 봅니다.")
+        parts.append("건강운만 보면, 병을 찍는 식으로 보지는 않고 과로가 몰리는 시기와 생활리듬이 흔들리는 때만 보겠습니다.")
+        if cy_gods:
+            pressure = "책임과 압박이 늘어 몸이 먼저 지치기 쉬운 해" if any(x in cy_gods for x in ("편관", "정관")) else (
+                "활동량이 늘고 쉬는 타이밍을 놓치기 쉬운 해" if any(x in cy_gods for x in ("식신", "상관")) else
+                "생활패턴이 들쑥날쑥해지기 쉬운 해"
+            )
+            parts.append(f"올해 {cy_ko} 흐름은 {pressure}라 수면과 식사 시간을 무너뜨리지 않는 게 가장 중요해요.")
+        if ny_gods:
+            parts.append(f"내년 {ny_ko}에는 흐름이 한 번 바뀌니, 올해부터 무리하는 습관만 줄여도 체감 차이가 꽤 납니다.")
 
-    if ny:
-        lines.append(ny)
+    else:
+        dm = f"{chart.get('day_master','')}{chart.get('day_master_element','')}"
+        top = _fmt_gods(adv.get("top_ten_gods") or []) if precise else ""
+        parts.append(f"전체운으로 보면 {dm} 일간이고" + (f", {top} 기운이 강하게 잡혀" if top else "") + " 한 번 방향을 잡으면 밀고 가는 힘이 있는 편이에요.")
+        if dw_name:
+            parts.append(f"지금 {dw_name} 대운에 들어와 있어서 예전 방식 그대로 버티기보다 일·돈·관계 중 하나는 구조를 바꾸는 흐름이 강합니다.")
+        if cy_ko:
+            inter = f" 원국과 {'·'.join(cy_kinds)}가 걸려" if cy_kinds else ""
+            parts.append(f"올해 {cy_ko}는{inter} 선택을 미루기보다 정리하고 방향을 잡는 쪽이 낫고, 내년 {ny_ko or '다음 해'}에는 그 선택의 결과가 더 선명해지는 흐름이에요.")
 
-    if not birth.get("time_known"):
-        lines.append("• 출생시간이 없어 시주를 뺀 부분풀이입니다. 시간까지 알면 정확도가 더 올라갑니다.")
+    if not precise and key not in {"money"}:
+        parts.append("태어난 시간을 알면 시주까지 넣어서 시기를 더 좁혀볼 수 있어요.")
 
-    lines.append("※ 명리 계산 근거를 보여드리는 참고용 풀이이며 결과를 단정하지 않습니다.")
-    return "\n".join(lines)[:470].rstrip()
+    # Threads 댓글처럼 짧은 문단 2~4개만. 기술 라벨·불릿·면책문구는 넣지 않는다.
+    return "\n\n".join(p.strip() for p in parts if p.strip())[:470].rstrip()
+
 
 
 def _preview_sections(birth: dict[str, Any]) -> dict[str, str]:
@@ -330,20 +366,19 @@ def _polite(text: str) -> bool:
 
 
 def _full_birth_reply(comment: str, birth: dict[str, Any]) -> str | None:
-    """생년월일 공개 입력은 명식·십성·대운·세운 근거를 보여주는 정밀 공개풀이."""
+    """생년월일 공개 입력은 질문한 분야만 자연스러운 Threads 문장으로 상세풀이."""
     try:
         facts = _structured_facts(birth)
         return _specific_reply(comment, birth, facts)
     except Exception:
         pass
 
-    # 배포 전/일시 장애에는 기존 preview 엔진으로 폴백하되, 두루뭉실함을 숨기지 않는다.
+    # 정밀엔진이 잠시 안 될 때도 질문한 분야만 자연스럽게 답한다.
     key, label = _intent(comment)
     try:
         sections = _preview_sections(birth)
     except Exception:
         return None
-    day = sections.get("_day_pillar", "")
     focused = {
         "money": sections.get("재물·일", ""),
         "career": sections.get("2026년 흐름", "") or sections.get("재물·일", ""),
@@ -351,17 +386,18 @@ def _full_birth_reply(comment: str, birth: dict[str, Any]) -> str | None:
         "health": sections.get("개운법 한 가지", ""),
         "overall": sections.get("2026년 흐름", "") or sections.get("타고난 성품", ""),
     }.get(key, "")
-    nature = sections.get("타고난 성품", "")
-    lines = [
-        "🔮 공개 사주 간단풀이",
-        f"• 일주: {day}" if day else "",
-        f"• 기본결: {_short(nature, 78)}" if nature else "",
-        f"• {label}: {_short(focused, 92)}" if focused else "",
-    ]
-    if not birth.get("time_known"):
-        lines.append("• 출생시간이 없어 시주 제외 부분풀이입니다.")
-    lines.append("※ 정밀엔진 연결 전에는 단정하지 않고 확인 가능한 범위만 풀이합니다.")
-    return "\n".join(x for x in lines if x)[:470].rstrip()
+    body = _short(focused, 210)
+    if not body:
+        return None
+    prefix = {
+        "money": "재물운만 보면, ",
+        "career": "직장운만 보면, ",
+        "love": "인연운만 보면, ",
+        "health": "건강 흐름만 보면, ",
+        "overall": "",
+    }.get(key, "")
+    suffix = "" if birth.get("time_known") else " 태어난 시간이 없어서 시주는 빼고 봤어요."
+    return (prefix + body + suffix)[:470].rstrip()
 
 def public_reply(comment: str, date_iso: str | None = None) -> str | None:
     """공개 댓글용 간단풀이. 생년정보는 답글에 재노출하지 않는다."""
