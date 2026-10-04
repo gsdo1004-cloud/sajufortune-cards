@@ -232,10 +232,11 @@ def _specific_reply(comment: str, birth: dict[str, Any], facts: dict[str, Any]) 
         x for x in (chart.get("year"), chart.get("month"), chart.get("day"), chart.get("hour")) if x
     )
     dm = f"{chart.get('day_master','')}{chart.get('day_master_element','')}"
-    strength = str(adv.get("strength") or "")
-    ratio = adv.get("strength_ratio")
+    precise = bool(birth.get("time_known"))
+    strength = str(adv.get("strength") or "") if precise else ""
+    ratio = adv.get("strength_ratio") if precise else None
     strength_s = f"{strength} {ratio:.0f}%" if isinstance(ratio, (int, float)) else strength
-    top = _fmt_gods(adv.get("top_ten_gods") or [])
+    top = _fmt_gods(adv.get("top_ten_gods") or []) if precise else ""
 
     lines = [
         "🔮 공개 사주 정밀풀이",
@@ -259,10 +260,13 @@ def _specific_reply(comment: str, birth: dict[str, Any], facts: dict[str, Any]) 
         wc = int(wealth.get("chart_count") or 0)
         we = str(wealth.get("wealth_element") or "")
         yrs = [str(x.get("year")) for x in (wealth.get("sewoon_years") or []) if x.get("year")]
-        lines.append(
-            f"• 재물근거: 원국 재성 {wc}곳" + (f", 재성 오행은 {we}" if we else "")
-            + (f"; 재성이 다시 강해지는 해 {', '.join(yrs[:3])}" if yrs else "")
-        )
+        if precise:
+            lines.append(
+                f"• 재물근거: 원국 재성 {wc}곳" + (f", 재성 오행은 {we}" if we else "")
+                + (f"; 재성이 다시 강해지는 해 {', '.join(yrs[:3])}" if yrs else "")
+            )
+        elif yrs:
+            lines.append(f"• 재물시기: 시주를 제외해도 재성 세운으로 확인되는 해는 {', '.join(yrs[:3])}입니다.")
     elif key == "love":
         dohwa = str(love.get("dohwa") or "")
         ch = "·".join(str(x) for x in (love.get("cheonul") or []))
