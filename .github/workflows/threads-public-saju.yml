@@ -75,7 +75,17 @@ jobs:
             python threads_public_saju_event.py
           fi
 
-      - name: 발행 영수증 저장
+      - name: 수동 즉시발행 후 5분 간격 초기 댓글 확인
+        if: ${{ success() && github.event_name == 'workflow_dispatch' && inputs.publish == true }}
+        shell: bash
+        run: |
+          for i in 1 2 3; do
+            echo "[watch] 공개사주 초기 댓글 스캔 $i/3 — 5분 대기"
+            sleep 300
+            python threads_growth.py --send --no-external || true
+          done
+
+      - name: 발행 영수증/답글상태 저장
         if: ${{ success() && (github.event_name == 'schedule' || inputs.publish == true) }}
         shell: bash
         run: |
@@ -86,8 +96,11 @@ jobs:
             echo "[FAIL] public saju receipt missing"
             exit 1
           fi
-          mkdir -p /tmp/public-saju-events
+          mkdir -p /tmp/public-saju-events /tmp/threads-growth-state
           cp public_saju_events/*.json /tmp/public-saju-events/
+          for f in threads_growth_state.json threads_growth_report.md threads_growth_capabilities.json threads_growth_PAUSED.json; do
+            [ -f "$f" ] && cp "$f" /tmp/threads-growth-state/ || true
+          done
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -95,7 +108,13 @@ jobs:
           git reset --hard origin/main
           mkdir -p public_saju_events
           cp /tmp/public-saju-events/*.json public_saju_events/
+          for f in /tmp/threads-growth-state/*; do
+            [ -f "$f" ] && cp "$f" . || true
+          done
           git add public_saju_events/*.json
+          for f in threads_growth_state.json threads_growth_report.md threads_growth_capabilities.json threads_growth_PAUSED.json; do
+            [ -f "$f" ] && git add "$f" || true
+          done
           if ! git diff --cached --quiet; then
             git commit -m "chore: remember public saju event $(date -u +%Y-%m-%dT%H:%MZ)"
             git push origin HEAD:main
