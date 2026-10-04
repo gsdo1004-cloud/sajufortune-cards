@@ -1,0 +1,63 @@
+name: Threads 공개사주 답글 5분 스캔
+
+on:
+  schedule:
+    # 공개사주 예정 발행 후 집중 감시 (KST)
+    # 화 09:00~13:59 / 목·일 20:00~00:59
+    - cron: '*/5 0-4 * * 2'
+    - cron: '*/5 11-15 * * 0,4'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# 기존 Threads 성장 루프와 같은 그룹으로 직렬화하여 상태 충돌 방지
+concurrency:
+  group: threads-growth-main
+  cancel-in-progress: false
+
+jobs:
+  inbound:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+      THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEY_PAID: ${{ secrets.GEMINI_API_KEY_PAID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install -q requests
+
+      - name: 공개사주 댓글만 확인/답변
+        run: python threads_growth.py --send --no-external
+
+      - name: 상태 저장
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mkdir -p /tmp/threads-growth-state
+          for f in threads_growth_state.json threads_growth_report.md threads_growth_capabilities.json threads_growth_PAUSED.json; do
+            [ -f "$f" ] && cp "$f" /tmp/threads-growth-state/ || true
+          done
+          git fetch origin main
+          git reset --hard origin/main
+          for f in /tmp/threads-growth-state/*; do
+            [ -f "$f" ] && cp "$f" . || true
+          done
+          for f in threads_growth_state.json threads_growth_report.md threads_growth_capabilities.json threads_growth_PAUSED.json; do
+            [ -f "$f" ] && git add "$f" || true
+          done
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: Threads public saju reply state $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push origin HEAD:main || true
+          fi
