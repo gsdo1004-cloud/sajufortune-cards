@@ -1,0 +1,18 @@
+{
+  "schema": "rce-pilot-publication-receipt-v1",
+  "request_id": "RCEPILOTREQ-7828BBCFF9209F88",
+  "pilot_id": "RCEPILOT-62E11AA62C032706",
+  "content_id": "RCE-FORTUNE-TH-20261004-A33D9B36",
+  "pilot_fingerprint": "55d78bebeb42562ca0bec4b7f2390d8d3ec0364733a6d4c387714eb73b42c5c0",
+  "copy_fingerprint": "79373ec52467ec99dfdd9b3ada8bd6fe3b93d441858b120b2e187452448fc179",
+  "approval_id": "RCEPILOTAPP-83210B858D3E",
+  "platform": "threads",
+  "account_key": "fortune",
+  "username": "gsdo10042026",
+  "post_id": "17950825476055273",
+  "published_at": "2026-10-04T22:23:32+09:00",
+  "state": "COMPLETE",
+  "github_run_id": "37205397891",
+  "github_repository": "gsdo1004-cloud/sajufortune-cards",
+  "reply_post_id": "17980760417907849"
+}
