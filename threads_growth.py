@@ -901,6 +901,9 @@ def main() -> int:
         cap = max(1, int(event_cap))
         cfg["inbound_daily_cap"] = cap
         cfg["total_daily_cap"] = cap
+    event_per_run = os.environ.get("PUBLIC_SAJU_PER_RUN", "").strip()
+    if event_per_run.isdigit():
+        cfg["inbound_per_run"] = max(1, min(6, int(event_per_run)))
     state = load_state()
     api = ThreadsAPI(tok)
 
