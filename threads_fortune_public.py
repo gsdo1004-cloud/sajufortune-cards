@@ -18,6 +18,7 @@ import requests
 import zodiac_seo as zs
 
 PREVIEW_URL = "https://sajufortune.kr/preview"
+MINI_API_URL = "https://sajufortune.kr/api/public-saju-mini"
 
 ZODIAC = [
     ("rat", ("쥐띠", "쥐")),
@@ -37,6 +38,7 @@ SLUGS = [x[0] for x in ZODIAC]
 POLITE = ("요", "니다", "까요", "세요", "인가요", "합니다")
 
 _DATE4 = re.compile(r"(?<!\d)((?:19|20)\d{2})[./-](\d{1,2})[./-](\d{1,2})(?!\d)")
+_DATE2 = re.compile(r"(?<!\d)(\d{2})[./-](\d{1,2})[./-](\d{1,2})(?!\d)")
 _TIME_AMPM = re.compile(r"(오전|오후)\s*(\d{1,2})(?:\s*[:시]\s*(\d{1,2}))?\s*분?")
 _TIME24 = re.compile(r"(?<!\d)([01]?\d|2[0-3])\s*:\s*([0-5]\d)(?!\d)")
 _SIJIN_HOUR = {
@@ -67,9 +69,14 @@ def parse_birth_input(text: str) -> dict[str, Any] | None:
     """공개 댓글에서 계산에 필요한 값만 메모리에서 추출한다. 저장하지 않는다."""
     t = str(text or "")
     m = _DATE4.search(t)
-    if not m:
-        return None
-    year, month, day = map(int, m.groups())
+    if m:
+        year, month, day = map(int, m.groups())
+    else:
+        m2 = _DATE2.search(t)
+        if not m2:
+            return None
+        yy, month, day = map(int, m2.groups())
+        year = 2000 + yy if yy <= (dt.date.today().year % 100) else 1900 + yy
     try:
         dt.date(year, month, day)
     except ValueError:
@@ -100,11 +107,16 @@ def parse_birth_input(text: str) -> dict[str, Any] | None:
                 break
 
     cal = "leap" if "윤달" in t else ("lunar" if "음력" in t else "solar")
+    compact = t.replace(" ", "").lower()
+    gender = "F" if any(x in compact for x in ("여자", "여성", "female")) else "M"
+    if any(x in compact for x in ("남자", "남성", "male")):
+        gender = "M"
     return {
         "birth_date": f"{year:04d}-{month:02d}-{day:02d}",
         "birth_time": f"{hour:02d}:{minute:02d}" if hour is not None else "12:00",
         "time_known": hour is not None,
         "cal": cal,
+        "gender": gender,
     }
 
 
@@ -134,6 +146,151 @@ def _short(s: str, limit: int = 56) -> str:
     if len(first) > limit:
         first = first[:limit].rstrip(" ,·") + "…"
     return first
+
+
+def _structured_facts(birth: dict[str, Any]) -> dict[str, Any]:
+    """정본 사주엔진의 구조화 계산 결과. 실패하면 상위에서 기존 preview로 폴백한다."""
+    r = requests.post(
+        MINI_API_URL,
+        json={
+            "birth_date": birth["birth_date"],
+            "birth_time": birth["birth_time"],
+            "time_known": birth["time_known"],
+            "cal": birth["cal"],
+            "gender": birth.get("gender", "M"),
+        },
+        timeout=15,
+        headers={"User-Agent": "sajufortune-threads-public/2.0"},
+    )
+    r.raise_for_status()
+    data = r.json()
+    if not data.get("ok"):
+        raise RuntimeError("mini api returned not-ok")
+    return data
+
+
+TEN_GOD_MEANING = {
+    "비견": "자기주도·동료·경쟁",
+    "겁재": "경쟁·분배·지출",
+    "식신": "실무·생산·꾸준한 성과",
+    "상관": "표현·변화·기존 틀 재조정",
+    "편재": "사업·거래·유동 재물",
+    "정재": "고정수입·계약·재정관리",
+    "편관": "책임·압박·직무 변화",
+    "정관": "직위·조직·규정·문서",
+    "편인": "전문성·비정형 학습·전환",
+    "정인": "문서·자격·지원·학습",
+}
+
+INTERACTION_KO = {
+    "chung": "충",
+    "hap": "합",
+    "yukhap": "육합",
+    "samhap": "삼합",
+    "banhap": "반합",
+    "hyeong": "형",
+    "pa": "파",
+    "hae": "해",
+}
+
+
+def _fmt_gods(rows: list[dict[str, Any]]) -> str:
+    out = []
+    for row in rows[:2]:
+        name = str(row.get("name") or "")
+        if name:
+            out.append(name)
+    return "·".join(out)
+
+
+def _year_line(label: str, y: dict[str, Any] | None) -> str:
+    if not y:
+        return ""
+    gj = str(y.get("ko") or y.get("ganji") or "")
+    sg = str(y.get("stem_ten_god") or "")
+    bg = str(y.get("branch_ten_god") or "")
+    gods = "·".join(x for x in (sg, bg) if x)
+    meaning = TEN_GOD_MEANING.get(sg, "")
+    interactions = [
+        INTERACTION_KO.get(str(x), str(x))
+        for x in (y.get("interaction_kinds") or [])
+    ]
+    tail = f", 원국과 {'·'.join(interactions)} 작용" if interactions else ""
+    mid = f"{gods}({meaning})" if gods and meaning else gods
+    return f"• {label}: {gj} — {mid}{tail}".rstrip(" —")
+
+
+def _specific_reply(comment: str, birth: dict[str, Any], facts: dict[str, Any]) -> str:
+    key, label = _intent(comment)
+    chart = facts.get("chart") or {}
+    adv = facts.get("advanced") or {}
+    dw = facts.get("current_daewoon") or {}
+    wealth = facts.get("wealth") or {}
+    love = facts.get("love") or {}
+
+    pillars = " ".join(
+        x for x in (chart.get("year"), chart.get("month"), chart.get("day"), chart.get("hour")) if x
+    )
+    dm = f"{chart.get('day_master','')}{chart.get('day_master_element','')}"
+    strength = str(adv.get("strength") or "")
+    ratio = adv.get("strength_ratio")
+    strength_s = f"{strength} {ratio:.0f}%" if isinstance(ratio, (int, float)) else strength
+    top = _fmt_gods(adv.get("top_ten_gods") or [])
+
+    lines = [
+        "🔮 공개 사주 정밀풀이",
+        f"• 명식: {pillars} / 일간 {dm}" + (f" / {strength_s}" if strength_s else ""),
+    ]
+    if top:
+        lines.append(f"• 핵심십성: {top} — 원국에서 반복해서 작동하는 성향입니다.")
+
+    if dw:
+        dw_name = str(dw.get("ko") or dw.get("ganji") or "")
+        y1, y2 = dw.get("year_from"), dw.get("year_to")
+        lines.append(f"• 현재대운: {dw_name}" + (f" ({y1}~{y2})" if y1 and y2 else ""))
+
+    cy = _year_line("2026 세운", facts.get("current_year"))
+    ny = _year_line("2027 세운", facts.get("next_year"))
+    if cy:
+        lines.append(cy)
+
+    # 질문별로 실제 계산값을 한 줄 더 붙인다.
+    if key == "money":
+        wc = int(wealth.get("chart_count") or 0)
+        we = str(wealth.get("wealth_element") or "")
+        yrs = [str(x.get("year")) for x in (wealth.get("sewoon_years") or []) if x.get("year")]
+        lines.append(
+            f"• 재물근거: 원국 재성 {wc}곳" + (f", 재성 오행은 {we}" if we else "")
+            + (f"; 재성이 다시 강해지는 해 {', '.join(yrs[:3])}" if yrs else "")
+        )
+    elif key == "love":
+        dohwa = str(love.get("dohwa") or "")
+        ch = "·".join(str(x) for x in (love.get("cheonul") or []))
+        hap = str(love.get("hap") or "")
+        chung = str(love.get("chung") or "")
+        bits = []
+        if dohwa: bits.append(f"도화 {dohwa}")
+        if ch: bits.append(f"천을귀인 {ch}")
+        if hap: bits.append(f"일지합 {hap}")
+        if chung: bits.append(f"일지충 {chung}")
+        if bits:
+            lines.append("• 인연근거: " + " / ".join(bits))
+    elif key == "career":
+        cyg = (facts.get("current_year") or {}).get("stem_ten_god") or ""
+        meaning = TEN_GOD_MEANING.get(str(cyg), "")
+        if cyg:
+            lines.append(f"• 직장포인트: 올해 천간 십성은 {cyg} — {meaning} 이슈가 전면에 옵니다.")
+    elif key == "health":
+        lines.append("• 건강질문은 질병 예측 대신 생활리듬·과로 여부 참고 수준으로만 봅니다.")
+
+    if ny:
+        lines.append(ny)
+
+    if not birth.get("time_known"):
+        lines.append("• 출생시간이 없어 시주를 뺀 부분풀이입니다. 시간까지 알면 정확도가 더 올라갑니다.")
+
+    lines.append("※ 명리 계산 근거를 보여드리는 참고용 풀이이며 결과를 단정하지 않습니다.")
+    return "\n".join(lines)[:470].rstrip()
 
 
 def _preview_sections(birth: dict[str, Any]) -> dict[str, str]:
@@ -169,45 +326,38 @@ def _polite(text: str) -> bool:
 
 
 def _full_birth_reply(comment: str, birth: dict[str, Any]) -> str | None:
-    """생년월일 공개 입력은 6줄 미니상담으로 답한다. 원문 개인정보는 재노출하지 않는다."""
+    """생년월일 공개 입력은 명식·십성·대운·세운 근거를 보여주는 정밀 공개풀이."""
+    try:
+        facts = _structured_facts(birth)
+        return _specific_reply(comment, birth, facts)
+    except Exception:
+        pass
+
+    # 배포 전/일시 장애에는 기존 preview 엔진으로 폴백하되, 두루뭉실함을 숨기지 않는다.
     key, label = _intent(comment)
     try:
         sections = _preview_sections(birth)
     except Exception:
         return None
-
-    nature = _short(sections.get("타고난 성품", ""), 72)
-    now = _short(sections.get("2026년 흐름", ""), 72)
-    money = _short(sections.get("재물·일", ""), 72)
-    relation = _short(sections.get("인연·가족", ""), 68)
-    action = _short(sections.get("개운법 한 가지", ""), 68)
-
+    day = sections.get("_day_pillar", "")
     focused = {
-        "money": money,
-        "career": now or money,
-        "love": relation,
-        "health": action,
-        "overall": now or nature,
-    }.get(key, now or nature)
-
-    time_line = (
-        "• 출생시간까지 반영한 공개 미니풀이예요."
-        if birth.get("time_known")
-        else "• 출생시간 미입력이라 정오 기준 간단풀이예요."
-    )
+        "money": sections.get("재물·일", ""),
+        "career": sections.get("2026년 흐름", "") or sections.get("재물·일", ""),
+        "love": sections.get("인연·가족", ""),
+        "health": sections.get("개운법 한 가지", ""),
+        "overall": sections.get("2026년 흐름", "") or sections.get("타고난 성품", ""),
+    }.get(key, "")
+    nature = sections.get("타고난 성품", "")
     lines = [
-        "🔮 공개 미니사주",
-        f"• 기본결: {nature}",
-        f"• 지금흐름: {now}",
-        f"• {label}: {focused}",
-        f"• 관계/주변: {relation}",
-        f"• 조언: {action}",
-        time_line,
+        "🔮 공개 사주 간단풀이",
+        f"• 일주: {day}" if day else "",
+        f"• 기본결: {_short(nature, 78)}" if nature else "",
+        f"• {label}: {_short(focused, 92)}" if focused else "",
     ]
-    # Threads 본문 한도 안에서 읽기 좋은 6~7줄을 유지한다.
-    out = "\n".join(x for x in lines if x and not x.endswith(": "))
-    return out[:470].rstrip()
-
+    if not birth.get("time_known"):
+        lines.append("• 출생시간이 없어 시주 제외 부분풀이입니다.")
+    lines.append("※ 정밀엔진 연결 전에는 단정하지 않고 확인 가능한 범위만 풀이합니다.")
+    return "\n".join(x for x in lines if x)[:470].rstrip()
 
 def public_reply(comment: str, date_iso: str | None = None) -> str | None:
     """공개 댓글용 간단풀이. 생년정보는 답글에 재노출하지 않는다."""
