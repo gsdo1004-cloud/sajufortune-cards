@@ -29,7 +29,7 @@ KST = dt.timezone(dt.timedelta(hours=9))
 
 # 스하리는 풀이의 대가/조건으로 강제하지 않는다.
 # '마음에 들면' 수준의 선택형 표현만 일부 샘플에 넣는다.
-OPTIONAL_TIP = "풀이가 마음에 들었다면 스하리로 복채 주면 고맙고 :)"
+OPTIONAL_TIP = "복채는 선택이야. 풀이가 마음에 들면 스하리 해주면 고맙고 :)"
 
 SPECIAL_TEMPLATES = {
     "holiday_mid": {
