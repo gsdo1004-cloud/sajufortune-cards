@@ -100,6 +100,6 @@
   "publisher_backend": "api",
   "public_saju_reply_min_delay_minutes": 5,
   "public_saju_reply_max_delay_minutes": 5,
-  "public_saju_inter_reply_min_seconds": 70,
-  "public_saju_inter_reply_max_seconds": 150
+  "public_saju_inter_reply_min_seconds": 20,
+  "public_saju_inter_reply_max_seconds": 45
 }
