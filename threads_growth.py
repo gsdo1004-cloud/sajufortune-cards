@@ -719,6 +719,31 @@ def run_growth(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, Any], caps
                     x for x in candidates
                     if public_birth_detail is not None and public_birth_detail(x.text)
                 ]
+            root_contains = str(os.environ.get("PUBLIC_SAJU_ROOT_TEXT_CONTAINS", "")).strip()
+            if root_contains:
+                candidates = [x for x in candidates if root_contains in (x.root_text or "")]
+            start_raw = str(os.environ.get("PUBLIC_SAJU_COMMENT_START_UTC", "")).strip()
+            cutoff_raw = str(os.environ.get("PUBLIC_SAJU_COMMENT_CUTOFF_UTC", "")).strip()
+            start_dt = parse_ts(start_raw) if start_raw else None
+            cutoff_dt = parse_ts(cutoff_raw) if cutoff_raw else None
+            if start_dt or cutoff_dt:
+                kept = []
+                for x in candidates:
+                    ts = parse_ts(x.timestamp)
+                    if ts is None:
+                        continue
+                    ts = ts if ts.tzinfo else ts.replace(tzinfo=dt.timezone.utc)
+                    ts = ts.astimezone(dt.timezone.utc)
+                    if start_dt is not None:
+                        s = start_dt if start_dt.tzinfo else start_dt.replace(tzinfo=dt.timezone.utc)
+                        if ts < s.astimezone(dt.timezone.utc):
+                            continue
+                    if cutoff_dt is not None:
+                        z = cutoff_dt if cutoff_dt.tzinfo else cutoff_dt.replace(tzinfo=dt.timezone.utc)
+                        if ts > z.astimezone(dt.timezone.utc):
+                            continue
+                    kept.append(x)
+                candidates = kept
         except APIError as e:
             candidates = []
             log(f"inbound scan 실패: {e}")
