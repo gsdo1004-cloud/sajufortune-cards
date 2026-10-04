@@ -1,0 +1,90 @@
+name: Threads 공개 사주풀이 이벤트 (주 3회)
+
+on:
+  schedule:
+    # 기존 합의 주력 슬롯(KST)
+    # 화 09:00 / 목 20:00 / 일 20:00
+    - cron: '0 0 * * 2'
+    - cron: '0 11 * * 4'
+    - cron: '0 11 * * 0'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'true면 실제 발행, false면 문구/테스트만'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: threads-public-saju-event
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+      THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 의존성 설치
+        run: python -m pip install --disable-pip-version-check -q requests
+
+      - name: 공개 사주 라우터/게시물 테스트
+        run: |
+          python -m unittest -v test_threads_fortune_public.py test_threads_public_saju_event.py
+
+      - name: 계정 사전검증
+        run: |
+          python - <<'PY'
+          import os
+          from zodiac_cardnews import _threads_uid
+          uid = _threads_uid(os.environ["THREADS_ACCESS_TOKEN"])
+          print("[OK] Threads account verified:", uid)
+          PY
+
+      - name: 공개 사주 이벤트 발행
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.publish }}" != "true" ]; then
+            PUBLIC_SAJU_DRY_RUN=1 python threads_public_saju_event.py
+          else
+            python threads_public_saju_event.py
+          fi
+
+      - name: 발행 영수증 저장
+        if: ${{ success() && (github.event_name == 'schedule' || inputs.publish == true) }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          MARKERS=(public_saju_events/*.json)
+          if (( ${#MARKERS[@]} == 0 )); then
+            echo "[FAIL] public saju receipt missing"
+            exit 1
+          fi
+          mkdir -p /tmp/public-saju-events
+          cp public_saju_events/*.json /tmp/public-saju-events/
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch --quiet origin main
+          git reset --hard origin/main
+          mkdir -p public_saju_events
+          cp /tmp/public-saju-events/*.json public_saju_events/
+          git add public_saju_events/*.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: remember public saju event $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push origin HEAD:main
+          fi
