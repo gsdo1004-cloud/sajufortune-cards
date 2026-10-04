@@ -25,6 +25,12 @@ jobs:
       THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            rce_pilot_insights.py
+            rce_pilot_receipts/RCEPILOT-62E11AA62C032706.json
+          sparse-checkout-cone-mode: false
 
       - uses: actions/setup-python@v5
         with:
