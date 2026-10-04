@@ -1,6 +1,9 @@
 {
   "username": "gsdo10042026",
+  "account_type": "MEDIA_CREATOR",
   "basic": true,
   "comments_read": true,
-  "detail": "comments read OK"
+  "dm_read": true,
+  "detail": "comments read OK",
+  "dm_detail": "conversations read OK"
 }
