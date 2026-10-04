@@ -3,9 +3,9 @@
   "account_username": "gsdo10042026",
   "external_daily_cap": 0,
   "external_per_run": 0,
-  "inbound_daily_cap": 6,
+  "inbound_daily_cap": 10,
   "inbound_per_run": 2,
-  "total_daily_cap": 6,
+  "total_daily_cap": 10,
   "per_target_daily_cap": 1,
   "max_target_age_hours": 36,
   "keyword_discovery_enabled": true,
@@ -15,7 +15,7 @@
     "RECENT"
   ],
   "keyword_top_bonus": 18,
-  "recent_own_posts": 12,
+  "recent_own_posts": 24,
   "target_accounts": [
     "saju.pharmacy",
     "saju_byeolha",
