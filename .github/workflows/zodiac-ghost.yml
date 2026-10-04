@@ -112,5 +112,5 @@ jobs:
             echo "새 마커 없음 — 커밋 생략"
           else
             git commit -m "chore: 유령글 발행 마커 $(date -u +%Y-%m-%d)"
-            git pull --rebase && git push
+            bash scripts/safe_git_push.sh main
           fi

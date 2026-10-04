@@ -40,6 +40,9 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add revenue_cards/ reels_revenue/
-          git commit -m 'revenue shortform assets' || echo '변경 없음'
-          git pull --rebase --autostash
-          git push
+          if git diff --cached --quiet; then
+            echo "[SKIP] revenue shortform 변경 없음 — push 생략"
+          else
+            git commit -m 'revenue shortform assets'
+            bash scripts/safe_git_push.sh main
+          fi

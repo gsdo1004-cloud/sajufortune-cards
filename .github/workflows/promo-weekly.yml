@@ -102,5 +102,5 @@ jobs:
           git add promo/"$PROMO_KEY"/pub_*.json
           if ! git diff --cached --quiet; then
             git commit -m "chore: remember Threads promo publish $(date -u +%Y-%m-%dT%H:%MZ)"
-            git push origin HEAD:main
+            bash scripts/safe_git_push.sh main
           fi

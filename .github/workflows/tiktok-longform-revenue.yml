@@ -43,5 +43,4 @@ jobs:
           git add tiktok_longform_revenue/
           git diff --cached --quiet && exit 0
           git commit -m "content: TikTok longform C-line"
-          git pull --rebase --autostash
-          git push
+          bash scripts/safe_git_push.sh main

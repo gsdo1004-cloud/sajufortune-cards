@@ -139,8 +139,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add cards/ reels/
-          git commit -m "cards+reel $(TZ=Asia/Seoul date +%F)" || echo "변경 없음"
-          git push
+          if git diff --cached --quiet; then
+            echo "[SKIP] 카드+릴스 변경 없음 — push 생략"
+          else
+            git commit -m "cards+reel $(TZ=Asia/Seoul date +%F)"
+            bash scripts/safe_git_push.sh main
+          fi
 
       - name: raw URL 전파 대기
         run: sleep 30
@@ -241,8 +245,7 @@ jobs:
           git add cards/*/youtube_pub.json 2>/dev/null || true
           git diff --cached --quiet && echo "마커 변경 없음" && exit 0
           git commit -m "chore: 발행 마커 $(TZ=Asia/Seoul date +%F)"
-          git pull --rebase --autostash origin main || true
-          git push
+          bash scripts/safe_git_push.sh main
 
       # Instagram은 과거 링크 자동댓글 제한 이력이 있어 URL 자동댓글은 영구 금지하고
       # 프로필 첫 링크 CTA만 사용한다. 백업 cron은 marker로 중복 게시를 막는다.
@@ -275,5 +278,4 @@ jobs:
           git add analytics/instagram_insights.json 2>/dev/null || true
           git diff --cached --quiet && echo "Instagram 변경 없음" && exit 0
           git commit -m "chore: instagram markers+insights $(TZ=Asia/Seoul date +%F)"
-          git pull --rebase --autostash origin main || true
-          git push
+          bash scripts/safe_git_push.sh main

@@ -79,20 +79,7 @@ jobs:
 
           if ! git diff --cached --quiet; then
             git commit -m "chore: tonight public saju replies $(date -u +%Y-%m-%dT%H:%MZ)"
-            for ATTEMPT in 1 2 3 4 5; do
-              git fetch --quiet origin main
-              git rebase origin/main
-              if git push origin HEAD:main; then
-                echo "[OK] 댓글 상태 push 성공 (시도 ${ATTEMPT}/5)"
-                break
-              fi
-              if [ "$ATTEMPT" = "5" ]; then
-                echo "[FAIL] 댓글 상태 push가 5회 연속 충돌/실패"
-                exit 1
-              fi
-              echo "[WARN] 원격 main 갱신 감지 — rebase 후 재시도 (${ATTEMPT}/5)"
-              sleep $((ATTEMPT * 2))
-            done
+            bash scripts/safe_git_push.sh main
           else
             echo "[SKIP] 댓글 상태 변경 없음 — push 생략"
           fi
