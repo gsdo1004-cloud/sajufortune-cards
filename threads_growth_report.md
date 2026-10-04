@@ -1,8 +1,8 @@
-# Threads 성장 자동화 보고 — 2026-10-04
+# Threads 성장 자동화 보고 — 2026-10-05
 
 - 실행: 실제 발송
 - PAUSED: False
-- 오늘 카운트: `{"external": 0, "inbound": 0, "nested": 1, "total": 1, "per_target": {}}`
+- 오늘 카운트: `{"external": 0, "inbound": 0, "nested": 0, "total": 0, "per_target": {}}`
 
 ## API 기능
 
