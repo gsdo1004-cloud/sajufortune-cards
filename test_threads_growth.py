@@ -56,6 +56,53 @@ class GrowthSafetyTests(unittest.TestCase):
         self.assertEqual(g.relevant_score("야구 경기 결과", self.cfg), 0)
 
 
+    def test_public_saju_reply_waits_for_human_paced_delay(self):
+        cfg = dict(self.cfg)
+        cfg["public_saju_reply_min_delay_minutes"] = 60
+        cfg["public_saju_reply_max_delay_minutes"] = 60
+        ts = (g.utcnow() - dt.timedelta(minutes=30)).isoformat()
+        cand = g.Candidate(
+            id="birth-delay-1",
+            username="visitor",
+            text="양력 1982.02.09 12:10 남자 이직운",
+            timestamp=ts,
+            kind="inbound",
+        )
+        ready, required, age_min = g.public_saju_ready(cand, cfg)
+        self.assertFalse(ready)
+        self.assertEqual(required, 60)
+        self.assertLess(age_min, 60)
+
+    def test_public_saju_reply_becomes_ready_after_delay(self):
+        cfg = dict(self.cfg)
+        cfg["public_saju_reply_min_delay_minutes"] = 35
+        cfg["public_saju_reply_max_delay_minutes"] = 35
+        ts = (g.utcnow() - dt.timedelta(minutes=80)).isoformat()
+        cand = g.Candidate(
+            id="birth-delay-2",
+            username="visitor",
+            text="음력 1994-05-24 오전 03:31 여자 재물운",
+            timestamp=ts,
+            kind="inbound",
+        )
+        ready, required, age_min = g.public_saju_ready(cand, cfg)
+        self.assertTrue(ready)
+        self.assertEqual(required, 35)
+        self.assertGreaterEqual(age_min, 35)
+
+    def test_general_comment_is_not_forced_to_wait(self):
+        cand = g.Candidate(
+            id="normal-1",
+            username="visitor",
+            text="글 잘 봤어요. 개띠 흐름도 궁금해요",
+            timestamp=g.utcnow().isoformat(),
+            kind="inbound",
+        )
+        ready, required, _ = g.public_saju_ready(cand, self.cfg)
+        self.assertTrue(ready)
+        self.assertEqual(required, 0)
+
+
 if __name__ == "__main__":
     unittest.main()
 
