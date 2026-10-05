@@ -57,6 +57,16 @@ class TrieScoutTest(unittest.TestCase):
             with self.assertRaises(ValueError, msg=key):
                 normalize_record(obj)
 
+    def test_pattern_features_reject_nested_payloads_and_nonfinite_numbers(self):
+        obj = raw()
+        obj["features"]["topic"] = {"nested": "payload"}
+        with self.assertRaises(ValueError):
+            normalize_record(obj)
+        obj = raw()
+        obj["features"]["topic"] = float("nan")
+        with self.assertRaises(ValueError):
+            normalize_record(obj)
+
     def test_signal_range_is_validated(self):
         obj = raw()
         obj["signals"]["interaction_rate_score"] = 1.5

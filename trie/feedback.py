@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any
+import math
 
 from .models import FeedbackRecord, Recommendation
 
@@ -47,8 +48,13 @@ def normalize_feedback(raw: dict[str, Any]) -> FeedbackRecord:
     revenue: float | None
     if revenue_raw is None:
         revenue = None
-    elif isinstance(revenue_raw, bool) or not isinstance(revenue_raw, (int, float)) or float(revenue_raw) < 0:
-        raise ValueError("revenue must be a non-negative number or null")
+    elif (
+        isinstance(revenue_raw, bool)
+        or not isinstance(revenue_raw, (int, float))
+        or not math.isfinite(float(revenue_raw))
+        or float(revenue_raw) < 0
+    ):
+        raise ValueError("revenue must be a finite non-negative number or null")
     else:
         revenue = float(revenue_raw)
     return FeedbackRecord(

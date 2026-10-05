@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from typing import Any
+import math
 
 from .models import (
     NormalizedRecord,
@@ -45,7 +46,21 @@ def normalize_record(raw: dict[str, Any]) -> NormalizedRecord:
     raw_features = raw.get("features") or {}
     if not isinstance(raw_features, dict):
         raise ValueError("features must be an object")
-    features = {key: raw_features[key] for key in PATTERN_FEATURE_KEYS if key in raw_features}
+    features: dict[str, Any] = {}
+    for key in PATTERN_FEATURE_KEYS:
+        if key not in raw_features:
+            continue
+        value = raw_features[key]
+        if value is None:
+            features[key] = None
+            continue
+        if isinstance(value, (dict, list, tuple, set)):
+            raise ValueError(f"pattern feature {key} must be scalar")
+        if isinstance(value, float) and not math.isfinite(value):
+            raise ValueError(f"pattern feature {key} must be finite")
+        if not isinstance(value, (str, int, float, bool)):
+            raise ValueError(f"pattern feature {key} has unsupported type")
+        features[key] = value
 
     raw_signals = raw.get("signals") or {}
     if not isinstance(raw_signals, dict):

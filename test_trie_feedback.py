@@ -51,6 +51,16 @@ class TrieFeedbackTest(unittest.TestCase):
             with self.assertRaises(ValueError, msg=field):
                 normalize_feedback(raw)
 
+    def test_nonfinite_revenue_is_rejected(self):
+        for value in (float("nan"), float("inf"), float("-inf")):
+            with self.assertRaises(ValueError):
+                normalize_feedback({
+                    "recommendation_id":"TRIE-ABC",
+                    "status":"complete",
+                    "observed_at":"2026-10-06T00:00:00+00:00",
+                    "revenue":value,
+                })
+
     def test_feedback_attaches_only_to_existing_recommendation(self):
         fb = normalize_feedback({
             "recommendation_id":"TRIE-ABC","status":"complete","observed_at":"2026-10-06T01:00:00+00:00","views":10
