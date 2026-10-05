@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+import math
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -64,12 +65,12 @@ def aggregate_patterns(
         }
         sample_size = len(members)
         source_counts = dict(sorted(Counter(x.source_type for x in members).items()))
-        trust = sum(x.source_trust for x in members) / sample_size
-        freshness = sum(freshness_weight(x.observed_at, now, config) for x in members) / sample_size
+        trust = math.fsum(x.source_trust for x in members) / sample_size
+        freshness = math.fsum(freshness_weight(x.observed_at, now, config) for x in members) / sample_size
         signals: dict[str, float | None] = {}
         for signal in SIGNAL_KEYS:
             values = [x.signals.get(signal) for x in members if x.signals.get(signal) is not None]
-            signals[signal] = (sum(values) / len(values)) if values else None
+            signals[signal] = (math.fsum(values) / len(values)) if values else None
         risk_flags = tuple(sorted({flag for x in members for flag in x.risk_flags}))
         pattern_id = deterministic_id("TRIEPAT", list(key))
         out.append(
