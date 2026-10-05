@@ -1,0 +1,71 @@
+[
+  {
+    "source_type": "owned_official",
+    "source_ref": "synthetic:1",
+    "observed_at": "$NOW",
+    "lane": "fortune_engagement",
+    "features": {
+      "topic": "재물운",
+      "hook_type": "unexpected_prediction",
+      "sentence_shape": "short_conversational",
+      "question_style": "single_question",
+      "cta_type": "comment",
+      "content_lane": "fortune_engagement",
+      "format": "text_image",
+      "visual_pattern": "single_focus_card"
+    },
+    "signals": {
+      "interaction_rate_score": 0.9,
+      "conversation_rate_score": 0.8,
+      "amplification_rate_score": 0.6,
+      "view_velocity_score": 0.9
+    },
+    "risk_flags": []
+  },
+  {
+    "source_type": "owned_official",
+    "source_ref": "synthetic:2",
+    "observed_at": "$NOW",
+    "lane": "fortune_engagement",
+    "features": {
+      "topic": "재물운",
+      "hook_type": "unexpected_prediction",
+      "sentence_shape": "short_conversational",
+      "question_style": "single_question",
+      "cta_type": "comment",
+      "content_lane": "fortune_engagement",
+      "format": "text_image",
+      "visual_pattern": "single_focus_card"
+    },
+    "signals": {
+      "interaction_rate_score": 0.8,
+      "conversation_rate_score": 0.9,
+      "amplification_rate_score": 0.7,
+      "view_velocity_score": 0.8
+    },
+    "risk_flags": []
+  },
+  {
+    "source_type": "owned_official",
+    "source_ref": "synthetic:3",
+    "observed_at": "$NOW",
+    "lane": "fortune_engagement",
+    "features": {
+      "topic": "재물운",
+      "hook_type": "unexpected_prediction",
+      "sentence_shape": "short_conversational",
+      "question_style": "single_question",
+      "cta_type": "comment",
+      "content_lane": "fortune_engagement",
+      "format": "text_image",
+      "visual_pattern": "single_focus_card"
+    },
+    "signals": {
+      "interaction_rate_score": 0.85,
+      "conversation_rate_score": 0.85,
+      "amplification_rate_score": 0.65,
+      "view_velocity_score": 0.85
+    },
+    "risk_flags": []
+  }
+]

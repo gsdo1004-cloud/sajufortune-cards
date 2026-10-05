@@ -1,0 +1,46 @@
+name: TRIE Advisory Canary
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '47 14 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  advisory-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run TRIE unit tests
+        run: |
+          python -m unittest -v \
+            test_trie_models.py \
+            test_trie_scout.py \
+            test_trie_patterns.py \
+            test_trie_ranker.py \
+            test_trie_planner.py \
+            test_trie_feedback.py \
+            test_trie_pipeline.py
+      - name: Run advisory canary
+        run: |
+          python -m trie.canary \
+            --input trie_canary_input.json \
+            --config trie_config.json \
+            --memory-out /tmp/trie_pattern_memory.json \
+            --recommendations-out /tmp/trie_recommendations.json
+      - name: Validate advisory artifacts
+        run: |
+          python - <<'PY'
+          import json
+          memory = json.load(open('/tmp/trie_pattern_memory.json', encoding='utf-8'))
+          recommendations = json.load(open('/tmp/trie_recommendations.json', encoding='utf-8'))
+          assert memory and all(x.get('schema') == 'trie-pattern-memory-v1' for x in memory)
+          assert recommendations and all(x.get('schema') == 'trie-recommendation-v1' for x in recommendations)
+          assert all(x.get('source_policy') == 'derived_patterns_only' for x in recommendations)
+          PY
