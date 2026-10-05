@@ -1,0 +1,33 @@
+{
+  "source_trust": {
+    "owned_official": 1.0,
+    "internal_attribution": 0.8,
+    "public_research": 0.6
+  },
+  "growth_weights": {
+    "interaction_rate_score": 0.20,
+    "conversation_rate_score": 0.35,
+    "amplification_rate_score": 0.25,
+    "view_velocity_score": 0.20
+  },
+  "revenue_weights": {
+    "click_rate_score": 0.30,
+    "conversion_rate_score": 0.45,
+    "revenue_efficiency_score": 0.25
+  },
+  "min_sample_size": 3,
+  "min_confidence": 0.25,
+  "blocking_risk_flags": [
+    "privacy",
+    "copied_creative",
+    "unsupported_source",
+    "policy_block"
+  ],
+  "freshness_buckets": [
+    {"max_days": 7, "weight": 1.0},
+    {"max_days": 30, "weight": 0.8},
+    {"max_days": 90, "weight": 0.6},
+    {"max_days": 180, "weight": 0.4},
+    {"max_days": null, "weight": 0.2}
+  ]
+}
