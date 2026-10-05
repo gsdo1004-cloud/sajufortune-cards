@@ -86,17 +86,22 @@ Responsibility: ingest only allowed source records and normalize them into a com
 
 Initial supported source classes:
 
-- owned Threads performance records;
-- existing official Threads post-insight outputs;
-- existing internal content metadata and conversion-attribution records when available;
-- manually supplied/public research records that contain metadata or short analytical excerpts rather than copied full creative assets.
+- `owned_official`: owned Threads performance records from official insight data;
+- `internal_attribution`: internal content metadata and click/conversion attribution records;
+- `public_research`: manually supplied public research records containing metadata or short analytical excerpts, never copied full creative assets.
 
-The Scout must preserve provenance fields and reject records that do not meet the configured source policy.
+Every normalized record must contain `source_type`, `source_ref`, `observed_at`, `lane`, and `metrics`. The Scout must preserve provenance and reject records that do not meet source policy.
+
+Source trust factors are fixed for phase 1:
+
+- `owned_official`: `1.0`;
+- `internal_attribution`: `0.8`;
+- `public_research`: `0.6`.
 
 ### 2. Pattern Miner
 Responsibility: convert normalized source records into abstract reusable features.
 
-Examples of allowed pattern features:
+Allowed pattern features include:
 
 - `hook_type`;
 - `sentence_shape`;
@@ -113,19 +118,60 @@ Examples of allowed pattern features:
 
 The miner stores derived patterns, not source creative payloads. Full copied body text, downloaded creator images, downloaded creator video, and creator-specific imitation instructions are out of scope.
 
+For deterministic phase-1 ranking, each aggregated pattern may carry normalized 0.0-1.0 signal fields when evidence exists:
+
+Growth signals:
+
+- `interaction_rate_score`;
+- `conversation_rate_score`;
+- `amplification_rate_score`;
+- `view_velocity_score`.
+
+Revenue signals:
+
+- `click_rate_score`;
+- `conversion_rate_score`;
+- `revenue_efficiency_score`.
+
+Signal normalization is performed before ranking and must be deterministic for the same corpus/configuration.
+
 ### 3. Ranker
 Responsibility: score candidate patterns separately for growth and revenue.
 
-Required output dimensions:
+Phase-1 default growth weights:
 
-- `growth_score`: normalized 0.0-1.0;
-- `revenue_score`: normalized 0.0-1.0;
-- `confidence`: normalized 0.0-1.0;
+- interaction rate: `0.20`;
+- conversation rate: `0.35`;
+- amplification rate: `0.25`;
+- view velocity: `0.20`.
+
+Phase-1 default revenue weights:
+
+- click rate: `0.30`;
+- conversion rate: `0.45`;
+- revenue efficiency: `0.25`.
+
+A score is the weighted mean of available normalized signals. Missing signals are excluded and remaining weights are renormalized. If no signal in a score family exists, that score is `null`, not zero.
+
+Required rank output dimensions:
+
+- `growth_score`: `0.0-1.0` or `null` when no growth evidence exists;
+- `revenue_score`: `0.0-1.0` or `null` when no revenue evidence exists;
+- `confidence`: `0.0-1.0`;
 - `sample_size`;
 - `freshness_weight`;
 - `risk_flags`.
 
-The first implementation must use deterministic, inspectable scoring. LLM-generated hidden scores are not authoritative. Model assistance may later enrich features, but final ranking inputs and weights must remain serializable and testable.
+Phase-1 confidence is deterministic:
+
+```text
+sample_factor = min(1.0, sample_size / 10.0)
+confidence = sample_factor * freshness_weight * source_trust_factor
+```
+
+`freshness_weight` must be a normalized `0.0-1.0` value derived by the normalization layer. For an aggregate with multiple source types, `source_trust_factor` is the sample-count-weighted mean of the fixed source trust factors above.
+
+LLM-generated hidden scores are not authoritative. Model assistance may later enrich features, but final ranking inputs, weights, and outputs must remain serializable and testable.
 
 ### 4. Pattern Memory
 Responsibility: store versioned aggregated pattern records and their observed outcomes.
@@ -159,22 +205,31 @@ Canonical recommendation schema:
   "visual_pattern": "single_focus_card",
   "cta": "comment",
   "growth_score": 0.82,
-  "revenue_score": 0.66,
-  "confidence": 0.87,
+  "revenue_score": null,
+  "confidence": 0.72,
   "sample_size": 12,
   "canary": true,
   "source_policy": "derived_patterns_only"
 }
 ```
 
-The planner must be usable as a pure function from pattern-memory data plus planning constraints to JSON recommendations.
+`growth_score` or `revenue_score` may be `null` only when the corresponding evidence family is absent. The planner must not convert unknown evidence into `0.0`.
+
+The planner is a pure function from pattern-memory data plus planning constraints to recommendation objects.
+
+Phase-1 eligibility defaults:
+
+- `sample_size >= 3`;
+- `confidence >= 0.25`;
+- at least one of `growth_score` or `revenue_score` is non-null;
+- no blocking `risk_flags`.
 
 ### 6. Feedback updater
 Responsibility: attach observed outcomes back to recommendation IDs without republishing anything.
 
 Initial feedback inputs:
 
-- official Threads post insights when a downstream publisher can map a `recommendation_id` to `post_id`;
+- official Threads post insights when a downstream publisher maps `recommendation_id` to `post_id`;
 - site click/conversion attribution when a compatible internal record exists;
 - explicit failure states such as publish rejection or missing metrics.
 
@@ -202,16 +257,16 @@ The current pilot insight collector is hard-coded to a specific pilot. Phase 1 m
 The existing non-publishing queue canary remains non-publishing. TRIE gets its own dry-run/canary validation and must not silently add Threads secrets, `--live`, or equivalent publication authority to the existing canary workflow.
 
 ## Canary policy
-Phase 1 defaults to recommendation-only mode.
+Phase 1 is recommendation-only and has zero live publishing allocation.
 
-A recommendation packet may include `"canary": true`, but that flag means "eligible for downstream canary selection"; it is not permission to publish.
+A recommendation packet may include `"canary": true`, but that means only "eligible for downstream canary selection"; it is not permission to publish.
 
-When downstream live integration is later enabled, the intended allocation is:
+A future separately reviewed live-integration phase may start with:
 
 - 30% TRIE-recommended candidates;
 - 70% existing strategy/control.
 
-Promotion beyond 30% requires a separate reviewed change. No automatic promotion based only on a single high-performing post is allowed.
+Promotion beyond 30% requires another reviewed change. No automatic promotion based on a single high-performing post is allowed.
 
 ## Data and privacy rules
 
@@ -219,7 +274,7 @@ Promotion beyond 30% requires a separate reviewed change. No automatic promotion
 2. Do not store public-saju commenter birth date/time, gender, free-text personal questions, or other user-level consultation data in TRIE pattern memory.
 3. Do not download and retain third-party images/videos for training or cloning.
 4. Store only aggregate or derived pattern features needed to rank content strategy.
-5. Preserve source provenance at the record level where possible so low-trust sources can be excluded later.
+5. Preserve source provenance so low-trust sources can be excluded later.
 6. Recommendation files are not publication receipts and must never be interpreted as proof of publication.
 
 ## Error handling
@@ -227,8 +282,8 @@ Promotion beyond 30% requires a separate reviewed change. No automatic promotion
 - Invalid input schema: reject record and report a validation error.
 - Unsupported source type: reject without fallback scraping.
 - Empty corpus: return no recommendation with explicit reason.
-- Insufficient sample size: lower confidence; do not manufacture certainty.
-- Missing revenue attribution: leave revenue outcome unknown rather than zero.
+- Insufficient sample size: mark ineligible rather than manufacture certainty.
+- Missing revenue attribution: keep revenue evidence unknown, not zero.
 - Missing official Threads metrics: mark feedback incomplete.
 - Corrupt pattern-memory JSON: fail the TRIE job without invoking downstream publishers.
 - Downstream consumer unavailable: keep the recommendation artifact; do not publish through an alternate channel automatically.
@@ -257,7 +312,7 @@ New focused files are preferred over enlarging existing publishers:
 
 Potential compatibility extraction, only if required by tests:
 
-- a reusable read-only Threads insights helper extracted from `rce_pilot_insights.py`, while preserving the current RCE CLI behavior.
+- a reusable read-only Threads insights helper extracted from `rce_pilot_insights.py`, while preserving current RCE CLI behavior.
 
 No phase-1 changes are planned to live publisher code unless a small adapter is required for reading `trie_recommendations.json`; any such change must remain opt-in and default off.
 
@@ -265,18 +320,20 @@ No phase-1 changes are planned to live publisher code unless a small adapter is 
 
 Implementation follows TDD.
 
-Minimum test coverage by behavior:
+Minimum behavior coverage:
 
-1. schema validation accepts a valid recommendation and rejects malformed scores;
+1. schema validation accepts valid nullable scores and rejects scores outside `0.0-1.0`;
 2. source policy rejects raw third-party creative payload storage;
-3. pattern extraction is deterministic for the same normalized input;
-4. ranker produces stable results from configured weights;
-5. low sample size reduces confidence;
-6. planner emits no recommendation from an empty or ineligible corpus;
-7. feedback preserves unknown metrics as unknown;
-8. no TRIE dry-run workflow exposes Threads publishing secrets;
-9. corrupt state fails without touching publisher paths;
-10. RCE pilot tests continue to pass if insight-helper extraction occurs.
+3. source trust factors are exactly `1.0`, `0.8`, and `0.6` for the three phase-1 source classes;
+4. pattern extraction/normalization is deterministic for the same input and config;
+5. ranker applies exact default weights and renormalizes around missing signals;
+6. no evidence yields `null`, never fabricated zero;
+7. low sample size lowers confidence and `sample_size < 3` is ineligible;
+8. planner emits no recommendation from an empty or ineligible corpus;
+9. feedback preserves unknown metrics as unknown;
+10. no TRIE dry-run workflow exposes Threads publishing secrets or live flags;
+11. corrupt state fails without touching publisher paths;
+12. RCE pilot tests continue to pass if insight-helper extraction occurs.
 
 ## Success criteria
 
@@ -285,7 +342,7 @@ Phase 1 is complete when:
 - TRIE can ingest allowed historical/internal performance records;
 - it stores only derived/aggregate pattern information;
 - it produces deterministic `trie-recommendation-v1` JSON;
-- output includes separate growth, revenue, and confidence scores;
+- output contains separate growth, revenue, and confidence fields with unknown evidence represented as `null`;
 - feedback can update recommendation outcomes without publishing;
 - all new unit tests pass;
 - existing Threads growth/public-saju/RCE tests pass unchanged;
@@ -306,6 +363,7 @@ Rollback is file-level and low-risk because TRIE is advisory by default:
 The following are not part of phase 1:
 
 - automated live publishing directly from TRIE;
+- 30/70 live traffic allocation itself;
 - adaptive multi-armed-bandit traffic allocation;
 - vector database or external database introduction;
 - automatic browser research/scraping fallback;
