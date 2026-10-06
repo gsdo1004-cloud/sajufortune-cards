@@ -76,7 +76,7 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             zodiac_ghost.py
