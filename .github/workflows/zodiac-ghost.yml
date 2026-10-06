@@ -84,6 +84,7 @@ jobs:
             zodiac_seo.py
             ganzhi_zodiac.py
             threads_conversion.py
+            scripts/safe_git_push.sh
             cards/*/threads_pub_ghost.json
 
       - uses: actions/setup-python@v5
