@@ -24,6 +24,7 @@ import datetime as dt
 import hashlib
 import difflib
 import json
+import math
 import os
 import re
 import sys
@@ -56,18 +57,13 @@ REPORT_PATH = BASE / "threads_growth_report.md"
 CAP_PATH = BASE / "threads_growth_capabilities.json"
 PAUSE_PATH = BASE / "threads_growth_PAUSED.json"
 
-try:
-    import threads_publish_queue as publish_queue
-except Exception:
-    publish_queue = None
-
 THREAD_FIELDS = "id,text,timestamp,username,permalink,is_reply,has_replies"
 REPLY_FIELDS = (
     "id,text,timestamp,username,permalink,is_reply,is_reply_owned_by_me,"
     "root_post,replied_to,hide_status,has_replies"
 )
 
-URL_RE = re.compile(r"(?:https?://|www\.)", re.I)
+URL_RE = re.compile(r"(?:https?://|www\.|\b(?:[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?\.)+(?:[a-z]{2,24}|xn--[a-z0-9-]{2,59})(?:/[^\s]*)?)", re.I)
 MENTION_RE = re.compile(r"@[A-Za-z0-9._]+")
 HASHTAG_RE = re.compile(r"#[^\s#]+")
 MULTISPACE_RE = re.compile(r"\s+")
@@ -76,15 +72,77 @@ KOREAN_OR_ALNUM_RE = re.compile(r"[가-힣A-Za-z0-9]")
 
 class APIError(RuntimeError):
     def __init__(self, message: str, *, code: int | None = None, subcode: int | None = None,
-                 status: int | None = None):
+                 status: int | None = None, response_json_valid: bool | None = None):
         super().__init__(message)
         self.code = code
         self.subcode = subcode
         self.status = status
+        self.response_json_valid = response_json_valid
+
+
+class StateCorruption(RuntimeError):
+    pass
+
+
+class PublishHeld(APIError):
+    pass
+
+
+class CandidateScanError(RuntimeError):
+    pass
 
 
 class LocationMismatch(RuntimeError):
+    def __init__(self, message: str, reply_id: str = ""):
+        super().__init__(message)
+        self.reply_id = str(reply_id or "")
+
+
+class UncertainPublish(RuntimeError):
+    """POST returned an id, but final placement/visibility could not be verified."""
+    def __init__(self, reply_id: str, message: str):
+        super().__init__(message)
+        self.reply_id = str(reply_id or "")
+
+
+class WriterLockBusy(RuntimeError):
     pass
+
+
+class _WriterLock:
+    def __init__(self, path: Path):
+        self.path = Path(path)
+        self.handle = None
+
+    def __enter__(self):
+        try:
+            import fcntl
+        except ImportError as exc:
+            raise WriterLockBusy("writer lock unavailable on this platform") from exc
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.handle = self.path.open("a+", encoding="utf-8")
+        try:
+            fcntl.flock(self.handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except (BlockingIOError, OSError) as exc:
+            self.handle.close()
+            self.handle = None
+            raise WriterLockBusy("another live writer is active") from exc
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        if self.handle is None:
+            return False
+        try:
+            import fcntl
+            fcntl.flock(self.handle.fileno(), fcntl.LOCK_UN)
+        finally:
+            self.handle.close()
+            self.handle = None
+        return False
+
+
+def writer_lock(path: Path | None = None) -> _WriterLock:
+    return _WriterLock(path or (BASE / "threads_growth.lock"))
 
 
 def log(msg: str) -> None:
@@ -109,9 +167,24 @@ def load_json(path: Path, default: Any) -> Any:
 
 
 def save_json(path: Path, data: Any) -> None:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-    tmp.replace(path)
+    payload = json.dumps(data, ensure_ascii=False, indent=2)
+    with tmp.open("w", encoding="utf-8") as f:
+        f.write(payload)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
+    # Linux/GitHub Actions에서는 rename 자체까지 디렉터리 메타데이터로 내구화한다.
+    # 여기서 실패하면 발송 예약이 durable하다고 보장할 수 없으므로 POST 전에 실패를 전파한다.
+    if os.name == "posix":
+        flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+        dfd = os.open(str(path.parent), flags)
+        try:
+            os.fsync(dfd)
+        finally:
+            os.close(dfd)
 
 
 def load_config() -> dict[str, Any]:
@@ -128,14 +201,78 @@ def default_state() -> dict[str, Any]:
         "external_target_ids": [],
         "sent": [],
         "days": {},
+        "external_growth": {"stage_index": 0, "stage_started_kst": None, "history": []},
         "last_run_at": None,
     }
 
 
 def load_state() -> dict[str, Any]:
-    s = load_json(STATE_PATH, default_state())
-    for k, v in default_state().items():
-        s.setdefault(k, v)
+    if not STATE_PATH.exists():
+        return default_state()
+    try:
+        s = json.loads(STATE_PATH.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise StateCorruption(f"state parse failed: {type(exc).__name__}") from exc
+    if not isinstance(s, dict) or s.get("schema") != 1:
+        raise StateCorruption("state schema invalid")
+
+    # 이 키들은 구버전 상태에도 존재하던 안전 카운터/영수증이다. 파일이 있는데
+    # 이들이 사라졌다면 빈 상태로 재구성하지 않고 손상으로 간주한다.
+    required_core = {"handled_inbound_ids", "external_target_ids", "sent", "days", "last_run_at"}
+    missing = sorted(required_core - set(s))
+    if missing:
+        raise StateCorruption("state core fields missing: " + ",".join(missing))
+    if not isinstance(s.get("handled_inbound_ids"), list) or not isinstance(s.get("external_target_ids"), list):
+        raise StateCorruption("state id lists invalid")
+    if not isinstance(s.get("sent"), list) or not isinstance(s.get("days"), dict):
+        raise StateCorruption("state structure invalid")
+
+    count_keys = {
+        "external", "inbound", "nested", "total", "external_measured", "external_engaged",
+        "external_replies", "external_likes", "external_errors", "external_safety_stops",
+        "external_insight_failures",
+    }
+    core_day_fields = {"external", "inbound", "nested", "total", "per_target"}
+    for day, bucket in s["days"].items():
+        if not isinstance(day, str) or not isinstance(bucket, dict):
+            raise StateCorruption("day bucket invalid")
+        missing_day = sorted(core_day_fields - set(bucket))
+        if missing_day:
+            raise StateCorruption("day bucket core fields missing: " + ",".join(missing_day))
+        if not isinstance(bucket.get("per_target"), dict):
+            raise StateCorruption("per_target invalid")
+        for key in count_keys:
+            if key in bucket:
+                value = bucket.get(key)
+                if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                    raise StateCorruption(f"day counter invalid: {key}")
+        for value in (bucket.get("per_target") or {}).values():
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise StateCorruption("per_target counter invalid")
+
+    allowed_effects = {"PENDING", "UNKNOWN", "CONFIRMED"}
+    for row in s["sent"]:
+        if not isinstance(row, dict):
+            raise StateCorruption("sent receipt invalid")
+        effect = row.get("effect")
+        if effect is not None and effect not in allowed_effects:
+            raise StateCorruption("sent receipt effect invalid")
+
+    growth = s.get("external_growth")
+    if growth is None:
+        s["external_growth"] = dict(default_state()["external_growth"])
+    elif not isinstance(growth, dict):
+        raise StateCorruption("external_growth invalid")
+    else:
+        idx = growth.get("stage_index", 0)
+        if isinstance(idx, bool) or not isinstance(idx, int) or idx < 0:
+            raise StateCorruption("external_growth stage invalid")
+        hist = growth.get("history", [])
+        if not isinstance(hist, list):
+            raise StateCorruption("external_growth history invalid")
+        growth.setdefault("stage_index", 0)
+        growth.setdefault("stage_started_kst", None)
+        growth.setdefault("history", [])
     return s
 
 
@@ -149,11 +286,24 @@ def trim_state(s: dict[str, Any]) -> None:
         s["days"].pop(k, None)
 
 
+def _ensure_day_bucket(bucket: dict[str, Any]) -> dict[str, Any]:
+    defaults = {
+        "external": 0, "inbound": 0, "nested": 0, "total": 0, "per_target": {},
+        "external_measured": 0, "external_engaged": 0, "external_replies": 0,
+        "external_likes": 0, "external_errors": 0, "external_safety_stops": 0,
+        "external_insight_failures": 0,
+    }
+    for key, value in defaults.items():
+        bucket.setdefault(key, value.copy() if isinstance(value, dict) else value)
+    return bucket
+
+
+def day_bucket(state: dict[str, Any], key: str) -> dict[str, Any]:
+    return _ensure_day_bucket(state.setdefault("days", {}).setdefault(key, {}))
+
+
 def today_bucket(state: dict[str, Any], now: dt.datetime | None = None) -> dict[str, Any]:
-    k = date_key(now)
-    days = state.setdefault("days", {})
-    return days.setdefault(k, {"external": 0, "inbound": 0, "nested": 0,
-                               "total": 0, "per_target": {}})
+    return day_bucket(state, date_key(now))
 
 
 def text_hash(text: str) -> str:
@@ -196,11 +346,13 @@ class ThreadsAPI:
         try:
             j = r.json()
         except Exception:
-            raise APIError(f"HTTP {r.status_code}: non-json response", status=r.status_code)
+            raise APIError(f"HTTP {r.status_code}: non-json response", status=r.status_code,
+                           response_json_valid=False)
         if r.status_code >= 400 or "error" in j:
             e = j.get("error") or {}
             raise APIError(safe_error_payload(j), code=e.get("code"),
-                           subcode=e.get("error_subcode"), status=r.status_code)
+                           subcode=e.get("error_subcode"), status=r.status_code,
+                           response_json_valid=True)
         return j
 
     def get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -232,6 +384,10 @@ class Candidate:
     kind: str = "external"  # external | inbound | nested
     root_text: str = ""
     score: float = 0.0
+    source_query: str = ""
+    search_type: str = ""
+    relevance: int = 0
+    conversation_signal: float = 0.0
 
 
 def is_skippable_text(text: str, cfg: dict[str, Any]) -> bool:
@@ -242,6 +398,155 @@ def is_skippable_text(text: str, cfg: dict[str, Any]) -> bool:
 def relevant_score(text: str, cfg: dict[str, Any]) -> int:
     low = text.lower()
     return sum(1 for w in cfg.get("topic_keywords", []) if w.lower() in low)
+
+
+
+def conversation_signal_score(text: str, cfg: dict[str, Any]) -> float:
+    """질문/고민처럼 실제 대화가 이어질 글은 올리고, 광고·맞팔 미끼는 내린다."""
+    low = (text or "").lower()
+    score = 0.0
+    if "?" in text or "？" in text:
+        score += 3.0
+    for word in cfg.get("external_conversation_keywords", ["궁금", "왜", "어떻게", "고민", "생각"]):
+        if str(word).lower() in low:
+            score += 1.5
+    if 35 <= len(text) <= 320:
+        score += 1.0
+    for word in cfg.get("external_bait_keywords", ["이벤트", "할인", "구매", "맞팔", "선팔"]):
+        if str(word).lower() in low:
+            score -= 4.0
+    return max(-20.0, min(20.0, score))
+
+
+def rank_external_candidates(rows: list[Candidate]) -> list[Candidate]:
+    """점수순 정렬 후 같은 작성자는 최고 후보 하나만 남긴다."""
+    ranked = sorted(rows, key=lambda c: (c.score, c.timestamp, c.id), reverse=True)
+    out: list[Candidate] = []
+    seen_authors: set[str] = set()
+    for candidate in ranked:
+        author = (candidate.username or candidate.id).strip().lower()
+        if author in seen_authors:
+            continue
+        seen_authors.add(author)
+        out.append(candidate)
+    return out
+
+
+def _growth_state(state: dict[str, Any], now: dt.datetime | None = None) -> dict[str, Any]:
+    growth = state.setdefault("external_growth", {})
+    growth.setdefault("stage_index", 0)
+    growth.setdefault("stage_started_kst", None)
+    growth.setdefault("history", [])
+    if not growth.get("stage_started_kst"):
+        growth["stage_started_kst"] = date_key(now)
+    return growth
+
+
+def _growth_stages(cfg: dict[str, Any]) -> list[int]:
+    raw = cfg.get("external_growth_stages") or [int(cfg.get("external_daily_cap", 0))]
+    stages = [max(0, int(x)) for x in raw]
+    return stages or [0]
+
+
+def effective_external_daily_cap(cfg: dict[str, Any], state: dict[str, Any],
+                                 now: dt.datetime | None = None) -> int:
+    growth = _growth_state(state, now)
+    stages = _growth_stages(cfg)
+    idx = max(0, min(int(growth.get("stage_index", 0)), len(stages) - 1))
+    growth["stage_index"] = idx
+    return stages[idx]
+
+
+def _completed_growth_window(state: dict[str, Any], now: dt.datetime, days: int) -> list[dict[str, Any]]:
+    today = dt.date.fromisoformat(date_key(now))
+    rows = []
+    for offset in range(days, 0, -1):
+        key = (today - dt.timedelta(days=offset)).isoformat()
+        rows.append(day_bucket(state, key))
+    return rows
+
+
+def maybe_advance_external_stage(cfg: dict[str, Any], state: dict[str, Any],
+                                 now: dt.datetime | None = None, *,
+                                 telemetry_available: bool = True) -> dict[str, Any]:
+    """7일 안전/성과 게이트를 통과할 때만 8→12→20으로 한 단계 올린다."""
+    now = now or utcnow()
+    growth = _growth_state(state, now)
+    stages = _growth_stages(cfg)
+    idx = max(0, min(int(growth.get("stage_index", 0)), len(stages) - 1))
+    started = dt.date.fromisoformat(str(growth.get("stage_started_kst") or date_key(now)))
+    today = dt.date.fromisoformat(date_key(now))
+    stage_days = max(1, int(cfg.get("external_growth_stage_days", 7)))
+    window = _completed_growth_window(state, now, stage_days)
+    sent = sum(int(x.get("external", 0)) for x in window)
+    measured = sum(int(x.get("external_measured", 0)) for x in window)
+    engaged = sum(int(x.get("external_engaged", 0)) for x in window)
+    errors = sum(int(x.get("external_errors", 0)) for x in window)
+    safety_stops = sum(int(x.get("external_safety_stops", 0)) for x in window)
+    insight_failures = sum(int(x.get("external_insight_failures", 0)) for x in window)
+    engagement_rate = engaged / max(1, measured)
+    error_rate = errors / max(1, sent + errors)
+    insight_failure_rate = insight_failures / max(1, measured + insight_failures)
+    unresolved = len(unresolved_sends(state))
+    require_telemetry = bool(cfg.get("external_growth_require_insights", True))
+    promoted = False
+    eligible_age = (today - started).days >= stage_days
+    if idx < len(stages) - 1 and eligible_age:
+        healthy = (
+            sent >= int(cfg.get("external_growth_min_stage_sends", 14))
+            and measured >= int(cfg.get("external_growth_min_measured", 8))
+            and engagement_rate >= float(cfg.get("external_growth_min_engagement_rate", 0.02))
+            and error_rate <= float(cfg.get("external_growth_max_error_rate", 0.05))
+            and insight_failure_rate <= float(cfg.get("external_growth_max_insight_failure_rate", 0.0))
+            and (telemetry_available or not require_telemetry)
+            and unresolved == 0
+            and safety_stops == 0
+        )
+        if healthy:
+            old_cap = stages[idx]
+            idx += 1
+            growth["stage_index"] = idx
+            growth["stage_started_kst"] = today.isoformat()
+            growth.setdefault("history", []).append({
+                "at": now.isoformat(), "from_cap": old_cap, "to_cap": stages[idx],
+                "sent": sent, "measured": measured, "engaged": engaged,
+                "engagement_rate": round(engagement_rate, 4), "error_rate": round(error_rate, 4),
+                "insight_failure_rate": round(insight_failure_rate, 4),
+            })
+            growth["history"] = growth["history"][-20:]
+            promoted = True
+    return {
+        "stage_index": idx, "daily_cap": stages[idx], "promoted": promoted,
+        "stage_started_kst": growth.get("stage_started_kst"), "sent": sent,
+        "measured": measured, "engaged": engaged, "errors": errors,
+        "safety_stops": safety_stops, "insight_failures": insight_failures,
+        "engagement_rate": round(engagement_rate, 4), "error_rate": round(error_rate, 4),
+        "insight_failure_rate": round(insight_failure_rate, 4),
+        "telemetry_available": bool(telemetry_available), "unresolved": unresolved,
+    }
+
+
+def source_performance_bonus(state: dict[str, Any], source_query: str, search_type: str) -> float:
+    """이미 측정된 외부 댓글 성과를 다음 후보 점수에 작은 보너스로 반영한다."""
+    measured = 0
+    points = 0.0
+    for row in state.get("sent", [])[-500:]:
+        if row.get("kind") != "external":
+            continue
+        if str(row.get("source_query") or "") != str(source_query or ""):
+            continue
+        if str(row.get("search_type") or "") != str(search_type or ""):
+            continue
+        metrics = row.get("external_metrics")
+        if not isinstance(metrics, dict):
+            continue
+        measured += 1
+        points += min(12.0, float(metrics.get("replies", 0) or 0) * 6.0
+                      + float(metrics.get("likes", 0) or 0) * 1.0
+                      + float(metrics.get("quotes", 0) or 0) * 2.0
+                      + float(metrics.get("reposts", 0) or 0) * 2.0
+                      + float(metrics.get("shares", 0) or 0) * 2.0)
+    return min(12.0, points / max(1, measured)) if measured else 0.0
 
 
 def clean_model_text(text: str) -> str:
@@ -286,8 +591,10 @@ def quality_gate(text: str, cfg: dict[str, Any], state: dict[str, Any], *, exter
         prev = MULTISPACE_RE.sub(" ", str(old.get("text") or "").lower()).strip()
         if prev and difflib.SequenceMatcher(None, norm, prev).ratio() >= 0.82:
             return False, "near_duplicate"
-    if external and ("프로필" in t or "상담" in t or "무료운세" in t):
-        return False, "promotion"
+    if external:
+        for phrase in cfg.get("external_promo_block_phrases", ["프로필", "상담", "무료운세", "링크", "구매", "결제", "할인", "이벤트", "설치", "다운로드", "dm", "디엠", "문의"]):
+            if str(phrase).lower() in low:
+                return False, f"promotion:{phrase}"
     return True, "ok"
 
 
@@ -445,9 +752,9 @@ def inbound_candidates(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, An
             continue
         try:
             j = api.get(f"{pid}/conversation", {"fields": REPLY_FIELDS, "reverse": "true", "limit": 50})
-        except APIError as e:
+        except (APIError, requests.RequestException) as e:
             log(f"conversation 조회 실패 {pid}: {e}")
-            continue
+            raise CandidateScanError(f"conversation scan failed for {pid}: {e}") from e
         rows = j.get("data", [])
         owned_ids = {str(r.get("id") or "") for r in rows if r.get("is_reply_owned_by_me")}
         my_username = str(cfg.get("account_username") or "").lower()
@@ -495,9 +802,10 @@ def external_candidates(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, A
         for rank, username in enumerate(targets[:10]):
             try:
                 j = api.get("profile_posts", {"username": username, "fields": THREAD_FIELDS, "limit": 8})
-            except APIError as e:
-                log(f"profile_posts @{username} 건너뜀: {e}")
-                continue
+            except (APIError, requests.RequestException) as e:
+                record_external_error(state)
+                log(f"profile_posts @{username} 조회 실패: {e}")
+                raise CandidateScanError(f"profile_posts scan failed for @{username}: {e}") from e
             for p in j.get("data", []):
                 pid = str(p.get("id") or "")
                 text = (p.get("text") or "").strip()
@@ -509,10 +817,13 @@ def external_candidates(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, A
                 rel = relevant_score(text, cfg)
                 if rel <= 0:
                     continue
-                score = 100.0 - age + rel * 15 - rank * 0.5 + (8 if p.get("has_replies") else 0)
+                conv = conversation_signal_score(text, cfg)
+                perf = source_performance_bonus(state, username, "PROFILE")
+                score = 100.0 - age + rel * 15 - rank * 0.5 + (8 if p.get("has_replies") else 0) + conv * 4 + perf
                 out[pid] = Candidate(id=pid, username=str(p.get("username") or username), text=text,
                                      timestamp=str(p.get("timestamp") or ""), permalink=str(p.get("permalink") or ""),
-                                     kind="external", score=score)
+                                     kind="external", score=score, source_query=username, search_type="PROFILE",
+                                     relevance=rel, conversation_signal=conv)
 
     # profile_posts 권한이 없거나 후보가 적으면 keyword_search 공식 API로 보완.
     if caps.get("keyword_search") and len(out) < 5:
@@ -524,9 +835,10 @@ def external_candidates(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, A
                 try:
                     j = api.get("keyword_search", {"q": q, "search_type": search_type,
                                                    "fields": THREAD_FIELDS, "limit": 25})
-                except APIError as e:
-                    log(f"keyword_search '{q}'/{search_type} 건너뜀: {e}")
-                    continue
+                except (APIError, requests.RequestException) as e:
+                    record_external_error(state)
+                    log(f"keyword_search '{q}'/{search_type} 조회 실패: {e}")
+                    raise CandidateScanError(f"keyword search failed for {q}/{search_type}: {e}") from e
                 for p in j.get("data", []):
                     username = str(p.get("username") or "")
                     if not discovery and username.lower() not in allowed:
@@ -545,13 +857,16 @@ def external_candidates(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, A
                     # TOP 결과는 Threads가 제공하는 인기/관련성 신호로 활용한다.
                     # 공개 API가 제공하지 않는 조회수/팔로워 수를 추정해서 만들지는 않는다.
                     top_bonus = float(cfg.get("keyword_top_bonus", 18)) if search_type == "TOP" else 0.0
-                    score = 95.0 - age + rel * 15 + (8 if p.get("has_replies") else 0) + top_bonus
+                    conv = conversation_signal_score(text, cfg)
+                    perf = source_performance_bonus(state, q, search_type)
+                    score = 95.0 - age + rel * 15 + (8 if p.get("has_replies") else 0) + top_bonus + conv * 4 + perf
                     cur = out.get(pid)
                     if cur is None or score > cur.score:
                         out[pid] = Candidate(id=pid, username=username, text=text,
                                              timestamp=str(p.get("timestamp") or ""), permalink=str(p.get("permalink") or ""),
-                                             kind="external", score=score)
-        return sorted(out.values(), key=lambda c: c.score, reverse=True)
+                                             kind="external", score=score, source_query=q, search_type=search_type,
+                                             relevance=rel, conversation_signal=conv)
+    return rank_external_candidates(list(out.values()))
 
 
 def verify_target(api: ThreadsAPI, target_id: str) -> dict[str, Any]:
@@ -580,7 +895,7 @@ def verify_published_reply(api: ThreadsAPI, reply_id: str, target_id: str, text:
             continue
         actual = str((match.get("replied_to") or {}).get("id") or "")
         if actual != str(target_id):
-            raise LocationMismatch(f"reply {match.get('id')} replied_to={actual}, expected={target_id}")
+            raise LocationMismatch(f"reply {match.get('id')} replied_to={actual}, expected={target_id}", str(match.get("id") or reply_id))
         return match
     raise APIError(f"post-publish verification failed: {last_error}")
 
@@ -593,11 +908,30 @@ def pause(reason: str, detail: dict[str, Any] | None = None) -> None:
 def publish_reply(api: ThreadsAPI, candidate: Candidate, text: str) -> dict[str, Any]:
     # 대상이 실제로 존재하는지 발송 직전 재확인한다.
     verify_target(api, candidate.id)
-    j = api.post("me/threads", {"media_type": "TEXT", "text": text,
-                                "reply_to_id": candidate.id, "auto_publish_text": "true"})
+    # preflight GET 사이에 다른 경로가 PAUSE를 만들었을 수 있으므로 POST 직전에 다시 확인한다.
+    if PAUSE_PATH.exists():
+        raise PublishHeld("paused_before_post", status=409)
+    try:
+        j = api.post("me/threads", {"media_type": "TEXT", "text": text,
+                                    "reply_to_id": candidate.id, "auto_publish_text": "true"})
+    except requests.RequestException as exc:
+        pause("reply_publish_request_uncertain", {"expected": candidate.id, "error": str(exc)})
+        raise UncertainPublish("", str(exc)) from exc
+    except APIError as exc:
+        # 파싱 가능한 JSON 4xx만 서버의 명시적 거부로 확정한다. non-JSON 4xx/5xx/상태불명은
+        # 서버가 이미 썼을 가능성을 배제할 수 없어 UNKNOWN으로 잠근다.
+        if (exc.status is not None and 400 <= int(exc.status) < 500
+                and exc.response_json_valid is True):
+            raise
+        pause("reply_publish_api_uncertain", {"expected": candidate.id, "status": exc.status,
+                                              "json_valid": exc.response_json_valid,
+                                              "error": str(exc)})
+        raise UncertainPublish("", str(exc)) from exc
     rid = str(j.get("id") or "")
     if not rid:
-        raise APIError(f"reply publish returned no id: {safe_error_payload(j)}")
+        detail = f"reply publish returned no id: {safe_error_payload(j)}"
+        pause("reply_publish_id_uncertain", {"expected": candidate.id, "error": detail})
+        raise UncertainPublish("", detail)
     try:
         verified = verify_published_reply(api, rid, candidate.id, text)
     except LocationMismatch as e:
@@ -608,14 +942,19 @@ def publish_reply(api: ThreadsAPI, candidate: Candidate, text: str) -> dict[str,
             pass
         pause("reply_location_mismatch", {"expected": candidate.id, "reply_id": rid, "error": str(e)})
         raise
+    except (APIError, requests.RequestException) as e:
+        # POST는 이미 성공했을 수 있다. 재시도하면 중복 발송 위험이 있으므로 UNKNOWN으로 잠근다.
+        pause("reply_verification_uncertain", {"expected": candidate.id, "reply_id": rid, "error": str(e)})
+        raise UncertainPublish(rid, str(e)) from e
     return verified
 
 
-def can_send_external(cfg: dict[str, Any], state: dict[str, Any], username: str) -> bool:
-    b = today_bucket(state)
-    if b.get("total", 0) >= int(cfg.get("total_daily_cap", 10)):
+def can_send_external(cfg: dict[str, Any], state: dict[str, Any], username: str,
+                      now: dt.datetime | None = None) -> bool:
+    b = today_bucket(state, now)
+    if b.get("total", 0) >= int(cfg.get("total_daily_cap", 30)):
         return False
-    if b.get("external", 0) >= int(cfg.get("external_daily_cap", 3)):
+    if b.get("external", 0) >= effective_external_daily_cap(cfg, state, now):
         return False
     if (b.get("per_target") or {}).get(username.lower(), 0) >= int(cfg.get("per_target_daily_cap", 1)):
         return False
@@ -674,10 +1013,12 @@ def inbound_inter_reply_pause_seconds(candidate: Candidate, cfg: dict[str, Any])
     return lo + (seed % (hi - lo + 1))
 
 
-def record_send(state: dict[str, Any], candidate: Candidate, text: str, reply: dict[str, Any], *, dry_run: bool) -> None:
+def record_send(state: dict[str, Any], candidate: Candidate, text: str, reply: dict[str, Any], *,
+                dry_run: bool, now: dt.datetime | None = None, effect: str = "CONFIRMED") -> None:
     if dry_run:
         return
-    b = today_bucket(state)
+    now = now or utcnow()
+    b = today_bucket(state, now)
     b["total"] = int(b.get("total", 0)) + 1
     if candidate.kind == "external":
         b["external"] = int(b.get("external", 0)) + 1
@@ -689,11 +1030,235 @@ def record_send(state: dict[str, Any], candidate: Candidate, text: str, reply: d
         b[candidate.kind] = int(b.get(candidate.kind, 0)) + 1
         state.setdefault("handled_inbound_ids", []).append(candidate.id)
     state.setdefault("sent", []).append({
-        "at": utcnow().isoformat(), "kind": candidate.kind, "target_id": candidate.id,
-        "target_username": candidate.username, "reply_id": str(reply.get("id") or ""),
-        "text_hash": text_hash(text), "text": text,
+        "at": now.isoformat(), "date_kst": date_key(now), "kind": candidate.kind,
+        "target_id": candidate.id, "target_username": candidate.username,
+        "reply_id": str(reply.get("id") or ""), "text_hash": text_hash(text), "text": text,
         "verified_replied_to": str((reply.get("replied_to") or {}).get("id") or ""),
+        "source_query": candidate.source_query, "search_type": candidate.search_type,
+        "candidate_score": round(float(candidate.score), 3), "relevance": int(candidate.relevance),
+        "conversation_signal": round(float(candidate.conversation_signal), 3),
+        "effect": str(effect or "CONFIRMED"),
     })
+
+
+def reserve_send(state: dict[str, Any], candidate: Candidate, text: str, *,
+                 now: dt.datetime | None = None, persist: bool = True) -> dict[str, Any]:
+    """POST 전에 PENDING 예약을 저장해 crash/동시 실행 시 cap을 보수적으로 지킨다."""
+    now = now or utcnow()
+    record_send(state, candidate, text, {"id": "", "replied_to": {}},
+                dry_run=False, now=now, effect="PENDING")
+    row = state["sent"][-1]
+    if persist:
+        save_json(STATE_PATH, state)
+    return row
+
+
+def finalize_reserved_send(state: dict[str, Any], row: dict[str, Any], reply: dict[str, Any], *,
+                           effect: str = "CONFIRMED", persist: bool = True) -> None:
+    row["reply_id"] = str(reply.get("id") or row.get("reply_id") or "")
+    row["verified_replied_to"] = str((reply.get("replied_to") or {}).get("id") or "")
+    row["effect"] = str(effect or "CONFIRMED")
+    row["finalized_at"] = utcnow().isoformat()
+    if persist:
+        save_json(STATE_PATH, state)
+
+
+def release_reserved_send(state: dict[str, Any], row: dict[str, Any], *, persist: bool = True) -> None:
+    """POST가 확실히 일어나지 않은 경우에만 PENDING 예약을 되돌린다."""
+    if row.get("effect") != "PENDING":
+        return
+    key = str(row.get("date_kst") or date_key())
+    b = day_bucket(state, key)
+    kind = str(row.get("kind") or "")
+    b["total"] = max(0, int(b.get("total", 0)) - 1)
+    if kind == "external":
+        b["external"] = max(0, int(b.get("external", 0)) - 1)
+        author = str(row.get("target_username") or "").lower()
+        pt = b.setdefault("per_target", {})
+        if author in pt:
+            pt[author] = max(0, int(pt.get(author, 0)) - 1)
+            if pt[author] == 0:
+                pt.pop(author, None)
+        tid = str(row.get("target_id") or "")
+        ids = state.setdefault("external_target_ids", [])
+        for i in range(len(ids) - 1, -1, -1):
+            if str(ids[i]) == tid:
+                ids.pop(i)
+                break
+    elif kind in {"inbound", "nested"}:
+        b[kind] = max(0, int(b.get(kind, 0)) - 1)
+        tid = str(row.get("target_id") or "")
+        ids = state.setdefault("handled_inbound_ids", [])
+        for i in range(len(ids) - 1, -1, -1):
+            if str(ids[i]) == tid:
+                ids.pop(i)
+                break
+    sent = state.setdefault("sent", [])
+    try:
+        sent.remove(row)
+    except ValueError:
+        pass
+    if persist:
+        save_json(STATE_PATH, state)
+
+
+def pending_sends(state: dict[str, Any]) -> list[dict[str, Any]]:
+    return [x for x in state.get("sent", []) if x.get("effect") == "PENDING"]
+
+
+def unresolved_sends(state: dict[str, Any]) -> list[dict[str, Any]]:
+    return [x for x in state.get("sent", []) if x.get("effect") in {"PENDING", "UNKNOWN"}]
+
+
+def record_external_error(state: dict[str, Any], *, safety_stop: bool = False,
+                          now: dt.datetime | None = None) -> None:
+    b = today_bucket(state, now)
+    b["external_errors"] = int(b.get("external_errors", 0)) + 1
+    if safety_stop:
+        b["external_safety_stops"] = int(b.get("external_safety_stops", 0)) + 1
+
+
+def record_external_insights(state: dict[str, Any], sent_row: dict[str, Any], metrics: dict[str, Any], *,
+                             now: dt.datetime | None = None) -> None:
+    """한 외부 댓글의 누적 insights를 원 발송일 버킷에 멱등 반영한다."""
+    if sent_row.get("kind") != "external":
+        return
+    now = now or utcnow()
+    send_key = str(sent_row.get("date_kst") or "")
+    if not send_key:
+        ts = parse_ts(str(sent_row.get("at") or ""))
+        send_key = date_key(ts or now)
+    b = day_bucket(state, send_key)
+    names = ("views", "likes", "replies", "reposts", "quotes", "shares")
+    reported = {name: max(0, int(float(metrics.get(name, 0) or 0))) for name in names}
+    previous = sent_row.get("external_metrics") if isinstance(sent_row.get("external_metrics"), dict) else None
+    previous = previous or {}
+    # Threads 집계값이 일시적으로 감소해도 누적 학습치는 되돌리지 않는다.
+    current = {name: max(int(previous.get(name, 0) or 0), reported[name]) for name in names}
+    if not sent_row.get("external_metrics_measured"):
+        b["external_measured"] = int(b.get("external_measured", 0)) + 1
+        sent_row["external_metrics_measured"] = True
+    old_engaged = bool(sent_row.get("external_engagement_counted"))
+    new_engaged = sum(current[x] for x in ("likes", "replies", "reposts", "quotes", "shares")) > 0
+    if new_engaged and not old_engaged:
+        b["external_engaged"] = int(b.get("external_engaged", 0)) + 1
+        sent_row["external_engagement_counted"] = True
+    old_replies = int(previous.get("replies", 0) or 0)
+    old_likes = int(previous.get("likes", 0) or 0)
+    b["external_replies"] = int(b.get("external_replies", 0)) + max(0, current["replies"] - old_replies)
+    b["external_likes"] = int(b.get("external_likes", 0)) + max(0, current["likes"] - old_likes)
+    sent_row["external_metrics"] = current
+    sent_row["insights_checked_at"] = now.isoformat()
+
+
+
+
+def _metric_value(item: dict[str, Any]) -> int | None:
+    missing = object()
+    raw: Any = missing
+    values = item.get("values")
+    if isinstance(values, list) and values and isinstance(values[-1], dict) and "value" in values[-1]:
+        raw = values[-1].get("value")
+    elif isinstance(item.get("total_value"), dict) and "value" in (item.get("total_value") or {}):
+        raw = (item.get("total_value") or {}).get("value")
+    elif "value" in item:
+        raw = item.get("value")
+    if raw is missing or raw is None or isinstance(raw, bool):
+        return None
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(value) or value < 0:
+        return None
+    return int(value)
+
+
+def record_external_insight_failure(state: dict[str, Any], row: dict[str, Any]) -> None:
+    if row.get("external_insight_failure_counted"):
+        return
+    key = str(row.get("date_kst") or date_key(parse_ts(str(row.get("at") or "")) or utcnow()))
+    b = day_bucket(state, key)
+    b["external_insight_failures"] = int(b.get("external_insight_failures", 0)) + 1
+    row["external_insight_failure_counted"] = True
+
+
+def clear_external_insight_failure(state: dict[str, Any], row: dict[str, Any]) -> None:
+    if not row.get("external_insight_failure_counted"):
+        return
+    key = str(row.get("date_kst") or date_key(parse_ts(str(row.get("at") or "")) or utcnow()))
+    b = day_bucket(state, key)
+    b["external_insight_failures"] = max(0, int(b.get("external_insight_failures", 0)) - 1)
+    row["external_insight_failure_counted"] = False
+
+
+def collect_external_insights(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, Any], *,
+                              now: dt.datetime | None = None) -> dict[str, int]:
+    """최근 외부 댓글의 공식 insights만 제한적으로 읽어 다음 후보/단계 판단에 쓴다."""
+    now = now or utcnow()
+    min_age = float(cfg.get("external_insights_min_age_hours", 2))
+    refresh = float(cfg.get("external_insights_refresh_hours", 12))
+    max_age = float(cfg.get("external_insights_max_age_days", 8)) * 24
+    limit = max(0, int(cfg.get("external_insights_per_run", 8)))
+    result = {"attempted": 0, "measured": 0, "failed": 0, "skipped": 0}
+    for row in reversed(state.get("sent", [])):
+        if result["attempted"] >= limit:
+            break
+        if row.get("kind") != "external":
+            continue
+        reply_id = str(row.get("reply_id") or "")
+        sent_at = parse_ts(str(row.get("at") or ""))
+        if not reply_id or reply_id == "dry" or sent_at is None:
+            result["skipped"] += 1
+            continue
+        if sent_at.tzinfo is None:
+            sent_at = sent_at.replace(tzinfo=dt.timezone.utc)
+        age = max(0.0, (now - sent_at.astimezone(dt.timezone.utc)).total_seconds() / 3600)
+        if age < min_age or age > max_age:
+            result["skipped"] += 1
+            continue
+        checked = parse_ts(str(row.get("insights_checked_at") or ""))
+        if checked is not None:
+            if checked.tzinfo is None:
+                checked = checked.replace(tzinfo=dt.timezone.utc)
+            if (now - checked.astimezone(dt.timezone.utc)).total_seconds() / 3600 < refresh:
+                result["skipped"] += 1
+                continue
+        result["attempted"] += 1
+        try:
+            payload = api.get(f"{reply_id}/insights", {
+                "metric": "views,likes,replies,reposts,quotes,shares"
+            })
+        except (APIError, requests.RequestException) as exc:
+            # 성과 측정은 학습용 보조 경로다. 오류는 발송을 막지 않되 승급 신뢰도에는 반영한다.
+            result["failed"] += 1
+            record_external_insight_failure(state, row)
+            log(f"외부댓글 insights 건너뜀 {reply_id}: {exc}")
+            row["insights_checked_at"] = now.isoformat()
+            continue
+        metrics = {name: 0 for name in ("views", "likes", "replies", "reposts", "quotes", "shares")}
+        seen_metrics: set[str] = set()
+        invalid_metrics: set[str] = set()
+        for item in payload.get("data", []) if isinstance(payload, dict) else []:
+            name = str(item.get("name") or "")
+            if name in metrics:
+                value = _metric_value(item)
+                if value is None:
+                    invalid_metrics.add(name)
+                else:
+                    metrics[name] = value
+                    seen_metrics.add(name)
+        required = {"views", "likes", "replies"}
+        if invalid_metrics or not required.issubset(seen_metrics):
+            result["failed"] += 1
+            record_external_insight_failure(state, row)
+            row["insights_checked_at"] = now.isoformat()
+            log(f"외부댓글 insights 무효/부분 응답 {reply_id}: seen={sorted(seen_metrics)} invalid={sorted(invalid_metrics)}")
+            continue
+        clear_external_insight_failure(state, row)
+        record_external_insights(state, row, metrics, now=now)
+        result["measured"] += 1
+    return result
 
 
 def mark_inbound_handled(state: dict[str, Any], cid: str) -> None:
@@ -704,11 +1269,45 @@ def run_growth(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, Any], caps
                *, send: bool, do_external: bool, do_inbound: bool) -> dict[str, Any]:
     actions: list[dict[str, Any]] = []
     publisher_backend = str(cfg.get("publisher_backend", "api")).lower()
-    api_send = bool(send and publisher_backend == "api")
+    hold_reason = ""
+    if send and publisher_backend != "api":
+        hold_reason = "publisher_backend_not_api"
+        log(f"HOLD: Threads 성장 자동화는 공식 API 발송만 허용합니다 (backend={publisher_backend})")
+        send = False
     if PAUSE_PATH.exists() and send:
         p = load_json(PAUSE_PATH, {})
         log(f"PAUSED 파일 존재 — 실제 발송 안 함: {p.get('reason')}")
         send = False
+    unknown = [x for x in state.get("sent", []) if x.get("effect") == "UNKNOWN"]
+    if send and unknown:
+        hold_reason = "unresolved_send_requires_reconcile"
+        log("HOLD: 이전 UNKNOWN 발송이 남아 있어 근거 기반 확인 전 자동발송을 차단합니다")
+        send = False
+        do_external = False
+        do_inbound = False
+    elif send and pending_sends(state):
+        hold_reason = "pending_send_requires_reconcile"
+        log("HOLD: 이전 PENDING 발송이 남아 있어 자동 재시도를 차단합니다")
+        send = False
+        do_external = False
+        do_inbound = False
+    # PAUSE/PENDING 판정 뒤에 계산해야 정지 상태에서 실제 API 발송이 새지 않는다.
+    api_send = bool(send and publisher_backend == "api")
+
+    growth_state = _growth_state(state)
+    growth_status = {
+        "stage_index": int(growth_state.get("stage_index", 0)),
+        "daily_cap": effective_external_daily_cap(cfg, state),
+        "promoted": False,
+    }
+    insight_status = {"attempted": 0, "measured": 0, "failed": 0, "skipped": 0}
+    telemetry_available = "threads_manage_insights" in set(caps.get("token_scopes") or [])
+    if do_external and send and telemetry_available:
+        insight_status = collect_external_insights(api, cfg, state)
+    if do_external and not PAUSE_PATH.exists():
+        growth_status = maybe_advance_external_stage(cfg, state, telemetry_available=telemetry_available)
+        if growth_status.get("promoted"):
+            log(f"외부 대화 단계 승급 → 일 {growth_status.get('daily_cap')}개")
 
     # 1) 내 글 댓글/대댓글 우선. 이미 들어온 사람과 대화를 이어가는 게 가장 안전하다.
     if do_inbound and caps.get("read_replies"):
@@ -744,9 +1343,12 @@ def run_growth(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, Any], caps
                             continue
                     kept.append(x)
                 candidates = kept
-        except APIError as e:
+        except (CandidateScanError, APIError, requests.RequestException) as e:
             candidates = []
-            log(f"inbound scan 실패: {e}")
+            if send and not hold_reason:
+                hold_reason = "inbound_scan_error"
+            do_external = False
+            log(f"inbound scan 실패 — 추가 발송 차단: {e}")
         n = 0
         for c in candidates:
             if n >= int(cfg.get("inbound_per_run", 3)) or not can_send_inbound(cfg, state):
@@ -761,8 +1363,9 @@ def run_growth(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, Any], caps
                 mark_inbound_handled(state, c.id)
                 continue
             text, revenue_cta = maybe_add_revenue_cta(text, c, cfg, state)
-            log(f"{('[SEND]' if api_send else '[QUEUE]')} {c.kind} @{c.username}: {text}")
+            log(f"{('[SEND]' if api_send else '[DRY]')} {c.kind} @{c.username}: {text}")
             reply = {"id": "dry", "replied_to": {"id": c.id}}
+            reservation = None
             if api_send:
                 # 같은 실행에서 공개사주 답글이 연달아 몇 초 간격으로 달리지 않도록 간격을 둔다.
                 if n > 0:
@@ -770,28 +1373,54 @@ def run_growth(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, Any], caps
                     if pause_s > 0:
                         log(f"공개사주 연속답글 간격 {pause_s}초")
                         time.sleep(pause_s)
+                if PAUSE_PATH.exists():
+                    log("PAUSED 감지 — 추가 발송 중단")
+                    break
+                reservation = reserve_send(state, c, text, persist=True)
+                reservation["revenue_cta"] = bool(revenue_cta)
+                save_json(STATE_PATH, state)
+                if PAUSE_PATH.exists():
+                    release_reserved_send(state, reservation, persist=True)
+                    log("PAUSED 감지 — 예약 취소 후 발송 중단")
+                    break
                 try:
                     reply = publish_reply(api, c, text)
-                except (APIError, LocationMismatch) as e:
-                    log(f"발송 실패({c.kind}): {e}")
-                    # 권한/대상 오류가 반복되는 것을 막기 위해 이 실행은 중단
+                except UncertainPublish as e:
+                    if not PAUSE_PATH.exists():
+                        pause("reply_verification_uncertain", {"expected": c.id, "reply_id": e.reply_id, "error": str(e)})
+                    finalize_reserved_send(state, reservation, {"id": e.reply_id, "replied_to": {}}, effect="UNKNOWN", persist=True)
+                    log(f"발송 불확실({c.kind}) — 전체 실행 정지: {e}")
                     break
-            if api_send:
-                record_send(state, c, text, reply, dry_run=False)
-                if state.get("sent"):
-                    state["sent"][-1]["revenue_cta"] = bool(revenue_cta)
-                    state["sent"][-1]["date_kst"] = date_key()
+                except LocationMismatch as e:
+                    if not PAUSE_PATH.exists():
+                        pause("reply_location_mismatch", {"expected": c.id, "reply_id": e.reply_id, "error": str(e)})
+                    finalize_reserved_send(state, reservation, {"id": e.reply_id, "replied_to": {}}, effect="UNKNOWN", persist=True)
+                    log(f"발송 위치 불일치({c.kind}) — 전체 실행 정지: {e}")
+                    break
+                except (APIError, requests.RequestException) as e:
+                    release_reserved_send(state, reservation, persist=True)
+                    hold_reason = "inbound_publish_error"
+                    log(f"발송 실패({c.kind}): {e}")
+                    break
+                finalize_reserved_send(state, reservation, reply, effect="CONFIRMED", persist=True)
             actions.append({"kind": c.kind, "target": c.id, "username": c.username,
-                            "text": text, "sent": bool(api_send), "ui_required": not api_send, "revenue_cta": bool(revenue_cta)})
+                            "text": text, "sent": bool(api_send), "ui_required": False, "revenue_cta": bool(revenue_cta)})
             n += 1
 
-    # 2) 외부 큰 계정 댓글. 공식 discovery/search 권한이 있을 때만.
+    # 2) 외부 큰 계정 댓글. 실행 도중 PAUSE가 생기면 외부 단계로 절대 넘어가지 않는다.
+    if PAUSE_PATH.exists():
+        do_external = False
     if do_external and (caps.get("profile_posts") or caps.get("keyword_search")):
         try:
             candidates = external_candidates(api, cfg, state, caps)
-        except APIError as e:
+        except (CandidateScanError, APIError, requests.RequestException) as e:
             candidates = []
-            log(f"external scan 실패: {e}")
+            # CandidateScanError 내부에서 이미 오류를 카운트했다면 이중 카운트하지 않는다.
+            if not isinstance(e, CandidateScanError):
+                record_external_error(state)
+            if send and not hold_reason:
+                hold_reason = "external_scan_error"
+            log(f"external scan 실패 — 이번 실행 발송 없음: {e}")
         n = 0
         for c in candidates:
             if n >= int(cfg.get("external_per_run", 1)):
@@ -801,37 +1430,56 @@ def run_growth(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, Any], caps
             text = generate_reply(c, cfg, state)
             if not text:
                 continue
-            log(f"{('[SEND]' if api_send else '[QUEUE]')} external @{c.username}: {text}")
+            ok, reason = quality_gate(text, cfg, state, external=True)
+            if not ok:
+                log(f"외부 댓글 발송경계 차단 @{c.username}: {reason}")
+                continue
+            log(f"{('[SEND]' if api_send else '[DRY]')} external @{c.username}: {text}")
             reply = {"id": "dry", "replied_to": {"id": c.id}}
+            reservation = None
             if api_send:
+                if PAUSE_PATH.exists():
+                    log("PAUSED 감지 — 외부 발송 중단")
+                    break
+                reservation = reserve_send(state, c, text, persist=True)
+                if PAUSE_PATH.exists():
+                    release_reserved_send(state, reservation, persist=True)
+                    log("PAUSED 감지 — 외부 예약 취소 후 중단")
+                    break
                 try:
                     reply = publish_reply(api, c, text)
-                except LocationMismatch:
-                    raise
-                except APIError as e:
+                except UncertainPublish as e:
+                    if not PAUSE_PATH.exists():
+                        pause("reply_verification_uncertain", {"expected": c.id, "reply_id": e.reply_id, "error": str(e)})
+                    finalize_reserved_send(state, reservation, {"id": e.reply_id, "replied_to": {}}, effect="UNKNOWN", persist=True)
+                    record_external_error(state, safety_stop=True)
+                    save_json(STATE_PATH, state)
+                    log(f"외부 댓글 발송 불확실 — 전체 실행 정지: {e}")
+                    break
+                except LocationMismatch as e:
+                    if not PAUSE_PATH.exists():
+                        pause("reply_location_mismatch", {"expected": c.id, "reply_id": e.reply_id, "error": str(e)})
+                    finalize_reserved_send(state, reservation, {"id": e.reply_id, "replied_to": {}}, effect="UNKNOWN", persist=True)
+                    record_external_error(state, safety_stop=True)
+                    save_json(STATE_PATH, state)
+                    log(f"외부 댓글 위치 불일치 — 전체 실행 정지: {e}")
+                    break
+                except (APIError, requests.RequestException) as e:
+                    release_reserved_send(state, reservation, persist=True)
+                    record_external_error(state, safety_stop=False)
+                    save_json(STATE_PATH, state)
+                    hold_reason = "external_publish_error"
                     log(f"외부 댓글 발송 실패: {e}")
                     break
-            if api_send:
-                record_send(state, c, text, reply, dry_run=False)
+                finalize_reserved_send(state, reservation, reply, effect="CONFIRMED", persist=True)
             actions.append({"kind": "external", "target": c.id, "username": c.username,
-                            "permalink": c.permalink, "timestamp": c.timestamp, "text": text, "sent": bool(api_send), "ui_required": not api_send})
+                            "permalink": c.permalink, "timestamp": c.timestamp, "text": text,
+                            "sent": bool(api_send), "ui_required": False,
+                            "source_query": c.source_query, "search_type": c.search_type,
+                            "candidate_score": round(float(c.score), 3)})
             n += 1
     elif do_external:
         log("외부댓글 기능은 공식 profile_posts/keyword_search 권한이 없어 비활성 상태")
-
-    # Android UI backend: discovery/drafting happens here; the logged-in phone is the only writer.
-    if send and publisher_backend == "android_ui" and publish_queue is not None:
-        for action in actions:
-            if not action.get("ui_required"):
-                continue
-            target = str(action.get("target", "")); text = str(action.get("text", ""))
-            if not target or not text:
-                continue
-            key = hashlib.sha256((target + "|" + text).encode("utf-8")).hexdigest()[:24]
-            payload = {k: action.get(k) for k in ("kind", "target", "username", "permalink", "timestamp", "text", "revenue_cta") if k in action}
-            queued = publish_queue.enqueue(key, utcnow().isoformat(), "threads_ui_reply", target, payload=payload, max_retries=0)
-            action["queue_key"] = key
-            action["queued"] = bool(queued.get("ok")) or queued.get("reason") == "duplicate_active_key"
 
     state["last_run_at"] = utcnow().isoformat()
     trim_state(state)
@@ -839,7 +1487,9 @@ def run_growth(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, Any], caps
         save_json(STATE_PATH, state)
     return {"at": utcnow().isoformat(), "date_kst": date_key(), "send": send,
             "capabilities": {k: v for k, v in caps.items() if k != "errors"},
-            "actions": actions, "day": today_bucket(state), "paused": PAUSE_PATH.exists()}
+            "actions": actions, "day": today_bucket(state), "paused": PAUSE_PATH.exists(),
+            "external_growth": growth_status, "external_insights": insight_status,
+            "hold_reason": hold_reason}
 
 
 def write_report(result: dict[str, Any], caps: dict[str, Any]) -> None:
@@ -848,6 +1498,8 @@ def write_report(result: dict[str, Any], caps: dict[str, Any]) -> None:
         f"- 실행: {'실제 발송' if result.get('send') else '드라이런/점검'}",
         f"- PAUSED: {result.get('paused')}",
         f"- 오늘 카운트: `{json.dumps(result.get('day', {}), ensure_ascii=False)}`",
+        f"- 외부 대화 단계: `{json.dumps(result.get('external_growth', {}), ensure_ascii=False)}`",
+        f"- 외부 댓글 성과측정: `{json.dumps(result.get('external_insights', {}), ensure_ascii=False)}`",
         "",
         "## API 기능", "",
     ]
@@ -904,26 +1556,61 @@ def main() -> int:
     event_per_run = os.environ.get("PUBLIC_SAJU_PER_RUN", "").strip()
     if event_per_run.isdigit():
         cfg["inbound_per_run"] = max(1, min(6, int(event_per_run)))
-    state = load_state()
-    api = ThreadsAPI(tok)
 
+    api = ThreadsAPI(tok)
     caps = api_capabilities(api, cfg)
     log("capabilities: " + json.dumps({k: v for k, v in caps.items() if k != "errors"}, ensure_ascii=False))
+
+    def _load_or_fail() -> dict[str, Any] | None:
+        try:
+            return load_state()
+        except StateCorruption as exc:
+            pause("state_corrupt", {"error": str(exc)})
+            log(f"[FAIL] Threads 상태파일 손상 — 자동발송 차단: {exc}")
+            return None
+
     if not caps.get("basic"):
+        state = _load_or_fail()
+        if state is None:
+            return 6
         write_report({"date_kst": date_key(), "send": False, "day": today_bucket(state),
                       "actions": [], "paused": PAUSE_PATH.exists()}, caps)
         return 3
+
     if a.preflight:
+        state = _load_or_fail()
+        if state is None:
+            return 6
         write_report({"date_kst": date_key(), "send": False, "day": today_bucket(state),
                       "actions": [], "paused": PAUSE_PATH.exists()}, caps)
         return 0
 
-    try:
-        result = run_growth(api, cfg, state, caps, send=a.send,
-                            do_external=not a.no_external, do_inbound=not a.no_inbound)
-    except LocationMismatch as e:
-        log(str(e))
-        return 5
+    if a.send:
+        try:
+            # LIVE에서는 반드시 writer lock을 먼저 잡고 그 안에서 최신 상태를 읽는다.
+            # lock은 run_growth의 최종 state persistence와 report 작성까지 유지한다.
+            with writer_lock():
+                state = _load_or_fail()
+                if state is None:
+                    return 6
+                result = run_growth(api, cfg, state, caps, send=True,
+                                    do_external=not a.no_external, do_inbound=not a.no_inbound)
+                write_report(result, caps)
+                if result.get("paused") or result.get("hold_reason"):
+                    return 8
+                return 0
+        except WriterLockBusy as exc:
+            log(f"HOLD: {exc}")
+            return 7
+        except LocationMismatch as exc:
+            log(str(exc))
+            return 5
+
+    state = _load_or_fail()
+    if state is None:
+        return 6
+    result = run_growth(api, cfg, state, caps, send=False,
+                        do_external=not a.no_external, do_inbound=not a.no_inbound)
     write_report(result, caps)
     return 0
 
