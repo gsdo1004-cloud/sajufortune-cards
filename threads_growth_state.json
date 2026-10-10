@@ -1,7 +1,9 @@
 {
   "schema": 1,
   "handled_inbound_ids": [
-    "18097241951550567"
+    "18097241951550567",
+    "17888506107685397",
+    "17895774186416797"
   ],
   "external_target_ids": [],
   "sent": [
@@ -16,6 +18,30 @@
       "verified_replied_to": "18097241951550567",
       "revenue_cta": false,
       "date_kst": "2026-10-04"
+    },
+    {
+      "at": "2026-10-10T12:29:34.568299+00:00",
+      "kind": "inbound",
+      "target_id": "17888506107685397",
+      "target_username": "sajangflow",
+      "reply_id": "18112473326607775",
+      "text_hash": "70e2d064df841d119fba",
+      "text": "반할 정도라니 고마워! 너는 평소에 사주나 운세 자주 보는 편이야?",
+      "verified_replied_to": "17888506107685397",
+      "revenue_cta": false,
+      "date_kst": "2026-10-10"
+    },
+    {
+      "at": "2026-10-10T12:29:47.224990+00:00",
+      "kind": "inbound",
+      "target_id": "17895774186416797",
+      "target_username": "nanalifetip",
+      "reply_id": "18021489215942105",
+      "text_hash": "070407258cbf5057242a",
+      "text": "반가워요! 혹시 평소에 사주나 십성에 관심이 많으신가요?",
+      "verified_replied_to": "17895774186416797",
+      "revenue_cta": false,
+      "date_kst": "2026-10-10"
     }
   ],
   "days": {
@@ -88,7 +114,14 @@
       "nested": 1,
       "total": 1,
       "per_target": {}
+    },
+    "2026-10-10": {
+      "external": 0,
+      "inbound": 2,
+      "nested": 0,
+      "total": 2,
+      "per_target": {}
     }
   },
-  "last_run_at": "2026-10-10T09:49:03.340604+00:00"
+  "last_run_at": "2026-10-10T12:30:20.632629+00:00"
 }

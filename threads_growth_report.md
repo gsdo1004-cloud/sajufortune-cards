@@ -2,7 +2,7 @@
 
 - 실행: 실제 발송
 - PAUSED: False
-- 오늘 카운트: `{"external": 0, "inbound": 0, "nested": 0, "total": 0, "per_target": {}}`
+- 오늘 카운트: `{"external": 0, "inbound": 2, "nested": 0, "total": 2, "per_target": {}}`
 
 ## API 기능
 
@@ -21,4 +21,5 @@
 
 ## 이번 실행
 
-- 발송/초안 대상 없음
+- inbound @sajangflow: 반할 정도라니 고마워! 너는 평소에 사주나 운세 자주 보는 편이야? (sent)
+- inbound @nanalifetip: 반가워요! 혹시 평소에 사주나 십성에 관심이 많으신가요? (sent)
