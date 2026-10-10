@@ -1095,5 +1095,81 @@ class FinalAuditRound2Tests(unittest.TestCase):
         self.assertEqual(result["hold_reason"], "external_scan_error")
 
 
+class ExternalSelfAccountExclusionTests(unittest.TestCase):
+    def test_keyword_discovery_never_targets_own_account(self):
+        cfg = dict(g.load_config())
+        cfg["topic_keywords"] = ["사주"]
+        cfg["keyword_search_types"] = ["RECENT"]
+        cfg["keyword_discovery_enabled"] = True
+        cfg["keyword_discovery_min_relevance"] = 1
+        state = g.default_state()
+
+        class API:
+            def get(self, path, params=None):
+                self.assert_path = path
+                return {"data": [
+                    {
+                        "id": "own-post",
+                        "username": cfg["account_username"],
+                        "text": "사주 십성과 재물운은 어떻게 같이 보시나요? 궁금합니다.",
+                        "timestamp": g.utcnow().isoformat(),
+                        "permalink": "https://example.invalid/own",
+                        "is_reply": False,
+                        "has_replies": True,
+                    },
+                    {
+                        "id": "other-post",
+                        "username": "other_reader",
+                        "text": "사주 십성과 재물운은 어떻게 같이 보시나요? 궁금합니다.",
+                        "timestamp": g.utcnow().isoformat(),
+                        "permalink": "https://example.invalid/other",
+                        "is_reply": False,
+                        "has_replies": True,
+                    },
+                ]}
+
+        rows = g.external_candidates(API(), cfg, state, {"profile_posts": False, "keyword_search": True})
+        self.assertNotIn(cfg["account_username"].lower(), {x.username.lower() for x in rows})
+        self.assertIn("other_reader", {x.username for x in rows})
+
+    def test_keyword_discovery_normalizes_at_case_and_spaces_for_self_exclusion(self):
+        cfg = dict(g.load_config())
+        cfg["account_username"] = " @GSDO10042026 "
+        cfg["topic_keywords"] = ["사주"]
+        cfg["keyword_search_types"] = ["RECENT"]
+        cfg["keyword_discovery_enabled"] = True
+        cfg["keyword_discovery_min_relevance"] = 1
+        state = g.default_state()
+
+        class API:
+            def get(self, path, params=None):
+                return {"data": [
+                    {"id": "own-post", "username": "gsdo10042026", "text": "사주 재물운과 대운 흐름은 실제로 어떤 순서로 함께 보시나요? 정말 궁금합니다.", "timestamp": g.utcnow().isoformat(), "is_reply": False},
+                    {"id": "other-post", "username": "Other_Reader", "text": "사주 재물운과 대운 흐름은 실제로 어떤 순서로 함께 보시나요? 정말 궁금합니다.", "timestamp": g.utcnow().isoformat(), "is_reply": False},
+                ]}
+
+        rows = g.external_candidates(API(), cfg, state, {"profile_posts": False, "keyword_search": True})
+        self.assertEqual({x.username for x in rows}, {"Other_Reader"})
+
+    def test_profile_discovery_excludes_self_and_keeps_other(self):
+        cfg = dict(g.load_config())
+        cfg["account_username"] = "@GSDO10042026"
+        cfg["target_accounts"] = [" @gsdo10042026 ", "other_profile"]
+        state = g.default_state()
+        called = []
+
+        class API:
+            def get(self, path, params=None):
+                called.append(params.get("username"))
+                return {"data": [
+                    {"id": "self-via-profile", "username": " GSDO10042026 ", "text": "사주 재물운과 대운 흐름에 대해 질문합니다. 실제 해석은 어떤 순서로 보시나요?", "timestamp": g.utcnow().isoformat(), "is_reply": False},
+                    {"id": "other-via-profile", "username": "other_profile", "text": "사주 재물운과 대운 흐름에 대해 질문합니다. 실제 해석은 어떤 순서로 보시나요?", "timestamp": g.utcnow().isoformat(), "is_reply": False},
+                ]}
+
+        rows = g.external_candidates(API(), cfg, state, {"profile_posts": True, "keyword_search": False})
+        self.assertEqual(called, ["other_profile"])
+        self.assertEqual({x.username for x in rows}, {"other_profile"})
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -311,6 +311,15 @@ def text_hash(text: str) -> str:
     return hashlib.sha256(norm.encode("utf-8")).hexdigest()[:20]
 
 
+def normalize_username(value: Any) -> str:
+    """Threads username comparison key: trim spaces, optional leading @, case-insensitive."""
+    return str(value or "").strip().lstrip("@").strip().lower()
+
+
+def display_username(value: Any) -> str:
+    return str(value or "").strip().lstrip("@").strip()
+
+
 def parse_ts(value: str | None) -> dt.datetime | None:
     if not value:
         return None
@@ -789,7 +798,9 @@ def inbound_candidates(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, An
 
 def external_candidates(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, Any], caps: dict[str, Any]) -> list[Candidate]:
     seen = set(state.get("external_target_ids", []))
-    targets = list(cfg.get("target_accounts", []))
+    own_username = normalize_username(cfg.get("account_username"))
+    targets = [display_username(x) for x in cfg.get("target_accounts", [])
+               if display_username(x) and normalize_username(x) != own_username]
     out: dict[str, Candidate] = {}
     max_age = float(cfg.get("max_target_age_hours", 36))
 
@@ -807,6 +818,9 @@ def external_candidates(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, A
                 log(f"profile_posts @{username} 조회 실패: {e}")
                 raise CandidateScanError(f"profile_posts scan failed for @{username}: {e}") from e
             for p in j.get("data", []):
+                post_username = display_username(p.get("username") or username)
+                if own_username and normalize_username(post_username) == own_username:
+                    continue
                 pid = str(p.get("id") or "")
                 text = (p.get("text") or "").strip()
                 if not pid or pid in seen or not text or len(text) < 30 or p.get("is_reply"):
@@ -820,14 +834,14 @@ def external_candidates(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, A
                 conv = conversation_signal_score(text, cfg)
                 perf = source_performance_bonus(state, username, "PROFILE")
                 score = 100.0 - age + rel * 15 - rank * 0.5 + (8 if p.get("has_replies") else 0) + conv * 4 + perf
-                out[pid] = Candidate(id=pid, username=str(p.get("username") or username), text=text,
+                out[pid] = Candidate(id=pid, username=post_username, text=text,
                                      timestamp=str(p.get("timestamp") or ""), permalink=str(p.get("permalink") or ""),
                                      kind="external", score=score, source_query=username, search_type="PROFILE",
                                      relevance=rel, conversation_signal=conv)
 
     # profile_posts 권한이 없거나 후보가 적으면 keyword_search 공식 API로 보완.
     if caps.get("keyword_search") and len(out) < 5:
-        allowed = {x.lower() for x in targets}
+        allowed = {normalize_username(x) for x in targets}
         discovery = bool(cfg.get("keyword_discovery_enabled", True))
         search_types = list(cfg.get("keyword_search_types", ["TOP", "RECENT"]))
         for q in cfg.get("topic_keywords", [])[:6]:
@@ -840,8 +854,10 @@ def external_candidates(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, A
                     log(f"keyword_search '{q}'/{search_type} 조회 실패: {e}")
                     raise CandidateScanError(f"keyword search failed for {q}/{search_type}: {e}") from e
                 for p in j.get("data", []):
-                    username = str(p.get("username") or "")
-                    if not discovery and username.lower() not in allowed:
+                    username = display_username(p.get("username"))
+                    if own_username and normalize_username(username) == own_username:
+                        continue
+                    if not discovery and normalize_username(username) not in allowed:
                         continue
                     pid = str(p.get("id") or "")
                     text = (p.get("text") or "").strip()
