@@ -1,8 +1,8 @@
-# Threads 성장 자동화 보고 — 2026-10-10
+# Threads 성장 자동화 보고 — 2026-10-11
 
 - 실행: 실제 발송
 - PAUSED: False
-- 오늘 카운트: `{"external": 0, "inbound": 2, "nested": 0, "total": 2, "per_target": {}}`
+- 오늘 카운트: `{"external": 0, "inbound": 0, "nested": 1, "total": 1, "per_target": {}}`
 
 ## API 기능
 
@@ -21,5 +21,4 @@
 
 ## 이번 실행
 
-- inbound @sajangflow: 반할 정도라니 고마워! 너는 평소에 사주나 운세 자주 보는 편이야? (sent)
-- inbound @nanalifetip: 반가워요! 혹시 평소에 사주나 십성에 관심이 많으신가요? (sent)
+- nested @sajangflow: 일 년에 한 번이면 딱 적당하지! 보통 신년 운세 볼 때 많이 찾아보나 봐? (sent)

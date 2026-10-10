@@ -3,7 +3,8 @@
   "handled_inbound_ids": [
     "18097241951550567",
     "17888506107685397",
-    "17895774186416797"
+    "17895774186416797",
+    "18640485448000375"
   ],
   "external_target_ids": [],
   "sent": [
@@ -42,6 +43,18 @@
       "verified_replied_to": "17895774186416797",
       "revenue_cta": false,
       "date_kst": "2026-10-10"
+    },
+    {
+      "at": "2026-10-10T15:25:28.884803+00:00",
+      "kind": "nested",
+      "target_id": "18640485448000375",
+      "target_username": "sajangflow",
+      "reply_id": "18186559876411824",
+      "text_hash": "c96cd5e8bb202d4a83d5",
+      "text": "일 년에 한 번이면 딱 적당하지! 보통 신년 운세 볼 때 많이 찾아보나 봐?",
+      "verified_replied_to": "18640485448000375",
+      "revenue_cta": false,
+      "date_kst": "2026-10-11"
     }
   ],
   "days": {
@@ -121,7 +134,14 @@
       "nested": 0,
       "total": 2,
       "per_target": {}
+    },
+    "2026-10-11": {
+      "external": 0,
+      "inbound": 0,
+      "nested": 1,
+      "total": 1,
+      "per_target": {}
     }
   },
-  "last_run_at": "2026-10-10T12:30:20.632629+00:00"
+  "last_run_at": "2026-10-10T15:25:50.371673+00:00"
 }
