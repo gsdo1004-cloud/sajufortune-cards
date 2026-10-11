@@ -4,7 +4,8 @@
     "18097241951550567",
     "17888506107685397",
     "17895774186416797",
-    "18640485448000375"
+    "18640485448000375",
+    "17922622077440689"
   ],
   "external_target_ids": [],
   "sent": [
@@ -55,6 +56,25 @@
       "verified_replied_to": "18640485448000375",
       "revenue_cta": false,
       "date_kst": "2026-10-11"
+    },
+    {
+      "at": "2026-10-11T05:51:35.154390+00:00",
+      "date_kst": "2026-10-11",
+      "kind": "nested",
+      "target_id": "17922622077440689",
+      "target_username": "sajangflow",
+      "reply_id": "18092732393453775",
+      "text_hash": "a88585789b47abab7e02",
+      "text": "맞장구쳐줘서 고마워 ㅋ 혹시 너는 어떤 십성이 제일 많이 나왔어?",
+      "verified_replied_to": "17922622077440689",
+      "source_query": "",
+      "search_type": "",
+      "candidate_score": 990.367,
+      "relevance": 0,
+      "conversation_signal": 0.0,
+      "effect": "CONFIRMED",
+      "revenue_cta": false,
+      "finalized_at": "2026-10-11T05:51:47.463746+00:00"
     }
   ],
   "days": {
@@ -126,22 +146,118 @@
       "inbound": 0,
       "nested": 1,
       "total": 1,
-      "per_target": {}
+      "per_target": {},
+      "external_measured": 0,
+      "external_engaged": 0,
+      "external_replies": 0,
+      "external_likes": 0,
+      "external_errors": 0,
+      "external_safety_stops": 0,
+      "external_insight_failures": 0
     },
     "2026-10-10": {
       "external": 0,
       "inbound": 2,
       "nested": 0,
       "total": 2,
-      "per_target": {}
+      "per_target": {},
+      "external_measured": 0,
+      "external_engaged": 0,
+      "external_replies": 0,
+      "external_likes": 0,
+      "external_errors": 0,
+      "external_safety_stops": 0,
+      "external_insight_failures": 0
     },
     "2026-10-11": {
       "external": 0,
       "inbound": 0,
-      "nested": 1,
-      "total": 1,
-      "per_target": {}
+      "nested": 2,
+      "total": 2,
+      "per_target": {},
+      "external_measured": 0,
+      "external_engaged": 0,
+      "external_replies": 0,
+      "external_likes": 0,
+      "external_errors": 0,
+      "external_safety_stops": 0,
+      "external_insight_failures": 0
+    },
+    "2026-10-05": {
+      "external": 0,
+      "inbound": 0,
+      "nested": 0,
+      "total": 0,
+      "per_target": {},
+      "external_measured": 0,
+      "external_engaged": 0,
+      "external_replies": 0,
+      "external_likes": 0,
+      "external_errors": 0,
+      "external_safety_stops": 0,
+      "external_insight_failures": 0
+    },
+    "2026-10-06": {
+      "external": 0,
+      "inbound": 0,
+      "nested": 0,
+      "total": 0,
+      "per_target": {},
+      "external_measured": 0,
+      "external_engaged": 0,
+      "external_replies": 0,
+      "external_likes": 0,
+      "external_errors": 0,
+      "external_safety_stops": 0,
+      "external_insight_failures": 0
+    },
+    "2026-10-07": {
+      "external": 0,
+      "inbound": 0,
+      "nested": 0,
+      "total": 0,
+      "per_target": {},
+      "external_measured": 0,
+      "external_engaged": 0,
+      "external_replies": 0,
+      "external_likes": 0,
+      "external_errors": 0,
+      "external_safety_stops": 0,
+      "external_insight_failures": 0
+    },
+    "2026-10-08": {
+      "external": 0,
+      "inbound": 0,
+      "nested": 0,
+      "total": 0,
+      "per_target": {},
+      "external_measured": 0,
+      "external_engaged": 0,
+      "external_replies": 0,
+      "external_likes": 0,
+      "external_errors": 0,
+      "external_safety_stops": 0,
+      "external_insight_failures": 0
+    },
+    "2026-10-09": {
+      "external": 0,
+      "inbound": 0,
+      "nested": 0,
+      "total": 0,
+      "per_target": {},
+      "external_measured": 0,
+      "external_engaged": 0,
+      "external_replies": 0,
+      "external_likes": 0,
+      "external_errors": 0,
+      "external_safety_stops": 0,
+      "external_insight_failures": 0
     }
   },
-  "last_run_at": "2026-10-10T17:25:20.598972+00:00"
+  "last_run_at": "2026-10-11T05:52:18.283521+00:00",
+  "external_growth": {
+    "stage_index": 0,
+    "stage_started_kst": "2026-10-11",
+    "history": []
+  }
 }

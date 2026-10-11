@@ -1,8 +1,8 @@
 # Threads 성장 자동화 보고 — 2026-10-11
 
-- 실행: 드라이런/점검
+- 실행: 실제 발송
 - PAUSED: False
-- 오늘 카운트: `{"external": 0, "inbound": 0, "nested": 1, "total": 1, "per_target": {}, "external_measured": 0, "external_engaged": 0, "external_replies": 0, "external_likes": 0, "external_errors": 0, "external_safety_stops": 0, "external_insight_failures": 0}`
+- 오늘 카운트: `{"external": 0, "inbound": 0, "nested": 2, "total": 2, "per_target": {}, "external_measured": 0, "external_engaged": 0, "external_replies": 0, "external_likes": 0, "external_errors": 0, "external_safety_stops": 0, "external_insight_failures": 0}`
 - 외부 대화 단계: `{"stage_index": 0, "daily_cap": 8, "promoted": false, "stage_started_kst": "2026-10-11", "sent": 0, "measured": 0, "engaged": 0, "errors": 0, "safety_stops": 0, "insight_failures": 0, "engagement_rate": 0.0, "error_rate": 0.0, "insight_failure_rate": 0.0, "telemetry_available": true, "unresolved": 0}`
 - 외부 댓글 성과측정: `{"attempted": 0, "measured": 0, "failed": 0, "skipped": 0}`
 
@@ -23,4 +23,4 @@
 
 ## 이번 실행
 
-- nested @sajangflow: 맞장구쳐줘서 고마워 ㅋ 혹시 너도 사주 볼 때 십성부터 확인해? (dry)
+- nested @sajangflow: 맞장구쳐줘서 고마워 ㅋ 혹시 너는 어떤 십성이 제일 많이 나왔어? (sent)
