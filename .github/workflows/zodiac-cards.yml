@@ -81,8 +81,6 @@ jobs:
       - name: 폰트·ffmpeg 설치
         run: sudo apt-get update && sudo apt-get install -y fonts-noto-color-emoji ffmpeg
 
-      # 2026-08-05: Supertonic 모델(약 400MB)은 첫 실행에만 받고 이후 캐시를 쓴다.
-      # 리포에 넣을 수 없는 크기라(단일 파일 244MB > 100MB 한도) HF에서 받는다.
       - name: Supertonic 모델 캐시
         uses: actions/cache@v4
         with:
@@ -94,19 +92,6 @@ jobs:
           pip install requests playwright edge-tts supertonic google-api-python-client google-auth-oauthlib google-auth-httplib2 Pillow
           python -m playwright install --with-deps chromium
 
-      # 2026-07-17: 집 PC 새벽 파이프라인이 Topview GPT Image 2 카드 5장 + 타입캐스트
-      # 쇼츠를 미리 커밋해둠 → 있으면 그대로 발행(레거시 생성 건너뜀), 없으면(PC 꺼짐·
-      # 생성 실패) 기존 HTML 카드 + Edge TTS 릴스로 폴백 — 발행은 어떤 경우에도 나간다.
-      # 2026-08-05 — 카드 생성을 러너 안으로 들여왔다(배경 템플릿 + PIL).
-      # 이전에는 집 PC 18시 스케줄이 Topview 로 만들어 커밋해 뒀고 여기서는 건너뛰기만 했다.
-      # 이제 이미지 생성 API 를 쓰지 않으므로 러너가 직접 만든다 — 크레딧 0, 집 PC 불필요.
-      # 집 PC 가 만들어 둔 재고(png)가 있으면 그대로 존중한다(전환기 안전망).
-      # [2026-08-07] 생성 날짜를 발행 날짜에 맞춘다.
-      # 이 잡은 '내일치'를 발행하는데(ZODIAC_PUBLISH_OFFSET_DAYS=1) 생성 가드만
-      # 오프셋 없는 '오늘'을 보고 있었다. 집 PC 파이프라인이 D+1 버퍼를 미리
-      # 커밋해 주던 동안에는 가려져 있었지만, 그게 08-06 은퇴하면서 드러났다 —
-      # 오늘치가 이미 있으면 생성을 건너뛰고, 정작 발행 대상인 내일치는 없어서
-      # 캐러셀·릴스·유튜브가 모두 빈손이 된다. 아래 유튜브 스텝과 같은 식으로 맞춘다.
       - name: 카드 생성 (기존 커밋분 있으면 건너뜀)
         run: |
           TARGET=$(TZ=Asia/Seoul date -d "+${ZODIAC_PUBLISH_OFFSET_DAYS:-0} days" +%F)
@@ -119,14 +104,9 @@ jobs:
 
       - name: 릴스 영상 생성 (커밋분 있으면 건너뜀)
         env:
-          # 2026-08-05: 아바타 자산을 avatar/ 에 번들했으므로 러너에서도 켠다.
-          # 자산이나 ffmpeg가 없으면 avatar_pip 이 알아서 건너뛰므로 발행은 안 멈춘다.
           ZODIAC_AVATAR: "1"
           SUPERTONIC_VOICE: "M2"
         run: |
-          # 가드도 발행 대상(D+1)을 봐야 한다 — 위 '카드 생성' 스텝과 같은 이유.
-          # zodiac_reels.py generate 는 인자가 없으면 zs.target_iso() = 오늘+오프셋을
-          # 만들므로, 가드만 오늘을 보면 만들 파일과 확인할 파일이 하루 어긋난다.
           TARGET=$(TZ=Asia/Seoul date -d "+${ZODIAC_PUBLISH_OFFSET_DAYS:-0} days" +%F)
           if [ -s "reels/${TARGET}_tts.mp4" ]; then
             echo "쇼츠 영상 존재($TARGET) — 레거시 릴스 생성 건너뜀"
@@ -149,16 +129,6 @@ jobs:
       - name: raw URL 전파 대기
         run: sleep 30
 
-      # [2026-08-06] 유튜브 운명과학TV 예약발행.
-      # 집 PC 의 zodiac_daily_pipeline 이 8/6 부로 은퇴하면서 유튜브 발행 경로가
-      # 통째로 끊겼다. 영상은 위에서 이미 만들었으므로 새로 만들지 않고 그대로 올린다.
-      # 항상 private + publishAt(다음 00시) — 올라가자마자 공개되면 되돌릴 틈이 없다.
-      #
-      # 스위치로 둔 이유: 쓰레드·인스타 쪽은 제재 이력이 있어 발행을 멈춰야 할 때가
-      # 오는데, 그때 유튜브까지 같이 죽이거나 반대로 유튜브만 급히 끄려면 코드를
-      # 고쳐야 한다. 변수 하나로 끊을 수 있게 해 둔다.
-      # ▶ 제어: 레포 Settings → Secrets and variables → Actions → Variables 탭의
-      #    YOUTUBE_UNMYEONG_ENABLED (1=발행, 그 외=보류). 코드는 건드릴 필요 없다.
       - name: 유튜브 예약발행 (운명과학TV)
         id: youtube_reservation
         continue-on-error: true
@@ -171,9 +141,6 @@ jobs:
             echo "유튜브 발행 보류 중(YOUTUBE_UNMYEONG_ENABLED != 1) — 건너뜁니다."
             exit 0
           fi
-          # 쓰레드 발행과 같은 날짜를 봐야 한다. 이 잡은 21시에 '내일치'를 내보내므로
-          # (zodiac_seo 가 ZODIAC_PUBLISH_OFFSET_DAYS 를 읽는다) 여기서도 같은 오프셋을
-          # 적용한다. date +%F 로 오늘을 집으면 하루 지난 운세가 올라간다.
           OFFSET="${ZODIAC_PUBLISH_OFFSET_DAYS:-0}"
           TODAY=$(TZ=Asia/Seoul date -d "+${OFFSET} days" +%F)
           echo "대상 날짜: $TODAY (offset +${OFFSET})"
@@ -190,8 +157,6 @@ jobs:
           import zodiac_reels as zr
           day = sys.argv[1]
           m = zr.youtube_meta(day)
-          # 대상일 전날 21:00에 공개한다. 로컬 파이프라인이 먼저 예약한 경우에는
-          # uploaded.json 멱등 표식으로 건너뛴다.
           from datetime import date, timedelta
           publish_day = date.fromisoformat(day) - timedelta(days=1)
           r = subprocess.run([sys.executable, "youtube_upload.py",
@@ -208,8 +173,6 @@ jobs:
           sys.exit(r.returncode)
           PY
 
-      # Threads 저녁 슬롯도 실제 게시물 1편만 발행한다.
-      # 날짜 홀짝으로 캐러셀/릴스를 교대해 형식 실험은 유지하되 같은 소재 중복 게시를 막는다.
       - name: 스레드 저녁 1편 발행 (캐러셀/릴스 교대)
         continue-on-error: true
         run: |
@@ -224,58 +187,194 @@ jobs:
             python zodiac_reels.py publish
           fi
 
-      # [2026-07-30] 멱등 마커를 원격에 남긴다.
-      # zodiac_cardnews/reels 는 발행 후 cards/{날짜}/threads_pub_*.json 을 쓰고,
-      # 다음 실행에서 그 파일이 있으면 스킵한다. 그런데 위의 커밋 스텝은 발행 '전'에만
-      # 돌기 때문에 마커가 커밋되지 않았고, runner 는 매번 새로 체크아웃하므로
-      # 가드가 사실상 무효였다(원격 마커가 2026-07-21 까지만 남아 있던 이유).
-      # 재실행·중복 발행을 진짜로 막으려면 발행 뒤에 한 번 더 커밋해야 한다.
       - name: 발행 마커 커밋 (재실행 중복 방지)
         if: always()
         continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # [2026-08-07] 유튜브 마커도 커밋한다. 이게 빠져 있어서 파이썬이 만든
-          # youtube_pub.json 이 러너와 함께 증발했고, 중복 방지 가드가 무효였다 —
-          # 같은 날짜로 두 번 돌면 같은 영상이 채널에 두 개 올라간다.
-          # add 를 두 줄로 나눈 이유: git add 는 pathspec 하나라도 안 맞으면 통째로
-          # 실패해서, 한 줄로 묶으면 유튜브 마커가 없는 날 스레드 마커까지 못 남긴다.
           git add cards/*/threads_pub_*.json 2>/dev/null || true
           git add cards/*/youtube_pub.json 2>/dev/null || true
           git diff --cached --quiet && echo "마커 변경 없음" && exit 0
           git commit -m "chore: 발행 마커 $(TZ=Asia/Seoul date +%F)"
           bash scripts/safe_git_push.sh main
 
-      # Instagram은 과거 링크 자동댓글 제한 이력이 있어 URL 자동댓글은 영구 금지하고
-      # 프로필 첫 링크 CTA만 사용한다. 백업 cron은 marker로 중복 게시를 막는다.
-      - name: Instagram 토큰 사전검사
-        id: ig_preflight
+      # [2026-10-13] Instagram 두 계정 교차 실험.
+      # gsdo10042026는 기존 Secrets를 쓰고, sajufortune.kr은 Legacy Secrets가 있을 때만 발행한다.
+      - name: Instagram 2계정 교차 계획
+        id: ig_ab
+        shell: bash
+        run: |
+          TARGET=$(TZ=Asia/Seoul date -d "+${ZODIAC_PUBLISH_OFFSET_DAYS:-0} days" +%F)
+          python - "$TARGET" >> "$GITHUB_OUTPUT" <<'PY'
+          import sys
+          import instagram_dual_experiment as ide
+          plan = ide.plan_for_date(sys.argv[1])
+          by_slot = {x["slot"]: x for x in plan["assignments"]}
+          print(f"target_date={sys.argv[1]}")
+          for slot in ("early", "late"):
+              item = by_slot[slot]
+              print(f"{slot}_account={item['account_key']}")
+              print(f"{slot}_variant={item['variant']}")
+          PY
+
+      - name: Instagram early 사전검사 — gsdo10042026
+        id: ig_early_primary
+        if: steps.ig_ab.outputs.early_account == 'gsdo10042026'
         continue-on-error: true
         env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: gsdo10042026
+          INSTAGRAM_EXPECTED_USERNAME: gsdo10042026
+          INSTAGRAM_EXPERIMENT_VARIANT: ${{ steps.ig_ab.outputs.early_variant }}
           INSTAGRAM_AUTO_COMMENT: "0"
         run: python zodiac_instagram.py preflight
 
-      - name: Instagram 오늘운세 Reel 발행 (저녁 1편)
-        if: steps.ig_preflight.outcome == 'success'
+      - name: Instagram early 사전검사 — sajufortune.kr
+        id: ig_early_legacy
+        if: steps.ig_ab.outputs.early_account == 'sajufortune.kr'
         continue-on-error: true
         env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_LEGACY_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_LEGACY_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: sajufortune.kr
+          INSTAGRAM_EXPECTED_USERNAME: sajufortune.kr
+          INSTAGRAM_EXPERIMENT_VARIANT: ${{ steps.ig_ab.outputs.early_variant }}
+          INSTAGRAM_AUTO_COMMENT: "0"
+        run: python zodiac_instagram.py preflight
+
+      - name: Instagram early Reel — gsdo10042026
+        if: steps.ig_ab.outputs.early_account == 'gsdo10042026' && steps.ig_early_primary.outcome == 'success'
+        continue-on-error: true
+        env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: gsdo10042026
+          INSTAGRAM_EXPECTED_USERNAME: gsdo10042026
+          INSTAGRAM_EXPERIMENT_VARIANT: ${{ steps.ig_ab.outputs.early_variant }}
           INSTAGRAM_AUTO_COMMENT: "0"
         run: python zodiac_instagram.py reel
 
-      - name: Instagram 인사이트 수집
-        if: always() && steps.ig_preflight.outcome == 'success'
+      - name: Instagram early Reel — sajufortune.kr
+        if: steps.ig_ab.outputs.early_account == 'sajufortune.kr' && steps.ig_early_legacy.outcome == 'success'
         continue-on-error: true
+        env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_LEGACY_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_LEGACY_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: sajufortune.kr
+          INSTAGRAM_EXPECTED_USERNAME: sajufortune.kr
+          INSTAGRAM_EXPERIMENT_VARIANT: ${{ steps.ig_ab.outputs.early_variant }}
+          INSTAGRAM_AUTO_COMMENT: "0"
+        run: python zodiac_instagram.py reel
+
+      - name: Instagram early 인사이트 — gsdo10042026
+        if: always() && steps.ig_ab.outputs.early_account == 'gsdo10042026' && steps.ig_early_primary.outcome == 'success'
+        continue-on-error: true
+        env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: gsdo10042026
+          INSTAGRAM_EXPECTED_USERNAME: gsdo10042026
         run: python instagram_insights.py
 
+      - name: Instagram early 인사이트 — sajufortune.kr
+        if: always() && steps.ig_ab.outputs.early_account == 'sajufortune.kr' && steps.ig_early_legacy.outcome == 'success'
+        continue-on-error: true
+        env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_LEGACY_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_LEGACY_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: sajufortune.kr
+          INSTAGRAM_EXPECTED_USERNAME: sajufortune.kr
+        run: python instagram_insights.py
+
+      - name: Instagram 두 번째 슬롯 간격
+        if: always()
+        run: sleep 300
+
+      - name: Instagram late 사전검사 — gsdo10042026
+        id: ig_late_primary
+        if: steps.ig_ab.outputs.late_account == 'gsdo10042026'
+        continue-on-error: true
+        env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: gsdo10042026
+          INSTAGRAM_EXPECTED_USERNAME: gsdo10042026
+          INSTAGRAM_EXPERIMENT_VARIANT: ${{ steps.ig_ab.outputs.late_variant }}
+          INSTAGRAM_AUTO_COMMENT: "0"
+        run: python zodiac_instagram.py preflight
+
+      - name: Instagram late 사전검사 — sajufortune.kr
+        id: ig_late_legacy
+        if: steps.ig_ab.outputs.late_account == 'sajufortune.kr'
+        continue-on-error: true
+        env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_LEGACY_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_LEGACY_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: sajufortune.kr
+          INSTAGRAM_EXPECTED_USERNAME: sajufortune.kr
+          INSTAGRAM_EXPERIMENT_VARIANT: ${{ steps.ig_ab.outputs.late_variant }}
+          INSTAGRAM_AUTO_COMMENT: "0"
+        run: python zodiac_instagram.py preflight
+
+      - name: Instagram late Reel — gsdo10042026
+        if: steps.ig_ab.outputs.late_account == 'gsdo10042026' && steps.ig_late_primary.outcome == 'success'
+        continue-on-error: true
+        env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: gsdo10042026
+          INSTAGRAM_EXPECTED_USERNAME: gsdo10042026
+          INSTAGRAM_EXPERIMENT_VARIANT: ${{ steps.ig_ab.outputs.late_variant }}
+          INSTAGRAM_AUTO_COMMENT: "0"
+        run: python zodiac_instagram.py reel
+
+      - name: Instagram late Reel — sajufortune.kr
+        if: steps.ig_ab.outputs.late_account == 'sajufortune.kr' && steps.ig_late_legacy.outcome == 'success'
+        continue-on-error: true
+        env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_LEGACY_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_LEGACY_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: sajufortune.kr
+          INSTAGRAM_EXPECTED_USERNAME: sajufortune.kr
+          INSTAGRAM_EXPERIMENT_VARIANT: ${{ steps.ig_ab.outputs.late_variant }}
+          INSTAGRAM_AUTO_COMMENT: "0"
+        run: python zodiac_instagram.py reel
+
+      - name: Instagram late 인사이트 — gsdo10042026
+        if: always() && steps.ig_ab.outputs.late_account == 'gsdo10042026' && steps.ig_late_primary.outcome == 'success'
+        continue-on-error: true
+        env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: gsdo10042026
+          INSTAGRAM_EXPECTED_USERNAME: gsdo10042026
+        run: python instagram_insights.py
+
+      - name: Instagram late 인사이트 — sajufortune.kr
+        if: always() && steps.ig_ab.outputs.late_account == 'sajufortune.kr' && steps.ig_late_legacy.outcome == 'success'
+        continue-on-error: true
+        env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_LEGACY_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_LEGACY_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: sajufortune.kr
+          INSTAGRAM_EXPECTED_USERNAME: sajufortune.kr
+        run: python instagram_insights.py
+
+      - name: Instagram 24h·72h 계정 승자 판정
+        if: always()
+        continue-on-error: true
+        run: python instagram_account_winner.py
+
       - name: Instagram 마커·인사이트 커밋
-        if: always() && steps.ig_preflight.outcome == 'success'
+        if: always()
         continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add cards/*/instagram_pub_*.json 2>/dev/null || true
-          git add analytics/instagram_insights.json 2>/dev/null || true
+          git add analytics/instagram_*.json 2>/dev/null || true
           git diff --cached --quiet && echo "Instagram 변경 없음" && exit 0
-          git commit -m "chore: instagram markers+insights $(TZ=Asia/Seoul date +%F)"
+          git commit -m "chore: instagram dual-account markers+insights $(TZ=Asia/Seoul date +%F)"
           bash scripts/safe_git_push.sh main
