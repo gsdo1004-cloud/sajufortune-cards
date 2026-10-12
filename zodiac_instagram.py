@@ -24,6 +24,7 @@ from pathlib import Path
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import instagram_dual_experiment as ide
 import zodiac_seo as zs
 
 BASE = Path(__file__).resolve().parent
@@ -57,6 +58,19 @@ def target_date() -> str:
     return (base + dt.timedelta(days=offset)).isoformat()
 
 
+def _account_key() -> str:
+    return os.environ.get("INSTAGRAM_ACCOUNT_KEY", "").strip() or ide.PRIMARY_ACCOUNT
+
+
+def _experiment_variant() -> str:
+    value = os.environ.get("INSTAGRAM_EXPERIMENT_VARIANT", "").strip().upper()
+    return value if value in ide.VARIANTS else "A"
+
+
+def _expected_username() -> str:
+    return os.environ.get("INSTAGRAM_EXPECTED_USERNAME", "").strip()
+
+
 def _env() -> tuple[str, str]:
     uid = os.environ.get("INSTAGRAM_USER_ID", "").strip()
     tok = os.environ.get("INSTAGRAM_ACCESS_TOKEN", "").strip()
@@ -74,7 +88,10 @@ def _post(url: str, data: dict) -> dict:
 
 
 def _marker(date_iso: str, kind: str) -> Path:
-    return BASE / "cards" / date_iso / f"instagram_pub_{kind}.json"
+    account = _account_key()
+    # 기존 gsdo10042026 마커명은 그대로 유지해 재실행 중복 방지 이력을 보존한다.
+    suffix = "" if account == ide.PRIMARY_ACCOUNT else f"_{ide.marker_key(account)}"
+    return BASE / "cards" / date_iso / f"instagram_pub_{kind}{suffix}.json"
 
 
 def _write_marker(date_iso: str, kind: str, post_id: str, *, media_url: str = "") -> None:
@@ -87,6 +104,8 @@ def _write_marker(date_iso: str, kind: str, post_id: str, *, media_url: str = ""
         "published_at": dt.datetime.now().isoformat(timespec="seconds"),
         "media_url": media_url,
         "profile_campaign": "instagram_reels_revenue",
+        "account_key": _account_key(),
+        "experiment_variant": _experiment_variant(),
     }, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
@@ -101,7 +120,15 @@ def preflight() -> bool:
     if r.status_code >= 400 or not data.get("id"):
         msg = str((data.get("error") or {}).get("message") or f"HTTP {r.status_code}")
         raise RuntimeError(f"Instagram token preflight failed: {msg[:300]}")
-    print(f"[OK] Instagram preflight: account={data.get('username','?')} media_count={data.get('media_count','?')}")
+    username = str(data.get("username") or "").strip()
+    expected = _expected_username()
+    if expected and username.casefold() != expected.casefold():
+        raise RuntimeError(f"Instagram account mismatch: expected={expected} actual={username or '?'}")
+    print(
+        f"[OK] Instagram preflight: account={username or '?'} "
+        f"key={_account_key()} variant={_experiment_variant()} "
+        f"media_count={data.get('media_count','?')}"
+    )
     return True
 
 
@@ -228,15 +255,22 @@ def do_carousel(date_iso: str) -> None:
     add_comment(pid, CTA_COMMENT)
 
 
-def do_reel(date_iso: str) -> None:
-    if _skip_if_done(date_iso, "reel"):
-        return
-    url = f"{RAW_BASE}/reels/{date_iso}_tts.mp4"
-    caption = (
+def reel_caption(date_iso: str) -> str:
+    variant = _experiment_variant()
+    intro = ide.VARIANT_INTROS[variant]
+    return (
+        f"{intro}\n"
         f"{date_full(date_iso)} 오늘의 띠별 운세 🔮\n"
         "영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.\n\n"
         "#오늘의운세 #띠별운세 #릴스 #사주 #운세 #무료운세"
     )
+
+
+def do_reel(date_iso: str) -> None:
+    if _skip_if_done(date_iso, "reel"):
+        return
+    url = f"{RAW_BASE}/reels/{date_iso}_tts.mp4"
+    caption = reel_caption(date_iso)
     try:
         pid = publish_reel(url, caption)
     except FileNotFoundError as e:
@@ -267,6 +301,9 @@ def do_signal_reel(date_iso: str) -> None:
 def status(date_iso: str) -> None:
     print(json.dumps({
         "date": date_iso,
+        "account_key": _account_key(),
+        "expected_username": _expected_username(),
+        "experiment_variant": _experiment_variant(),
         "credentials_present": bool(os.environ.get("INSTAGRAM_USER_ID") and os.environ.get("INSTAGRAM_ACCESS_TOKEN")),
         "auto_comment": AUTO_COMMENT,
         "profile_landing": PROFILE_LANDING,
