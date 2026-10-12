@@ -252,9 +252,23 @@
       "external_errors": 0,
       "external_safety_stops": 0,
       "external_insight_failures": 0
+    },
+    "2026-10-12": {
+      "external": 0,
+      "inbound": 0,
+      "nested": 0,
+      "total": 0,
+      "per_target": {},
+      "external_measured": 0,
+      "external_engaged": 0,
+      "external_replies": 0,
+      "external_likes": 0,
+      "external_errors": 0,
+      "external_safety_stops": 0,
+      "external_insight_failures": 0
     }
   },
-  "last_run_at": "2026-10-12T10:45:46.351538+00:00",
+  "last_run_at": "2026-10-12T15:19:59.496055+00:00",
   "external_growth": {
     "stage_index": 0,
     "stage_started_kst": "2026-10-11",
