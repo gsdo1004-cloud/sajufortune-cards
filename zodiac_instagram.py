@@ -266,10 +266,15 @@ def reel_caption(date_iso: str) -> str:
     )
 
 
+def reel_media_url(date_iso: str) -> str:
+    variant = _experiment_variant()
+    return f"{RAW_BASE}/reels/{date_iso}_tts_ig_{variant}.mp4"
+
+
 def do_reel(date_iso: str) -> None:
     if _skip_if_done(date_iso, "reel"):
         return
-    url = f"{RAW_BASE}/reels/{date_iso}_tts.mp4"
+    url = reel_media_url(date_iso)
     caption = reel_caption(date_iso)
     try:
         pid = publish_reel(url, caption)
