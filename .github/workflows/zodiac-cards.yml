@@ -134,6 +134,12 @@ jobs:
             python zodiac_reels.py generate
           fi
 
+      - name: Instagram 릴스 A/B 영상 변형 생성
+        run: |
+          TARGET=$(TZ=Asia/Seoul date -d "+${ZODIAC_PUBLISH_OFFSET_DAYS:-0} days" +%F)
+          python instagram_reel_variant.py "$TARGET" A
+          python instagram_reel_variant.py "$TARGET" B
+
       - name: 커밋 (카드+릴스 public raw 호스팅)
         run: |
           git config user.name "github-actions[bot]"
@@ -247,35 +253,185 @@ jobs:
           git commit -m "chore: 발행 마커 $(TZ=Asia/Seoul date +%F)"
           bash scripts/safe_git_push.sh main
 
-      # Instagram은 과거 링크 자동댓글 제한 이력이 있어 URL 자동댓글은 영구 금지하고
-      # 프로필 첫 링크 CTA만 사용한다. 백업 cron은 marker로 중복 게시를 막는다.
-      - name: Instagram 토큰 사전검사
-        id: ig_preflight
+      # [2026-10-13] Instagram 두 계정 교차 실험.
+      # - gsdo10042026: 기존 Secrets(INSTAGRAM_USER_ID / INSTAGRAM_ACCESS_TOKEN)을 그대로 사용.
+      # - sajufortune.kr: 별도 Legacy Secrets가 있을 때만 발행. 없으면 fail-closed로 건너뛴다.
+      # - 날짜별로 early/late 슬롯과 A/B 캡션 훅을 서로 바꿔 계정 효과와 순서 효과를 분리한다.
+      # - 자동댓글은 과거 제한 이력 때문에 두 계정 모두 영구 OFF.
+      - name: Instagram 2계정 교차 계획
+        id: ig_ab
+        shell: bash
+        run: |
+          TARGET=$(TZ=Asia/Seoul date -d "+${ZODIAC_PUBLISH_OFFSET_DAYS:-0} days" +%F)
+          python - "$TARGET" >> "$GITHUB_OUTPUT" <<'PY'
+          import sys
+          import instagram_dual_experiment as ide
+          plan = ide.plan_for_date(sys.argv[1])
+          by_slot = {x["slot"]: x for x in plan["assignments"]}
+          print(f"target_date={sys.argv[1]}")
+          for slot in ("early", "late"):
+              item = by_slot[slot]
+              print(f"{slot}_account={item['account_key']}")
+              print(f"{slot}_variant={item['variant']}")
+          PY
+
+      - name: Instagram early 사전검사 — gsdo10042026
+        id: ig_early_primary
+        if: steps.ig_ab.outputs.early_account == 'gsdo10042026'
         continue-on-error: true
         env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: gsdo10042026
+          INSTAGRAM_EXPECTED_USERNAME: gsdo10042026
+          INSTAGRAM_EXPERIMENT_VARIANT: ${{ steps.ig_ab.outputs.early_variant }}
           INSTAGRAM_AUTO_COMMENT: "0"
         run: python zodiac_instagram.py preflight
 
-      - name: Instagram 오늘운세 Reel 발행 (저녁 1편)
-        if: steps.ig_preflight.outcome == 'success'
+      - name: Instagram early 사전검사 — sajufortune.kr
+        id: ig_early_legacy
+        if: steps.ig_ab.outputs.early_account == 'sajufortune.kr'
         continue-on-error: true
         env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_LEGACY_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_LEGACY_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: sajufortune.kr
+          INSTAGRAM_EXPECTED_USERNAME: sajufortune.kr
+          INSTAGRAM_EXPERIMENT_VARIANT: ${{ steps.ig_ab.outputs.early_variant }}
+          INSTAGRAM_AUTO_COMMENT: "0"
+        run: python zodiac_instagram.py preflight
+
+      - name: Instagram early Reel — gsdo10042026
+        if: steps.ig_ab.outputs.early_account == 'gsdo10042026' && steps.ig_early_primary.outcome == 'success'
+        continue-on-error: true
+        env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: gsdo10042026
+          INSTAGRAM_EXPECTED_USERNAME: gsdo10042026
+          INSTAGRAM_EXPERIMENT_VARIANT: ${{ steps.ig_ab.outputs.early_variant }}
           INSTAGRAM_AUTO_COMMENT: "0"
         run: python zodiac_instagram.py reel
 
-      - name: Instagram 인사이트 수집
-        if: always() && steps.ig_preflight.outcome == 'success'
+      - name: Instagram early Reel — sajufortune.kr
+        if: steps.ig_ab.outputs.early_account == 'sajufortune.kr' && steps.ig_early_legacy.outcome == 'success'
         continue-on-error: true
+        env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_LEGACY_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_LEGACY_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: sajufortune.kr
+          INSTAGRAM_EXPECTED_USERNAME: sajufortune.kr
+          INSTAGRAM_EXPERIMENT_VARIANT: ${{ steps.ig_ab.outputs.early_variant }}
+          INSTAGRAM_AUTO_COMMENT: "0"
+        run: python zodiac_instagram.py reel
+
+      - name: Instagram early 인사이트 — gsdo10042026
+        if: always() && steps.ig_ab.outputs.early_account == 'gsdo10042026' && steps.ig_early_primary.outcome == 'success'
+        continue-on-error: true
+        env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: gsdo10042026
+          INSTAGRAM_EXPECTED_USERNAME: gsdo10042026
         run: python instagram_insights.py
 
+      - name: Instagram early 인사이트 — sajufortune.kr
+        if: always() && steps.ig_ab.outputs.early_account == 'sajufortune.kr' && steps.ig_early_legacy.outcome == 'success'
+        continue-on-error: true
+        env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_LEGACY_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_LEGACY_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: sajufortune.kr
+          INSTAGRAM_EXPECTED_USERNAME: sajufortune.kr
+        run: python instagram_insights.py
+
+      - name: Instagram 두 번째 슬롯 간격
+        if: always()
+        run: sleep 300
+
+      - name: Instagram late 사전검사 — gsdo10042026
+        id: ig_late_primary
+        if: steps.ig_ab.outputs.late_account == 'gsdo10042026'
+        continue-on-error: true
+        env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: gsdo10042026
+          INSTAGRAM_EXPECTED_USERNAME: gsdo10042026
+          INSTAGRAM_EXPERIMENT_VARIANT: ${{ steps.ig_ab.outputs.late_variant }}
+          INSTAGRAM_AUTO_COMMENT: "0"
+        run: python zodiac_instagram.py preflight
+
+      - name: Instagram late 사전검사 — sajufortune.kr
+        id: ig_late_legacy
+        if: steps.ig_ab.outputs.late_account == 'sajufortune.kr'
+        continue-on-error: true
+        env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_LEGACY_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_LEGACY_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: sajufortune.kr
+          INSTAGRAM_EXPECTED_USERNAME: sajufortune.kr
+          INSTAGRAM_EXPERIMENT_VARIANT: ${{ steps.ig_ab.outputs.late_variant }}
+          INSTAGRAM_AUTO_COMMENT: "0"
+        run: python zodiac_instagram.py preflight
+
+      - name: Instagram late Reel — gsdo10042026
+        if: steps.ig_ab.outputs.late_account == 'gsdo10042026' && steps.ig_late_primary.outcome == 'success'
+        continue-on-error: true
+        env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: gsdo10042026
+          INSTAGRAM_EXPECTED_USERNAME: gsdo10042026
+          INSTAGRAM_EXPERIMENT_VARIANT: ${{ steps.ig_ab.outputs.late_variant }}
+          INSTAGRAM_AUTO_COMMENT: "0"
+        run: python zodiac_instagram.py reel
+
+      - name: Instagram late Reel — sajufortune.kr
+        if: steps.ig_ab.outputs.late_account == 'sajufortune.kr' && steps.ig_late_legacy.outcome == 'success'
+        continue-on-error: true
+        env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_LEGACY_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_LEGACY_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: sajufortune.kr
+          INSTAGRAM_EXPECTED_USERNAME: sajufortune.kr
+          INSTAGRAM_EXPERIMENT_VARIANT: ${{ steps.ig_ab.outputs.late_variant }}
+          INSTAGRAM_AUTO_COMMENT: "0"
+        run: python zodiac_instagram.py reel
+
+      - name: Instagram late 인사이트 — gsdo10042026
+        if: always() && steps.ig_ab.outputs.late_account == 'gsdo10042026' && steps.ig_late_primary.outcome == 'success'
+        continue-on-error: true
+        env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: gsdo10042026
+          INSTAGRAM_EXPECTED_USERNAME: gsdo10042026
+        run: python instagram_insights.py
+
+      - name: Instagram late 인사이트 — sajufortune.kr
+        if: always() && steps.ig_ab.outputs.late_account == 'sajufortune.kr' && steps.ig_late_legacy.outcome == 'success'
+        continue-on-error: true
+        env:
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_LEGACY_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_LEGACY_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_KEY: sajufortune.kr
+          INSTAGRAM_EXPECTED_USERNAME: sajufortune.kr
+        run: python instagram_insights.py
+
+      - name: Instagram 24h·72h 계정 승자 판정
+        if: always()
+        continue-on-error: true
+        run: python instagram_account_winner.py
+
       - name: Instagram 마커·인사이트 커밋
-        if: always() && steps.ig_preflight.outcome == 'success'
+        if: always()
         continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add cards/*/instagram_pub_*.json 2>/dev/null || true
-          git add analytics/instagram_insights.json 2>/dev/null || true
+          git add analytics/instagram_*.json 2>/dev/null || true
           git diff --cached --quiet && echo "Instagram 변경 없음" && exit 0
-          git commit -m "chore: instagram markers+insights $(TZ=Asia/Seoul date +%F)"
+          git commit -m "chore: instagram dual-account markers+insights $(TZ=Asia/Seoul date +%F)"
           bash scripts/safe_git_push.sh main
