@@ -41,7 +41,9 @@ def test_preflight_fails_closed_on_wrong_account(monkeypatch):
     monkeypatch.setenv("INSTAGRAM_USER_ID", "1")
     monkeypatch.setenv("INSTAGRAM_ACCESS_TOKEN", "token")
     monkeypatch.setenv("INSTAGRAM_EXPECTED_USERNAME", "sajufortune.kr")
-    monkeypatch.setattr(zi.requests, "get", lambda *a, **k: FakeResponse({"id": "1", "username": "gsdo10042026", "account_type": "BUSINESS", "media_count": 10}))
+    monkeypatch.setattr(zi.requests, "get", lambda *a, **k: FakeResponse({
+        "id": "1", "username": "gsdo10042026", "account_type": "BUSINESS", "media_count": 10
+    }))
     with pytest.raises(RuntimeError, match="account mismatch"):
         zi.preflight()
 
@@ -52,5 +54,11 @@ def test_caption_variant_changes_intro_without_changing_topic(monkeypatch):
     monkeypatch.setenv("INSTAGRAM_EXPERIMENT_VARIANT", "B")
     b = zi.reel_caption("2026-10-14")
     assert a != b
-    assert "띠별 운세" in a and "띠별 운세" in b
+    assert "띠별 운세" in a
+    assert "띠별 운세" in b
     assert "#띠별운세" in a and "#띠별운세" in b
+
+
+def test_reel_media_url_uses_video_variant(monkeypatch):
+    monkeypatch.setenv("INSTAGRAM_EXPERIMENT_VARIANT", "B")
+    assert zi.reel_media_url("2026-10-14").endswith("/reels/2026-10-14_tts_ig_B.mp4")
