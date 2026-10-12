@@ -60,8 +60,11 @@ def marker_ids(base: Path, account_key: str) -> set[str]:
     ids: set[str] = set()
     for path in (base / "cards").glob("*/instagram_pub_reel*.json"):
         payload = _read(path)
-        key = payload.get("account_key") or ide.PRIMARY_ACCOUNT
-        if key == account_key and payload.get("post_id"):
+        # 실험 도입 전 단일계정 마커에는 account_key/experiment_variant가 없다.
+        # 그 과거 성과가 새 2계정 A/B 승자 판정에 섞이지 않도록 명시적 실험 마커만 센다.
+        key = str(payload.get("account_key") or "").strip()
+        variant = str(payload.get("experiment_variant") or "").strip().upper()
+        if key == account_key and variant in ide.VARIANTS and payload.get("post_id"):
             ids.add(str(payload["post_id"]))
     return ids
 
