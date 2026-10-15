@@ -5,7 +5,9 @@
     "17888506107685397",
     "17895774186416797",
     "18640485448000375",
-    "17922622077440689"
+    "17922622077440689",
+    "18424689436159462",
+    "18184636828421155"
   ],
   "external_target_ids": [],
   "sent": [
@@ -75,6 +77,44 @@
       "effect": "CONFIRMED",
       "revenue_cta": false,
       "finalized_at": "2026-10-11T05:51:47.463746+00:00"
+    },
+    {
+      "at": "2026-10-15T17:10:15.273098+00:00",
+      "date_kst": "2026-10-16",
+      "kind": "inbound",
+      "target_id": "18424689436159462",
+      "target_username": "candylove7486",
+      "reply_id": "18118116509060482",
+      "text_hash": "147643f58e38d4449079",
+      "text": "재물운만 보면, 원국에 재성이 2곳 잡혀 있어서 돈 흐름이 아예 약한 사주는 아니에요.\n\n올해 병오에는 정재·편재가 들어와서 고정수입·계약·재정관리이 두드러지고, 수입·계약·현금흐름을 실제 숫자로 챙길수록 유리해요.\n\n특히 다음 재성 흐름은 2027년에 다시 잡히니, 지금은 무리하게 크게 벌리기보다 그때까지 돈 되는 구조를 만들어두는 게 좋아요.",
+      "verified_replied_to": "18424689436159462",
+      "source_query": "",
+      "search_type": "",
+      "candidate_score": 999.654,
+      "relevance": 0,
+      "conversation_signal": 0.0,
+      "effect": "CONFIRMED",
+      "revenue_cta": false,
+      "finalized_at": "2026-10-15T17:10:26.396540+00:00"
+    },
+    {
+      "at": "2026-10-15T17:11:06.346385+00:00",
+      "date_kst": "2026-10-16",
+      "kind": "inbound",
+      "target_id": "18184636828421155",
+      "target_username": "hahahaha235711",
+      "reply_id": "18152879053530340",
+      "text_hash": "f8878942acb7356bd270",
+      "text": "재물운만 볼게요. 출생시간이 없어서 시주는 빼고, 연·월·일 기준으로 돈 흐름만 보겠습니다.\n\n올해 병오에는 정관·편관가 들어와서 직위·조직·규정·문서이 두드러지고, 돈 자체보다 일의 변화가 먼저 움직이고 그 뒤에 수입이 따라오는 흐름이에요.\n\n특히 다음 재성 흐름은 2034, 2035년에 다시 잡히니, 지금은 무리하게 크게 벌리기보다 그때까지 돈 되는 구조를 만들어두는 게 좋아요.",
+      "verified_replied_to": "18184636828421155",
+      "source_query": "",
+      "search_type": "",
+      "candidate_score": 998.774,
+      "relevance": 0,
+      "conversation_signal": 0.0,
+      "effect": "CONFIRMED",
+      "revenue_cta": false,
+      "finalized_at": "2026-10-15T17:11:17.913492+00:00"
     }
   ],
   "days": {
@@ -294,9 +334,37 @@
       "external_errors": 0,
       "external_safety_stops": 0,
       "external_insight_failures": 0
+    },
+    "2026-10-15": {
+      "external": 0,
+      "inbound": 0,
+      "nested": 0,
+      "total": 0,
+      "per_target": {},
+      "external_measured": 0,
+      "external_engaged": 0,
+      "external_replies": 0,
+      "external_likes": 0,
+      "external_errors": 0,
+      "external_safety_stops": 0,
+      "external_insight_failures": 0
+    },
+    "2026-10-16": {
+      "external": 0,
+      "inbound": 2,
+      "nested": 0,
+      "total": 2,
+      "per_target": {},
+      "external_measured": 0,
+      "external_engaged": 0,
+      "external_replies": 0,
+      "external_likes": 0,
+      "external_errors": 0,
+      "external_safety_stops": 0,
+      "external_insight_failures": 0
     }
   },
-  "last_run_at": "2026-10-15T15:35:04.477610+00:00",
+  "last_run_at": "2026-10-15T17:11:42.780171+00:00",
   "external_growth": {
     "stage_index": 0,
     "stage_started_kst": "2026-10-11",
