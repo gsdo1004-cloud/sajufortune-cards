@@ -28,3 +28,11 @@ def test_scheduled_reel_publishes_legacy_but_afternoon_content_does_not():
 def test_manual_status_does_not_persist_state():
     s = text()
     assert "github.event_name == 'schedule' || github.event.inputs.publish == 'true'" in s
+
+
+def test_checkout_is_shallow_partial_sparse_and_keeps_only_instagram_state():
+    s = text()
+    assert "fetch-depth: 1" in s
+    assert "sparse-checkout-cone-mode: false" in s
+    assert "/*\n            !/*/\n            /scripts/\n            /analytics/\n            /cards/*/instagram_pub_*.json" in s
+    assert "fetch-depth: 0" not in s
