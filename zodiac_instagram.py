@@ -274,15 +274,25 @@ def reel_media_url(date_iso: str) -> str:
 def do_reel(date_iso: str) -> None:
     if _skip_if_done(date_iso, "reel"):
         return
-    url = reel_media_url(date_iso)
     caption = reel_caption(date_iso)
-    try:
-        pid = publish_reel(url, caption)
-    except FileNotFoundError as e:
-        print(f"[SKIP] {e}")
+    urls = [
+        reel_media_url(date_iso),
+        f"{RAW_BASE}/reels/{date_iso}_tts.mp4",
+    ]
+    errors = []
+    for url in dict.fromkeys(urls):
+        try:
+            pid = publish_reel(url, caption)
+        except FileNotFoundError as e:
+            errors.append(str(e))
+            print(f"[WARN] Instagram reel source unavailable, trying fallback: {e}")
+            continue
+        _write_marker(date_iso, "reel", pid, media_url=url)
+        add_comment(pid, CTA_COMMENT)
         return
-    _write_marker(date_iso, "reel", pid, media_url=url)
-    add_comment(pid, CTA_COMMENT)
+    raise FileNotFoundError(
+        f"no usable Instagram reel source for {date_iso}: " + " | ".join(errors)
+    )
 
 
 def do_signal_reel(date_iso: str) -> None:

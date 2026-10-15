@@ -62,3 +62,40 @@ def test_caption_variant_changes_intro_without_changing_topic(monkeypatch):
 def test_reel_media_url_uses_video_variant(monkeypatch):
     monkeypatch.setenv("INSTAGRAM_EXPERIMENT_VARIANT", "B")
     assert zi.reel_media_url("2026-10-14").endswith("/reels/2026-10-14_tts_ig_B.mp4")
+
+
+def test_do_reel_falls_back_to_base_video_when_variant_missing(monkeypatch, tmp_path):
+    monkeypatch.setattr(zi, "BASE", tmp_path)
+    monkeypatch.setenv("INSTAGRAM_EXPERIMENT_VARIANT", "A")
+    calls = []
+
+    def fake_publish(url, caption):
+        calls.append(url)
+        if url.endswith("_tts_ig_A.mp4"):
+            raise FileNotFoundError("variant missing")
+        assert url.endswith("_tts.mp4")
+        return "post-123"
+
+    monkeypatch.setattr(zi, "publish_reel", fake_publish)
+    monkeypatch.setattr(zi, "add_comment", lambda *a, **k: None)
+
+    zi.do_reel("2026-10-16")
+
+    assert calls[0].endswith("_tts_ig_A.mp4")
+    assert calls[1].endswith("_tts.mp4")
+    marker = json.loads(zi._marker("2026-10-16", "reel").read_text(encoding="utf-8"))
+    assert marker["post_id"] == "post-123"
+    assert marker["media_url"].endswith("_tts.mp4")
+
+
+def test_do_reel_raises_when_variant_and_base_video_are_missing(monkeypatch, tmp_path):
+    monkeypatch.setattr(zi, "BASE", tmp_path)
+    monkeypatch.setenv("INSTAGRAM_EXPERIMENT_VARIANT", "A")
+    monkeypatch.setattr(
+        zi,
+        "publish_reel",
+        lambda url, caption: (_ for _ in ()).throw(FileNotFoundError(url)),
+    )
+
+    with pytest.raises(FileNotFoundError, match="no usable Instagram reel source"):
+        zi.do_reel("2026-10-16")
