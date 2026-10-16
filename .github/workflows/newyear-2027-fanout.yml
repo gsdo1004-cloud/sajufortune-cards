@@ -25,6 +25,10 @@ on:
         description: '로컬 Naver PUBLISHED/RSS 게이트가 확인한 URL'
         required: true
         type: string
+      expires_at:
+        description: 'HMAC 발행허가 만료시각 ISO-8601 UTC'
+        required: true
+        type: string
       permit:
         description: '로컬 소스게이트 HMAC 발행허가'
         required: true
@@ -43,10 +47,16 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       commit_sha: ${{ steps.pin.outputs.commit_sha }}
+    env:
+      TARGET_DATE: ${{ inputs.date }}
+      AUTH_MODE: ${{ inputs.mode }}
+      SOURCE_URL_INPUT: ${{ inputs.source_url }}
+      EXPIRES_AT_INPUT: ${{ inputs.expires_at }}
+      DISPATCH_PERMIT_INPUT: ${{ inputs.permit }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.sha }}
           fetch-depth: 1
       - uses: actions/setup-python@v5
         with:
@@ -54,19 +64,23 @@ jobs:
       - name: 검증 대상 commit 고정
         id: pin
         run: echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-      - name: 로컬 Naver 발행확인 HMAC 검증
+      - name: 로컬 Naver 발행확인 HMAC·시간창 검증
         env:
           NEWYEAR_2027_DISPATCH_KEY: ${{ secrets.NEWYEAR_2027_DISPATCH_KEY }}
         run: |
           python newyear_2027_runner.py verify-permit \
-            --date '${{ inputs.date }}' \
-            --source-url '${{ inputs.source_url }}' \
-            --permit '${{ inputs.permit }}'
+            --date "$TARGET_DATE" \
+            --source-url "$SOURCE_URL_INPUT" \
+            --mode "$AUTH_MODE" \
+            --expires-at "$EXPIRES_AT_INPUT" \
+            --permit "$DISPATCH_PERMIT_INPUT"
 
   threads:
     needs: gate
     if: ${{ needs.gate.result == 'success' && inputs.send == true && (inputs.mode == 'normal' || inputs.mode == 'threads_canary') }}
     runs-on: ubuntu-latest
+    env:
+      TARGET_DATE: ${{ inputs.date }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -81,34 +95,35 @@ jobs:
         id: threads_intent
         run: |
           python newyear_2027_runner.py intent \
-            --date '${{ inputs.date }}' --platform threads --account gsdo10042026 \
+            --date "$TARGET_DATE" --platform threads --account gsdo10042026 \
             --github-output "$GITHUB_OUTPUT"
-      - name: Threads intent 영구 저장
+      - name: Threads intent 영구 저장 (격리 worktree)
         if: ${{ steps.threads_intent.outputs.action == 'publish' }}
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add newyear_2027/receipts/
-          git commit -m 'ny2027 threads intent ${{ inputs.date }}'
-          bash scripts/safe_git_push.sh main
+          bash scripts/persist_newyear_2027_receipt.sh \
+            "newyear_2027/receipts/$TARGET_DATE/threads.json" \
+            "ny2027 threads intent $TARGET_DATE"
       - name: Threads 발행
         if: ${{ steps.threads_intent.outputs.action == 'publish' }}
         env:
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
           THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
           THREADS_EXPECTED_USERNAME: gsdo10042026
-        run: python newyear_2027_runner.py publish-threads --date '${{ inputs.date }}'
-      - name: Threads PUBLISHED receipt 저장
+        run: python newyear_2027_runner.py publish-threads --date "$TARGET_DATE"
+      - name: Threads PUBLISHED receipt 저장 (격리 worktree)
         if: ${{ steps.threads_intent.outputs.action == 'publish' }}
         run: |
-          git add newyear_2027/receipts/
-          git commit -m 'ny2027 threads published ${{ inputs.date }}'
-          bash scripts/safe_git_push.sh main
+          bash scripts/persist_newyear_2027_receipt.sh \
+            "newyear_2027/receipts/$TARGET_DATE/threads.json" \
+            "ny2027 threads published $TARGET_DATE"
 
   youtube:
     needs: [gate, threads]
     if: ${{ always() && needs.gate.result == 'success' && inputs.send == true && (inputs.mode == 'normal' || inputs.mode == 'youtube_private_canary') }}
     runs-on: ubuntu-latest
+    env:
+      TARGET_DATE: ${{ inputs.date }}
+      AUTH_MODE: ${{ inputs.mode }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -130,36 +145,32 @@ jobs:
         id: youtube_state
         run: |
           PLATFORM=youtube
-          EXTRA='--block-if-platform youtube_canary'
-          if [ '${{ inputs.mode }}' = 'youtube_private_canary' ]; then
-            PLATFORM=youtube_canary
-            EXTRA=''
-          fi
+          if [ "$AUTH_MODE" = 'youtube_private_canary' ]; then PLATFORM=youtube_canary; fi
           python newyear_2027_runner.py state \
-            --date '${{ inputs.date }}' --platform "$PLATFORM" $EXTRA \
+            --date "$TARGET_DATE" --platform "$PLATFORM" \
             --github-output "$GITHUB_OUTPUT"
       - name: 2027 Shorts 렌더
         if: ${{ steps.youtube_state.outputs.action == 'continue' }}
         env:
           SUPERTONIC_VOICE: M2
-        run: python newyear_2027_runner.py render --date '${{ inputs.date }}'
+        run: python newyear_2027_runner.py render --date "$TARGET_DATE"
       - name: YouTube PUBLISHING intent 생성
         id: youtube_intent
         if: ${{ steps.youtube_state.outputs.action == 'continue' }}
         run: |
           PLATFORM=youtube
-          if [ '${{ inputs.mode }}' = 'youtube_private_canary' ]; then PLATFORM=youtube_canary; fi
+          if [ "$AUTH_MODE" = 'youtube_private_canary' ]; then PLATFORM=youtube_canary; fi
           python newyear_2027_runner.py intent \
-            --date '${{ inputs.date }}' --platform "$PLATFORM" --account '운명과학TV' \
-            --video 'newyear_2027/rendered/${{ inputs.date }}.mp4' --github-output "$GITHUB_OUTPUT"
-      - name: YouTube intent 영구 저장
+            --date "$TARGET_DATE" --platform "$PLATFORM" --account '운명과학TV' \
+            --video "newyear_2027/rendered/$TARGET_DATE.mp4" --github-output "$GITHUB_OUTPUT"
+      - name: YouTube intent 영구 저장 (격리 worktree)
         if: ${{ steps.youtube_intent.outputs.action == 'publish' }}
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add newyear_2027/receipts/
-          git commit -m 'ny2027 youtube intent ${{ inputs.date }}'
-          bash scripts/safe_git_push.sh main
+          PLATFORM=youtube
+          if [ "$AUTH_MODE" = 'youtube_private_canary' ]; then PLATFORM=youtube_canary; fi
+          bash scripts/persist_newyear_2027_receipt.sh \
+            "newyear_2027/receipts/$TARGET_DATE/$PLATFORM.json" \
+            "ny2027 $PLATFORM intent $TARGET_DATE"
       - name: YouTube 정상 예약발행
         if: ${{ steps.youtube_intent.outputs.action == 'publish' && inputs.mode == 'normal' }}
         env:
@@ -167,18 +178,20 @@ jobs:
           YOUTUBE_CLIENT_SECRETS: ${{ secrets.YOUTUBE_CLIENT_SECRETS }}
           YOUTUBE_EXPECT_CHANNEL: 운명과학TV
           YOUTUBE_EXPECT_CHANNEL_ID: ${{ vars.YOUTUBE_EXPECT_CHANNEL_ID }}
-        run: python newyear_2027_runner.py publish-youtube --date '${{ inputs.date }}' --publish-at '${{ inputs.date }}T13:00:00+09:00'
-      - name: YouTube 진짜 비공개 canary
+        run: python newyear_2027_runner.py publish-youtube --date "$TARGET_DATE" --publish-at "${TARGET_DATE}T15:30:00+09:00"
+      - name: YouTube 진짜 비공개 canary (자동 승격 없음)
         if: ${{ steps.youtube_intent.outputs.action == 'publish' && inputs.mode == 'youtube_private_canary' }}
         env:
           YOUTUBE_TOKEN_UNMYEONG: ${{ secrets.YOUTUBE_TOKEN_UNMYEONG }}
           YOUTUBE_CLIENT_SECRETS: ${{ secrets.YOUTUBE_CLIENT_SECRETS }}
           YOUTUBE_EXPECT_CHANNEL: 운명과학TV
           YOUTUBE_EXPECT_CHANNEL_ID: ${{ vars.YOUTUBE_EXPECT_CHANNEL_ID }}
-        run: python newyear_2027_runner.py publish-youtube --date '${{ inputs.date }}' --canary
-      - name: YouTube PUBLISHED receipt 저장
+        run: python newyear_2027_runner.py publish-youtube --date "$TARGET_DATE" --canary
+      - name: YouTube PUBLISHED receipt 저장 (격리 worktree)
         if: ${{ steps.youtube_intent.outputs.action == 'publish' }}
         run: |
-          git add newyear_2027/receipts/
-          git commit -m 'ny2027 youtube published ${{ inputs.date }}'
-          bash scripts/safe_git_push.sh main
+          PLATFORM=youtube
+          if [ "$AUTH_MODE" = 'youtube_private_canary' ]; then PLATFORM=youtube_canary; fi
+          bash scripts/persist_newyear_2027_receipt.sh \
+            "newyear_2027/receipts/$TARGET_DATE/$PLATFORM.json" \
+            "ny2027 $PLATFORM published $TARGET_DATE"

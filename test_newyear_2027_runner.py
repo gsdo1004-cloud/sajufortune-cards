@@ -587,10 +587,13 @@ def test_shorts_script_caps_long_source_copy_for_40s_margin():
 def test_dispatch_permit_binds_date_content_hash_and_naver_url():
     item = _intent_item()
     item["publish_date"] = "2026-10-16"
-    permit = ny.make_dispatch_permit("secret-key", item, "2026-10-16", "https://blog.naver.com/example/123")
-    assert ny.verify_dispatch_permit("secret-key", item, "2026-10-16", "https://blog.naver.com/example/123", permit)
-    assert not ny.verify_dispatch_permit("secret-key", item, "2026-10-17", "https://blog.naver.com/example/123", permit)
-    assert not ny.verify_dispatch_permit("secret-key", item, "2026-10-16", "https://blog.naver.com/example/999", permit)
+    expires = "2026-10-16T04:00:00+00:00"
+    permit = ny.make_dispatch_permit("secret-key", item, "2026-10-16", "https://blog.naver.com/example/123", "normal", expires)
+    assert ny.verify_dispatch_permit("secret-key", item, "2026-10-16", "https://blog.naver.com/example/123", "normal", expires, permit)
+    assert not ny.verify_dispatch_permit("secret-key", item, "2026-10-17", "https://blog.naver.com/example/123", "normal", expires, permit)
+    assert not ny.verify_dispatch_permit("secret-key", item, "2026-10-16", "https://blog.naver.com/example/999", "normal", expires, permit)
+    assert not ny.verify_dispatch_permit("secret-key", item, "2026-10-16", "https://blog.naver.com/example/123", "youtube_private_canary", expires, permit)
+    assert not ny.verify_dispatch_permit("secret-key", item, "2026-10-16", "https://blog.naver.com/example/123", "normal", "2026-10-16T05:00:00+00:00", permit)
 
 
 def test_dispatch_live_includes_signed_source_proof(tmp_path):
@@ -620,14 +623,13 @@ def test_dispatch_live_includes_signed_source_proof(tmp_path):
     assert permit_args and len(permit_args[0].split("=",1)[1]) == 64
 
 
-def test_normal_youtube_state_skips_when_private_canary_already_published(tmp_path):
+def test_normal_youtube_state_does_not_consume_private_canary(tmp_path):
     bundle = tmp_path / "bundle"
     receipt = ny._receipt_path(bundle, "2026-10-16", "youtube_canary")
     receipt.parent.mkdir(parents=True)
     receipt.write_text(json.dumps({"status": "PUBLISHED", "remote_id": "private1"}), encoding="utf-8")
-    action = ny.receipt_state(bundle, "2026-10-16", "youtube", block_if_platform="youtube_canary")
-    assert action["action"] == "skip"
-    assert action["reason"] == "blocked_by_youtube_canary"
+    action = ny.receipt_state(bundle, "2026-10-16", "youtube")
+    assert action["action"] == "continue"
 
 
 def test_workflow_requires_signed_gate_before_platform_jobs():
@@ -639,7 +641,6 @@ def test_workflow_requires_signed_gate_before_platform_jobs():
     assert "gate:" in text
     assert "needs: gate" in text
     assert "needs: [gate, threads]" in text
-    assert "--block-if-platform youtube_canary" in text
 
 
 
@@ -695,3 +696,71 @@ def test_workflow_pins_platform_jobs_to_gate_verified_commit():
     text = (Path(__file__).resolve().parent / ".github" / "workflows" / "newyear-2027-fanout.yml").read_text(encoding="utf-8")
     assert "commit_sha: ${{ steps.pin.outputs.commit_sha }}" in text
     assert text.count("ref: ${{ needs.gate.outputs.commit_sha }}") == 2
+
+
+
+def test_dispatch_authorization_rejects_expired_and_remote_outside_window():
+    item = _intent_item(); item["publish_date"] = "2026-10-16"
+    url = "https://blog.naver.com/example/123"
+    expires = "2026-10-16T04:00:00+00:00"  # 13:00 KST
+    permit = ny.make_dispatch_permit("secret-key", item, "2026-10-16", url, "normal", expires)
+    ok = ny.validate_dispatch_authorization(
+        "secret-key", item, "2026-10-16", url, "normal", expires, permit,
+        now=ny.datetime.fromisoformat("2026-10-16T03:30:00+00:00"),
+    )
+    assert ok["ok"] is True
+    expired = ny.validate_dispatch_authorization(
+        "secret-key", item, "2026-10-16", url, "normal", expires, permit,
+        now=ny.datetime.fromisoformat("2026-10-16T04:01:00+00:00"),
+    )
+    assert expired["ok"] is False and expired["reason"] == "permit_expired"
+    outside_expires = "2026-10-16T02:00:00+00:00"
+    outside_permit = ny.make_dispatch_permit("secret-key", item, "2026-10-16", url, "normal", outside_expires)
+    outside = ny.validate_dispatch_authorization(
+        "secret-key", item, "2026-10-16", url, "normal", outside_expires, outside_permit,
+        now=ny.datetime.fromisoformat("2026-10-16T00:30:00+00:00"),
+    )
+    assert outside["ok"] is False and outside["reason"] == "outside_remote_window"
+
+
+def test_workflow_shell_does_not_interpolate_untrusted_inputs_in_run_blocks():
+    text = (Path(__file__).resolve().parent / ".github" / "workflows" / "newyear-2027-fanout.yml").read_text(encoding="utf-8")
+    lines = text.splitlines()
+    in_run = False
+    run_indent = None
+    offenders = []
+    for line in lines:
+        stripped = line.lstrip()
+        indent = len(line) - len(stripped)
+        if stripped.startswith("run: |"):
+            in_run = True; run_indent = indent; continue
+        if in_run and stripped and indent <= run_indent:
+            in_run = False
+        if in_run and "${{ inputs." in line:
+            offenders.append(line.strip())
+    assert offenders == []
+
+
+def test_workflow_receipt_persistence_isolated_from_verified_execution_tree():
+    root = Path(__file__).resolve().parent
+    workflow = (root / ".github" / "workflows" / "newyear-2027-fanout.yml").read_text(encoding="utf-8")
+    helper = (root / "scripts" / "persist_newyear_2027_receipt.sh").read_text(encoding="utf-8")
+    assert "persist_newyear_2027_receipt.sh" in workflow
+    assert "worktree add" in helper
+    assert "safe_git_push.sh main" in helper
+    assert "safe_git_push.sh main" not in workflow
+
+
+def test_private_canary_receipt_never_auto_promotes(tmp_path):
+    service = _FakeYoutubeService()
+    video = tmp_path / "short.mp4"; video.write_bytes(b"video")
+    receipt = tmp_path / "youtube_canary.json"
+    item = _intent_item()
+    ny.prepare_intent(receipt, item=item, platform="youtube_canary", account="운명과학TV")
+    ny.publish_youtube_private_canary(
+        item, video, receipt_path=receipt, uploader_module=_FakePrivateUploaderModule,
+        youtube_builder=lambda *a, **k: service,
+        media_factory=lambda path, **kwargs: {"path": str(path), **kwargs},
+    )
+    data = json.loads(receipt.read_text(encoding="utf-8"))
+    assert data["promotion_policy"] == "never_auto_promote"

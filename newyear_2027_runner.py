@@ -42,31 +42,86 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def _dispatch_message(item: dict, date_iso: str, source_url: str) -> bytes:
+def _dispatch_message(
+    item: dict, date_iso: str, source_url: str, mode: str, expires_at: str
+) -> bytes:
     fields = [
         str(date_iso).strip(),
         str(item.get("content_id") or "").strip(),
         str(item.get("source_sha256") or "").strip(),
         str(source_url).strip(),
+        str(mode).strip(),
+        str(expires_at).strip(),
     ]
     if not all(fields):
         raise ValueError("dispatch permit fields are incomplete")
+    if fields[4] not in {"normal", "threads_canary", "youtube_private_canary"}:
+        raise ValueError("invalid dispatch mode")
     return "\n".join(fields).encode("utf-8")
 
 
-def make_dispatch_permit(key: str, item: dict, date_iso: str, source_url: str) -> str:
+def make_dispatch_permit(
+    key: str, item: dict, date_iso: str, source_url: str, mode: str, expires_at: str
+) -> str:
     key = str(key or "").strip()
     if len(key) < 8:
         raise ValueError("dispatch key is missing or too short")
-    return hmac.new(key.encode("utf-8"), _dispatch_message(item, date_iso, source_url), hashlib.sha256).hexdigest()
+    return hmac.new(
+        key.encode("utf-8"),
+        _dispatch_message(item, date_iso, source_url, mode, expires_at),
+        hashlib.sha256,
+    ).hexdigest()
 
 
-def verify_dispatch_permit(key: str, item: dict, date_iso: str, source_url: str, permit: str) -> bool:
+def verify_dispatch_permit(
+    key: str, item: dict, date_iso: str, source_url: str, mode: str, expires_at: str, permit: str
+) -> bool:
     try:
-        expected = make_dispatch_permit(key, item, date_iso, source_url)
+        expected = make_dispatch_permit(key, item, date_iso, source_url, mode, expires_at)
     except Exception:
         return False
     return hmac.compare_digest(expected, str(permit or "").strip())
+
+
+def validate_dispatch_authorization(
+    key: str,
+    item: dict,
+    date_iso: str,
+    source_url: str,
+    mode: str,
+    expires_at: str,
+    permit: str,
+    *,
+    now: datetime | None = None,
+) -> dict:
+    if not verify_dispatch_permit(key, item, date_iso, source_url, mode, expires_at, permit):
+        return {"ok": False, "reason": "permit_invalid"}
+    try:
+        expiry = datetime.fromisoformat(str(expires_at).replace("Z", "+00:00"))
+    except ValueError:
+        return {"ok": False, "reason": "permit_expiry_invalid"}
+    if expiry.tzinfo is None:
+        return {"ok": False, "reason": "permit_expiry_invalid"}
+    now_utc = now or datetime.now(timezone.utc)
+    if now_utc.tzinfo is None:
+        now_utc = now_utc.replace(tzinfo=timezone.utc)
+    now_utc = now_utc.astimezone(timezone.utc)
+    expiry = expiry.astimezone(timezone.utc)
+    if now_utc > expiry:
+        return {"ok": False, "reason": "permit_expired"}
+    if expiry > now_utc + timedelta(minutes=90):
+        return {"ok": False, "reason": "permit_expiry_too_far"}
+    now_kst = now_utc.astimezone(KST)
+    if now_kst.date().isoformat() != str(date_iso):
+        return {"ok": False, "reason": "remote_date_mismatch"}
+    local_time = now_kst.time().replace(tzinfo=None)
+    if mode == "youtube_private_canary":
+        in_window = dt_time(8, 0) <= local_time <= dt_time(19, 0)
+    else:
+        in_window = dt_time(11, 0) <= local_time <= dt_time(14, 0)
+    if not in_window:
+        return {"ok": False, "reason": "outside_remote_window"}
+    return {"ok": True, "reason": "authorized"}
 
 
 def _load_dispatch_key(*, value: str | None = None, path: Path | None = None) -> str:
@@ -669,6 +724,7 @@ def publish_youtube_private_canary(
             "publish_at": None,
             "channel_id": actual_channel_id,
             "channel_title": actual_title,
+            "promotion_policy": "never_auto_promote",
         },
     )
     return str(remote_id)
@@ -973,12 +1029,14 @@ def dispatch_daily(
                 _append_status(status_path, result)
                 return result
             source_url = str(gate.get("naver_url") or "").strip()
-            permit = make_dispatch_permit(key, item, date_iso, source_url)
+            expires_at = (now_kst.astimezone(timezone.utc) + timedelta(minutes=45)).isoformat(timespec="seconds")
+            permit = make_dispatch_permit(key, item, date_iso, source_url, mode, expires_at)
             cmd = [
                 "gh", "workflow", "run", workflow,
                 "--repo", repo, "--ref", "main",
                 "-f", f"date={date_iso}", "-f", "send=true", "-f", f"mode={mode}",
-                "-f", f"source_url={source_url}", "-f", f"permit={permit}",
+                "-f", f"source_url={source_url}", "-f", f"expires_at={expires_at}",
+                "-f", f"permit={permit}",
             ]
             proc = command_runner(cmd, capture_output=True, text=True, timeout=60, check=False)
             if getattr(proc, "returncode", 1) != 0:
@@ -1024,10 +1082,12 @@ def _cmd_state(args) -> int:
 def _cmd_verify_permit(args) -> int:
     item = _workflow_item(Path(args.bundle_root), args.date)
     key = _load_dispatch_key()
-    ok = verify_dispatch_permit(key, item, args.date, args.source_url, args.permit)
-    if not ok:
-        raise PublicationBlocked("dispatch permit verification failed")
-    print(json.dumps({"ok": True, "content_id": item["content_id"], "date": args.date}, ensure_ascii=False))
+    result = validate_dispatch_authorization(
+        key, item, args.date, args.source_url, args.mode, args.expires_at, args.permit
+    )
+    if not result.get("ok"):
+        raise PublicationBlocked(f"dispatch permit verification failed: {result.get('reason')}")
+    print(json.dumps({"ok": True, "content_id": item["content_id"], "date": args.date, "mode": args.mode}, ensure_ascii=False))
     return 0
 
 
@@ -1182,6 +1242,8 @@ def main(argv: list[str] | None = None) -> int:
     verify = sub.add_parser("verify-permit")
     verify.add_argument("--date", required=True)
     verify.add_argument("--source-url", required=True)
+    verify.add_argument("--mode", required=True, choices=["normal", "threads_canary", "youtube_private_canary"])
+    verify.add_argument("--expires-at", required=True)
     verify.add_argument("--permit", required=True)
     verify.add_argument("--bundle-root", default="newyear_2027")
     verify.set_defaults(func=_cmd_verify_permit)
