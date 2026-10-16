@@ -21,6 +21,14 @@ on:
           - normal
           - threads_canary
           - youtube_private_canary
+      source_url:
+        description: '로컬 Naver PUBLISHED/RSS 게이트가 확인한 URL'
+        required: true
+        type: string
+      permit:
+        description: '로컬 소스게이트 HMAC 발행허가'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -30,8 +38,29 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  gate:
+    if: ${{ inputs.send == true }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 로컬 Naver 발행확인 HMAC 검증
+        env:
+          NEWYEAR_2027_DISPATCH_KEY: ${{ secrets.NEWYEAR_2027_DISPATCH_KEY }}
+        run: |
+          python newyear_2027_runner.py verify-permit \
+            --date '${{ inputs.date }}' \
+            --source-url '${{ inputs.source_url }}' \
+            --permit '${{ inputs.permit }}'
+
   threads:
-    if: ${{ inputs.send == true && (inputs.mode == 'normal' || inputs.mode == 'threads_canary') }}
+    needs: gate
+    if: ${{ needs.gate.result == 'success' && inputs.send == true && (inputs.mode == 'normal' || inputs.mode == 'threads_canary') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -72,8 +101,8 @@ jobs:
           bash scripts/safe_git_push.sh main
 
   youtube:
-    needs: threads
-    if: ${{ always() && inputs.send == true && (inputs.mode == 'normal' || inputs.mode == 'youtube_private_canary') }}
+    needs: [gate, threads]
+    if: ${{ always() && needs.gate.result == 'success' && inputs.send == true && (inputs.mode == 'normal' || inputs.mode == 'youtube_private_canary') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -96,8 +125,14 @@ jobs:
         id: youtube_state
         run: |
           PLATFORM=youtube
-          if [ '${{ inputs.mode }}' = 'youtube_private_canary' ]; then PLATFORM=youtube_canary; fi
-          python newyear_2027_runner.py state --date '${{ inputs.date }}' --platform "$PLATFORM" --github-output "$GITHUB_OUTPUT"
+          EXTRA='--block-if-platform youtube_canary'
+          if [ '${{ inputs.mode }}' = 'youtube_private_canary' ]; then
+            PLATFORM=youtube_canary
+            EXTRA=''
+          fi
+          python newyear_2027_runner.py state \
+            --date '${{ inputs.date }}' --platform "$PLATFORM" $EXTRA \
+            --github-output "$GITHUB_OUTPUT"
       - name: 2027 Shorts 렌더
         if: ${{ steps.youtube_state.outputs.action == 'continue' }}
         env:
@@ -126,6 +161,7 @@ jobs:
           YOUTUBE_TOKEN_UNMYEONG: ${{ secrets.YOUTUBE_TOKEN_UNMYEONG }}
           YOUTUBE_CLIENT_SECRETS: ${{ secrets.YOUTUBE_CLIENT_SECRETS }}
           YOUTUBE_EXPECT_CHANNEL: 운명과학TV
+          YOUTUBE_EXPECT_CHANNEL_ID: ${{ vars.YOUTUBE_EXPECT_CHANNEL_ID }}
         run: python newyear_2027_runner.py publish-youtube --date '${{ inputs.date }}' --publish-at '${{ inputs.date }}T13:00:00+09:00'
       - name: YouTube 진짜 비공개 canary
         if: ${{ steps.youtube_intent.outputs.action == 'publish' && inputs.mode == 'youtube_private_canary' }}
@@ -133,6 +169,7 @@ jobs:
           YOUTUBE_TOKEN_UNMYEONG: ${{ secrets.YOUTUBE_TOKEN_UNMYEONG }}
           YOUTUBE_CLIENT_SECRETS: ${{ secrets.YOUTUBE_CLIENT_SECRETS }}
           YOUTUBE_EXPECT_CHANNEL: 운명과학TV
+          YOUTUBE_EXPECT_CHANNEL_ID: ${{ vars.YOUTUBE_EXPECT_CHANNEL_ID }}
         run: python newyear_2027_runner.py publish-youtube --date '${{ inputs.date }}' --canary
       - name: YouTube PUBLISHED receipt 저장
         if: ${{ steps.youtube_intent.outputs.action == 'publish' }}

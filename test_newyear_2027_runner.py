@@ -1,5 +1,6 @@
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -157,7 +158,7 @@ def test_build_entry_creates_native_threads_and_grounded_shorts(tmp_path):
     assert len(first_two) == 2 and all(first_two)
     assert "2027" in entry["shorts_script"]
     assert any(term in entry["shorts_script"] for term in ("정미년", "명리", "대운", "재성", "일간"))
-    assert 130 <= len(entry["shorts_script"]) <= 360
+    assert 130 <= len(entry["shorts_script"]) <= 300
 
 
 def test_build_entry_rotates_six_formats(tmp_path):
@@ -271,7 +272,7 @@ class _FakeYoutubeService:
         self.insert_media = None
 
     def channels(self): return self
-    def list(self, **kwargs): return _Exec({"items": [{"snippet": {"title": "운명과학TV"}}]})
+    def list(self, **kwargs): return _Exec({"items": [{"id": "UC_TEST_CHANNEL", "snippet": {"title": "운명과학TV"}}]})
     def videos(self): return self
     def insert(self, *, part, body, media_body):
         self.insert_body = body
@@ -372,9 +373,30 @@ def test_render_short_blocks_out_of_range_narration(tmp_path):
         Path(path).write_bytes(b"a" * 2048)
         return {"engine": "fake"}
 
-    with pytest.raises(ny.RenderBlocked, match="25-40"):
-        ny.render_short(item, bundle, tmp_path / "out.mp4", tts_synth=fake_tts, command_runner=lambda *a, **k: None, probe_fn=lambda p: 44.0)
+    with pytest.raises(ny.RenderBlocked, match="25-48"):
+        ny.render_short(item, bundle, tmp_path / "out.mp4", tts_synth=fake_tts, command_runner=lambda *a, **k: None, probe_fn=lambda p: 49.0)
 
+
+
+def test_render_short_allows_slightly_over_40_seconds(tmp_path):
+    Image = pytest.importorskip("PIL.Image")
+    bundle = tmp_path / "bundle"
+    (bundle / "assets").mkdir(parents=True)
+    Image.new("RGB", (100, 100), "white").save(bundle / "assets" / "001.jpg")
+    item = {**_intent_item(), "asset": "assets/001.jpg", "format": "conclusion", "naver_title": "2027 재물운", "summary_points": [], "shorts_script": "2027년 정미년 운세" * 20}
+    out = tmp_path / "out.mp4"
+    def fake_tts(text, path):
+        Path(path).write_bytes(b"a" * 2048)
+        return {"engine": "fake"}
+    class R:
+        returncode = 0
+        stderr = ""
+        stdout = ""
+    def fake_run(cmd, **kwargs):
+        Path(cmd[-1]).write_bytes(b"v" * 4096)
+        return R()
+    result = ny.render_short(item, bundle, out, tts_synth=fake_tts, command_runner=fake_run, probe_fn=lambda p: 44.7)
+    assert result["duration"] == 44.7
 
 def test_private_canary_uses_separate_youtube_canary_publish_key(tmp_path):
     service = _FakeYoutubeService()
@@ -446,6 +468,7 @@ def test_dispatch_live_invokes_only_new_workflow_inside_safe_window(tmp_path):
         status_path=tmp_path / "status.jsonl",
         repo="gsdo1004-cloud/sajufortune-cards",
         workflow="newyear-2027-fanout.yml",
+        dispatch_key="secret-key",
     )
     assert result["action"] == "dispatched"
     assert len(calls) == 1
@@ -487,7 +510,182 @@ def test_new_workflow_is_dispatch_only_and_platform_isolated():
     assert "newyear-2027-fanout-${{ inputs.date }}" in text
     assert "threads:" in text
     assert "youtube:" in text
-    assert "needs: threads" in text
+    assert "needs: gate" in text
+    assert "needs: [gate, threads]" in text
     assert "always()" in text
     assert "youtube_canary" in text
     assert "newyear_2027/receipts" in text
+
+
+def test_build_bundle_creates_deterministic_manifest_and_assets(tmp_path):
+    Image = pytest.importorskip("PIL.Image")
+    source = tmp_path / "source"
+    bundle = tmp_path / "bundle"
+    for idx in range(1, 7):
+        post, _ = _post(source, index=idx, slug=f"topic{idx}", publish_date=f"2026-10-{15+idx:02d}")
+        (post / "images").mkdir()
+        Image.new("RGB", (1600, 900), "white").save(post / "images" / "hero.png")
+    manifest = ny.build_bundle(source, bundle, expected_count=6)
+    assert manifest["schema"] == "newyear_2027/v1"
+    assert len(manifest["items"]) == 6
+    assert len({x["content_id"] for x in manifest["items"]}) == 6
+    assert len({x["publish_date"] for x in manifest["items"]}) == 6
+    assert [x["format"] for x in manifest["items"]] == list(ny.CONTENT_FORMATS)
+    assert all(len(x["threads_text"]) <= 500 for x in manifest["items"])
+    assert all("2027" in x["shorts_script"] for x in manifest["items"])
+    assert all((bundle / x["asset"]).is_file() for x in manifest["items"])
+    assert all(x.get("asset_sha256") for x in manifest["items"])
+    saved = json.loads((bundle / "content.json").read_text(encoding="utf-8"))
+    assert saved == manifest
+
+
+def test_build_bundle_rejects_wrong_count_and_duplicate_dates(tmp_path):
+    Image = pytest.importorskip("PIL.Image")
+    source = tmp_path / "source"
+    for idx in range(1, 3):
+        post, _ = _post(source, index=idx, slug=f"topic{idx}", publish_date="2026-10-16")
+        (post / "images").mkdir()
+        Image.new("RGB", (100, 100), "white").save(post / "images" / "hero.png")
+    with pytest.raises(ValueError, match="expected 3 posts"):
+        ny.build_bundle(source, tmp_path / "bundle_bad_count", expected_count=3)
+    with pytest.raises(ValueError, match="duplicate publish_date"):
+        ny.build_bundle(source, tmp_path / "bundle_dup", expected_count=2)
+
+
+def test_build_bundle_rejects_missing_hero(tmp_path):
+    source = tmp_path / "source"
+    _post(source, index=1, slug="topic1", publish_date="2026-10-16")
+    with pytest.raises(FileNotFoundError, match="hero"):
+        ny.build_bundle(source, tmp_path / "bundle", expected_count=1)
+
+
+
+def test_generated_copy_avoids_duplicate_2027_prefix_and_double_copula(tmp_path):
+    for idx in range(1, 7):
+        post, _ = _post(tmp_path, index=idx, slug=f"copy{idx}", publish_date=f"2026-11-{idx:02d}")
+        entry = ny.build_entry(post)
+        combined = entry["threads_text"] + "\n" + entry["shorts_script"]
+        assert not re.search(r"2027년\s+2027년", combined)
+        assert "입니다.’입니다" not in combined
+        assert "입니다.'입니다" not in combined
+
+
+def test_shorts_script_caps_long_source_copy_for_40s_margin():
+    bullets = [
+        "2027년 재물운은 돈이 생긴다 샌다보다 현금흐름과 계약 구조를 먼저 정리하는 해로 보는 것이 실용적입니다.",
+        "재성이 보여도 일간이 감당할 힘과 식상 관성의 연결 그리고 현재 대운의 방향까지 함께 확인해야 합니다.",
+        "가장 중요한 현실 점검은 고정비 부채 비상자금 계약 만기 세금 순서로 확인하는 것입니다.",
+    ]
+    article = "2027년 정미년은 원국과 대운, 재성, 일간의 힘을 함께 살펴야 실제 체감 흐름을 판단할 수 있습니다."
+    script = ny._shorts_script("conclusion", "2027년 재물운 총정리｜핵심", bullets, article)
+    assert 180 <= len(script) <= 300
+    assert "2027" in script
+    assert any(term in script for term in ("정미", "대운", "재성", "일간", "원국"))
+
+
+
+def test_dispatch_permit_binds_date_content_hash_and_naver_url():
+    item = _intent_item()
+    item["publish_date"] = "2026-10-16"
+    permit = ny.make_dispatch_permit("secret-key", item, "2026-10-16", "https://blog.naver.com/example/123")
+    assert ny.verify_dispatch_permit("secret-key", item, "2026-10-16", "https://blog.naver.com/example/123", permit)
+    assert not ny.verify_dispatch_permit("secret-key", item, "2026-10-17", "https://blog.naver.com/example/123", permit)
+    assert not ny.verify_dispatch_permit("secret-key", item, "2026-10-16", "https://blog.naver.com/example/999", permit)
+
+
+def test_dispatch_live_includes_signed_source_proof(tmp_path):
+    post, _ = _post(tmp_path / "sources")
+    item = ny.build_entry(post)
+    manifest_path = tmp_path / "content.json"
+    manifest_path.write_text(json.dumps({"items": [item]}, ensure_ascii=False), encoding="utf-8")
+    calls = []
+    class R:
+        returncode = 0
+        stdout = "queued"
+        stderr = ""
+    def fake_run(cmd, **kwargs):
+        calls.append(list(cmd)); return R()
+    result = ny.dispatch_daily(
+        date_iso="2026-10-16", manifest_path=manifest_path, source_root=post.parent,
+        send=True, now=ny.datetime.fromisoformat("2026-10-16T12:20:00+09:00"),
+        readiness_fn=lambda p: {"ready": True, "reasons": []}, command_runner=fake_run,
+        lock_path=tmp_path / "fanout.lock", status_path=tmp_path / "status.jsonl",
+        dispatch_key="secret-key",
+    )
+    assert result["action"] == "dispatched"
+    cmd = calls[0]
+    source_args = [x for x in cmd if x.startswith("source_url=")]
+    permit_args = [x for x in cmd if x.startswith("permit=")]
+    assert source_args and source_args[0].startswith("source_url=https://")
+    assert permit_args and len(permit_args[0].split("=",1)[1]) == 64
+
+
+def test_normal_youtube_state_skips_when_private_canary_already_published(tmp_path):
+    bundle = tmp_path / "bundle"
+    receipt = ny._receipt_path(bundle, "2026-10-16", "youtube_canary")
+    receipt.parent.mkdir(parents=True)
+    receipt.write_text(json.dumps({"status": "PUBLISHED", "remote_id": "private1"}), encoding="utf-8")
+    action = ny.receipt_state(bundle, "2026-10-16", "youtube", block_if_platform="youtube_canary")
+    assert action["action"] == "skip"
+    assert action["reason"] == "blocked_by_youtube_canary"
+
+
+def test_workflow_requires_signed_gate_before_platform_jobs():
+    text = (Path(__file__).resolve().parent / ".github" / "workflows" / "newyear-2027-fanout.yml").read_text(encoding="utf-8")
+    assert "permit:" in text
+    assert "source_url:" in text
+    assert "NEWYEAR_2027_DISPATCH_KEY" in text
+    assert "verify-permit" in text
+    assert "gate:" in text
+    assert "needs: gate" in text
+    assert "needs: [gate, threads]" in text
+    assert "--block-if-platform youtube_canary" in text
+
+
+
+def test_threads_fixed_user_id_mismatch_blocks_publish(tmp_path, monkeypatch):
+    api = _FakeThreadsApi()
+    monkeypatch.setenv("THREADS_ACCESS_TOKEN", "token")
+    monkeypatch.setenv("THREADS_USER_ID", "expected-other-id")
+    receipt = tmp_path / "threads.json"
+    item = _intent_item()
+    ny.prepare_intent(receipt, item=item, platform="threads", account="gsdo10042026")
+    with pytest.raises(RuntimeError, match="Threads user id mismatch"):
+        ny.publish_threads_text(item, receipt_path=receipt, account="gsdo10042026", api_module=api, sleep_fn=lambda _: None)
+    assert api.calls == []
+
+
+def test_private_canary_records_channel_identity(tmp_path):
+    service = _FakeYoutubeService()
+    video = tmp_path / "short.mp4"; video.write_bytes(b"video")
+    receipt = tmp_path / "youtube_canary.json"
+    item = _intent_item()
+    ny.prepare_intent(receipt, item=item, platform="youtube_canary", account="운명과학TV")
+    ny.publish_youtube_private_canary(
+        item, video, receipt_path=receipt, uploader_module=_FakePrivateUploaderModule,
+        youtube_builder=lambda *a, **k: service,
+        media_factory=lambda path, **kwargs: {"path": str(path), **kwargs},
+    )
+    data = json.loads(receipt.read_text(encoding="utf-8"))
+    assert data["channel_id"] == "UC_TEST_CHANNEL"
+    assert data["channel_title"] == "운명과학TV"
+
+
+
+def test_normal_youtube_fixed_channel_id_mismatch_blocks_before_upload(tmp_path, monkeypatch):
+    class Uploader(_FakeYoutubeUploader):
+        @staticmethod
+        def _credentials(): return object()
+    uploader = Uploader()
+    service = _FakeYoutubeService()
+    video = tmp_path / "short.mp4"; video.write_bytes(b"video")
+    receipt = tmp_path / "youtube.json"
+    item = _intent_item()
+    ny.prepare_intent(receipt, item=item, platform="youtube", account="운명과학TV")
+    monkeypatch.setenv("YOUTUBE_EXPECT_CHANNEL_ID", "UC_OTHER_CHANNEL")
+    with pytest.raises(RuntimeError, match="channel id mismatch"):
+        ny.publish_youtube(
+            item, video, receipt_path=receipt, publish_at="2026-10-16T13:00:00+09:00",
+            uploader_module=uploader, youtube_builder=lambda *a, **k: service,
+        )
+    assert uploader.calls == []

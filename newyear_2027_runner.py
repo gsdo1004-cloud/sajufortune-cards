@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import hmac
 import json
 import os
 import re
@@ -39,6 +40,45 @@ class PublicationBlocked(RuntimeError):
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def _dispatch_message(item: dict, date_iso: str, source_url: str) -> bytes:
+    fields = [
+        str(date_iso).strip(),
+        str(item.get("content_id") or "").strip(),
+        str(item.get("source_sha256") or "").strip(),
+        str(source_url).strip(),
+    ]
+    if not all(fields):
+        raise ValueError("dispatch permit fields are incomplete")
+    return "\n".join(fields).encode("utf-8")
+
+
+def make_dispatch_permit(key: str, item: dict, date_iso: str, source_url: str) -> str:
+    key = str(key or "").strip()
+    if len(key) < 8:
+        raise ValueError("dispatch key is missing or too short")
+    return hmac.new(key.encode("utf-8"), _dispatch_message(item, date_iso, source_url), hashlib.sha256).hexdigest()
+
+
+def verify_dispatch_permit(key: str, item: dict, date_iso: str, source_url: str, permit: str) -> bool:
+    try:
+        expected = make_dispatch_permit(key, item, date_iso, source_url)
+    except Exception:
+        return False
+    return hmac.compare_digest(expected, str(permit or "").strip())
+
+
+def _load_dispatch_key(*, value: str | None = None, path: Path | None = None) -> str:
+    key = str(value or os.environ.get("NEWYEAR_2027_DISPATCH_KEY", "")).strip()
+    if not key and path is not None:
+        try:
+            key = Path(path).read_text(encoding="utf-8").strip()
+        except FileNotFoundError:
+            key = ""
+    if len(key) < 8:
+        raise RuntimeError("NEWYEAR_2027_DISPATCH_KEY is unavailable")
+    return key
 
 
 def _sha256(path: Path) -> str:
@@ -92,11 +132,14 @@ def validate_naver_receipt(path: Path) -> dict:
     except Exception:
         return {"ok": False, "reason": "naver_receipt_corrupt"}
 
+    url = str(data.get("url") or "").strip()
+    valid_url = url.startswith("https://") and ("blog.naver.com/" in url or "m.blog.naver.com/" in url)
     checks = (
         (data.get("success") is True, "naver_success_not_true"),
         (data.get("status") == "PUBLISHED", f"naver_status_{data.get('status') or 'missing'}"),
         (data.get("rss_seen") is True, "naver_rss_not_confirmed"),
-        (bool(str(data.get("url") or "").strip()), "naver_url_missing"),
+        (bool(url), "naver_url_missing"),
+        (valid_url, "naver_url_invalid"),
         (data.get("category") == EXPECTED_NAVER_CATEGORY, "naver_category_mismatch"),
     )
     for passed, reason in checks:
@@ -105,7 +148,7 @@ def validate_naver_receipt(path: Path) -> dict:
     return {
         "ok": True,
         "reason": "published_confirmed",
-        "url": str(data["url"]).strip(),
+        "url": url,
         "published_at": data.get("published_at", ""),
     }
 
@@ -321,7 +364,8 @@ def _clip(text: str, limit: int) -> str:
 
 def _title_core(title: str) -> str:
     core = re.split(r"[｜|]", title, maxsplit=1)[0].strip()
-    return _clip(core or "2027년 신년운세", 46)
+    core = re.sub(r"^2027년\s+", "", core).strip()
+    return _clip(core or "신년운세", 46)
 
 
 def _threads_text(fmt: str, title: str, bullets: list[str]) -> str:
@@ -332,8 +376,9 @@ def _threads_text(fmt: str, title: str, bullets: list[str]) -> str:
 
     templates = {
         "conclusion": (
-            f"{core}, 결론부터 보면 ‘{b1}’입니다.\n"
-            "그런데 2027년은 결과보다 먼저 확인할 순서가 있습니다.\n\n"
+            f"2027년 {core}, 결론부터 보면 이렇습니다.\n"
+            f"{b1}\n"
+            "그런데 결과보다 먼저 확인할 순서가 있습니다.\n\n"
             f"핵심은 {b2}\n{b3}\n\n몇 년생/어떤 상황인지 댓글로 남기고, 연말에 다시 보려면 저장해 두세요."
         ),
         "checklist": (
@@ -342,8 +387,8 @@ def _threads_text(fmt: str, title: str, bullets: list[str]) -> str:
             f"① {b1}\n② {b2}\n③ {b3}\n\n지금 해당되는 항목을 댓글에 적어보고, 체크용으로 저장해 두세요."
         ),
         "myth_break": (
-            f"{core}, ‘운만 좋으면 된다’고 보면 놓칩니다.\n"
-            "2027년에는 같은 운도 준비 상태에 따라 결과가 달라집니다.\n\n"
+            f"2027년 {core}, ‘운만 좋으면 된다’고 보면 놓칩니다.\n"
+            "같은 운도 준비 상태에 따라 결과가 달라집니다.\n\n"
             f"먼저 볼 것: {b1}\n그다음: {b2}\n실행: {b3}\n\n공감되는 부분을 댓글로 남기고 저장해 두세요."
         ),
         "timing": (
@@ -374,16 +419,16 @@ def _threads_text(fmt: str, title: str, bullets: list[str]) -> str:
 
 def _shorts_script(fmt: str, title: str, bullets: list[str], article: str) -> str:
     core = _title_core(title)
-    b1 = _clip(bullets[0] if bullets else "결과보다 흐름과 준비 상태를 먼저 점검하세요", 72)
-    b2 = _clip(bullets[1] if len(bullets) > 1 else "원래 사주와 현재 대운을 함께 봐야 합니다", 72)
-    b3 = _clip(bullets[2] if len(bullets) > 2 else "지금 바꿀 수 있는 행동 한 가지부터 정리하세요", 64)
+    b1 = _clip(bullets[0] if bullets else "결과보다 흐름과 준비 상태를 먼저 점검하세요", 44)
+    b2 = _clip(bullets[1] if len(bullets) > 1 else "원래 사주와 현재 대운을 함께 봐야 합니다", 44)
+    b3 = _clip(bullets[2] if len(bullets) > 2 else "지금 바꿀 수 있는 행동 한 가지부터 정리하세요", 38)
     basis = "2027년 정미년은 같은 기운도 원국과 대운, 일간의 힘에 따라 체감이 달라집니다."
     # Prefer an explicit source sentence when it carries useful 명리 vocabulary.
     plain = _clean_markdown(article)
     candidates = [s.strip() for s in re.split(r"(?<=[.!?다요])\s+", plain)
                   if any(t in s for t in ("정미", "명리", "대운", "재성", "일간", "원국", "오행"))]
     if candidates:
-        basis = _clip(candidates[0], 88)
+        basis = _clip(candidates[0], 54)
 
     openers = {
         "conclusion": f"2027년 {core}, 결론부터 말씀드리겠습니다.",
@@ -404,7 +449,7 @@ def _shorts_script(fmt: str, title: str, bullets: list[str], article: str) -> st
     return (
         f"{openers[fmt]} {basis} "
         f"첫째, {b1} 둘째, {b2} 셋째, {b3} "
-        f"{closers[fmt]} 자세한 2027 운세는 저장해 두고 다음 편도 확인해 보세요."
+        f"{closers[fmt]} 2027 운세는 저장하고 다음 편도 확인하세요."
     )
 
 
@@ -482,6 +527,9 @@ def publish_threads_text(
     if not token:
         raise RuntimeError("THREADS_ACCESS_TOKEN is missing")
     uid = api_module._threads_uid(token)
+    configured_uid = os.environ.get("THREADS_USER_ID", "").strip()
+    if configured_uid and configured_uid != str(uid):
+        raise RuntimeError(f"Threads user id mismatch: expected {configured_uid}, got {uid}")
     base = f"https://graph.threads.net/v1.0/{uid}"
     created = api_module._post(
         f"{base}/threads",
@@ -509,6 +557,7 @@ def publish_youtube(
     receipt_path: Path,
     publish_at: str,
     uploader_module=None,
+    youtube_builder=None,
 ) -> str:
     """Use the existing channel-locking YouTube uploader for normal publication."""
     account = "운명과학TV"
@@ -518,6 +567,25 @@ def publish_youtube(
         raise FileNotFoundError(video)
     if uploader_module is None:
         import youtube_upload as uploader_module
+    expected_channel_id = os.environ.get("YOUTUBE_EXPECT_CHANNEL_ID", "").strip()
+    if expected_channel_id:
+        creds = uploader_module._credentials()
+        if not creds:
+            raise RuntimeError("YouTube credentials are unavailable")
+        if youtube_builder is None:
+            from googleapiclient.discovery import build as youtube_builder
+        youtube = youtube_builder("youtube", "v3", credentials=creds)
+        me = youtube.channels().list(part="snippet", mine=True).execute()
+        items = me.get("items") or []
+        if not items:
+            raise RuntimeError("YouTube channel lookup returned no channel")
+        actual_id = str(items[0].get("id") or "").strip()
+        actual_title = str(items[0].get("snippet", {}).get("title") or "").strip()
+        expected_title = str(getattr(uploader_module, "EXPECT_CHANNEL_TITLE", account) or account).strip()
+        if expected_title and actual_title != expected_title:
+            raise RuntimeError(f"YouTube channel mismatch: expected {expected_title}, got {actual_title or 'unknown'}")
+        if actual_id != expected_channel_id:
+            raise RuntimeError(f"YouTube channel id mismatch: expected {expected_channel_id}, got {actual_id or 'unknown'}")
     remote_id = uploader_module.upload(
         video=video,
         title=str(item.get("youtube_title") or "2027년 신년운세"),
@@ -563,10 +631,14 @@ def publish_youtube_private_canary(
     items = me.get("items") or []
     if not items:
         raise RuntimeError("YouTube channel lookup returned no channel")
+    actual_channel_id = str(items[0].get("id") or "").strip()
     actual_title = str(items[0].get("snippet", {}).get("title") or "").strip()
     expected_title = str(getattr(uploader_module, "EXPECT_CHANNEL_TITLE", account) or account).strip()
+    expected_channel_id = os.environ.get("YOUTUBE_EXPECT_CHANNEL_ID", "").strip()
     if expected_title and actual_title != expected_title:
         raise RuntimeError(f"YouTube channel mismatch: expected {expected_title}, got {actual_title or 'unknown'}")
+    if expected_channel_id and actual_channel_id != expected_channel_id:
+        raise RuntimeError(f"YouTube channel id mismatch: expected {expected_channel_id}, got {actual_channel_id or 'unknown'}")
 
     body = {
         "snippet": {
@@ -589,7 +661,16 @@ def publish_youtube_private_canary(
     remote_id = response.get("id") if isinstance(response, dict) else None
     if not remote_id:
         raise RuntimeError("YouTube private canary returned no video id")
-    finalize_receipt(receipt_path, remote_id=str(remote_id), extra={"private_canary": True, "publish_at": None})
+    finalize_receipt(
+        receipt_path,
+        remote_id=str(remote_id),
+        extra={
+            "private_canary": True,
+            "publish_at": None,
+            "channel_id": actual_channel_id,
+            "channel_title": actual_title,
+        },
+    )
     return str(remote_id)
 
 
@@ -597,12 +678,12 @@ def _synthesize_free(text: str, out_mp3: Path) -> dict:
     """Free-first TTS: local Supertonic, then free Edge. Never Typecast."""
     try:
         import tts_supertonic
-        if tts_supertonic.synth(text, out_mp3, speed=1.16):
+        if tts_supertonic.synth(text, out_mp3, speed=1.30):
             return {"engine": "supertonic", "voice": getattr(tts_supertonic, "VOICE", "M2")}
     except Exception:
         pass
     import typecast_tts
-    typecast_tts.synth_edge(text, out_mp3, tempo=1.10)
+    typecast_tts.synth_edge(text, out_mp3, tempo=1.25)
     return {"engine": "edge", "voice": typecast_tts.EDGE_VOICE}
 
 
@@ -707,7 +788,7 @@ def render_short(
     command_runner=None,
     probe_fn=None,
 ) -> dict:
-    """Render an isolated three-scene vertical Short and enforce 25–40 seconds."""
+    """Render an isolated three-scene vertical Short and enforce 25–48 seconds."""
     bundle_root = Path(bundle_root)
     out_path = Path(out_path)
     asset = _safe_child(bundle_root, str(item.get("asset") or ""))
@@ -728,8 +809,8 @@ def render_short(
         if not audio.is_file() or audio.stat().st_size < 1000:
             raise RenderBlocked("TTS output missing or too small")
         narration_duration = float(probe_fn(audio))
-        if not 25.0 <= narration_duration <= 40.0:
-            raise RenderBlocked(f"Short narration must be 25-40 seconds, got {narration_duration:.2f}")
+        if not 25.0 <= narration_duration <= 48.0:
+            raise RenderBlocked(f"Short narration must be 25-48 seconds, got {narration_duration:.2f}")
 
         captions = _visual_captions(item)
         scenes: list[Path] = []
@@ -759,8 +840,8 @@ def render_short(
         if not out_path.is_file() or out_path.stat().st_size < 1000:
             raise RenderBlocked("rendered video missing or too small")
         final_duration = float(probe_fn(out_path))
-        if not 25.0 <= final_duration <= 40.0:
-            raise RenderBlocked(f"rendered Short must be 25-40 seconds, got {final_duration:.2f}")
+        if not 25.0 <= final_duration <= 48.0:
+            raise RenderBlocked(f"rendered Short must be 25-48 seconds, got {final_duration:.2f}")
         return {
             "path": str(out_path),
             "duration": final_duration,
@@ -790,6 +871,19 @@ def _receipt_action(path: Path) -> str:
     if status == "PUBLISHED":
         return "skip"
     return "hold"
+
+
+def receipt_state(bundle_root: Path, date_iso: str, platform: str, *, block_if_platform: str | None = None) -> dict:
+    primary = _receipt_action(_receipt_path(bundle_root, date_iso, platform))
+    if primary != "continue":
+        return {"action": primary, "reason": f"{platform}_receipt_{primary}"}
+    if block_if_platform:
+        blocker = _receipt_action(_receipt_path(bundle_root, date_iso, block_if_platform))
+        if blocker == "skip":
+            return {"action": "skip", "reason": f"blocked_by_{block_if_platform}"}
+        if blocker == "hold":
+            return {"action": "hold", "reason": f"unresolved_{block_if_platform}"}
+    return {"action": "continue", "reason": "no_receipt"}
 
 
 def _append_status(path: Path | None, payload: dict) -> None:
@@ -833,6 +927,8 @@ def dispatch_daily(
     repo: str = "gsdo1004-cloud/sajufortune-cards",
     workflow: str = "newyear-2027-fanout.yml",
     mode: str = "normal",
+    dispatch_key: str | None = None,
+    dispatch_key_path: Path | None = None,
 ) -> dict:
     """Gate locally, then dispatch only the independent 2027 GitHub workflow."""
     command_runner = command_runner or subprocess.run
@@ -861,14 +957,28 @@ def dispatch_daily(
                 result = {"action": "dry_run", "reason": "source_gate_passed", "date": date_iso, "content_id": item["content_id"]}
                 _append_status(status_path, result)
                 return result
-            if now_kst.date().isoformat() != date_iso or not (dt_time(11, 0) <= now_kst.time().replace(tzinfo=None) <= dt_time(14, 0)):
+            local_time = now_kst.time().replace(tzinfo=None)
+            same_day = now_kst.date().isoformat() == date_iso
+            public_window = dt_time(11, 0) <= local_time <= dt_time(14, 0)
+            private_canary_window = dt_time(8, 0) <= local_time <= dt_time(19, 0)
+            allowed = same_day and (private_canary_window if mode == "youtube_private_canary" else public_window)
+            if not allowed:
                 result = {"action": "hold", "reason": "outside_safe_dispatch_window", "date": date_iso}
                 _append_status(status_path, result)
                 return result
+            try:
+                key = _load_dispatch_key(value=dispatch_key, path=dispatch_key_path)
+            except Exception:
+                result = {"action": "hold", "reason": "dispatch_key_unavailable", "date": date_iso}
+                _append_status(status_path, result)
+                return result
+            source_url = str(gate.get("naver_url") or "").strip()
+            permit = make_dispatch_permit(key, item, date_iso, source_url)
             cmd = [
                 "gh", "workflow", "run", workflow,
                 "--repo", repo, "--ref", "main",
                 "-f", f"date={date_iso}", "-f", "send=true", "-f", f"mode={mode}",
+                "-f", f"source_url={source_url}", "-f", f"permit={permit}",
             ]
             proc = command_runner(cmd, capture_output=True, text=True, timeout=60, check=False)
             if getattr(proc, "returncode", 1) != 0:
@@ -903,10 +1013,21 @@ def _emit_output(path: str | None, **values) -> None:
 
 
 def _cmd_state(args) -> int:
-    receipt = _receipt_path(Path(args.bundle_root), args.date, args.platform)
-    action = _receipt_action(receipt)
-    print(json.dumps({"action": action, "receipt": str(receipt)}, ensure_ascii=False))
-    _emit_output(args.github_output, action=action, receipt=str(receipt))
+    bundle = Path(args.bundle_root)
+    receipt = _receipt_path(bundle, args.date, args.platform)
+    state = receipt_state(bundle, args.date, args.platform, block_if_platform=args.block_if_platform)
+    print(json.dumps({**state, "receipt": str(receipt)}, ensure_ascii=False))
+    _emit_output(args.github_output, action=state["action"], reason=state["reason"], receipt=str(receipt))
+    return 0
+
+
+def _cmd_verify_permit(args) -> int:
+    item = _workflow_item(Path(args.bundle_root), args.date)
+    key = _load_dispatch_key()
+    ok = verify_dispatch_permit(key, item, args.date, args.source_url, args.permit)
+    if not ok:
+        raise PublicationBlocked("dispatch permit verification failed")
+    print(json.dumps({"ok": True, "content_id": item["content_id"], "date": args.date}, ensure_ascii=False))
     return 0
 
 
@@ -960,6 +1081,75 @@ def _cmd_publish_youtube(args) -> int:
     return 0
 
 
+
+def build_bundle(source_root: Path, bundle_root: Path, *, expected_count: int = 60) -> dict:
+    """Prebuild the LLM-free 2027 Threads/Shorts manifest and source visuals."""
+    from PIL import Image, ImageOps
+
+    source_root = Path(source_root)
+    bundle_root = Path(bundle_root)
+    posts = [
+        p for p in source_root.iterdir()
+        if p.is_dir() and re.fullmatch(r"\d{2}_.+", p.name)
+    ]
+    posts.sort(key=lambda p: int(p.name.split("_", 1)[0]))
+    if len(posts) != expected_count:
+        raise ValueError(f"expected {expected_count} posts, found {len(posts)}")
+
+    prepared: list[tuple[dict, Path]] = []
+    seen_dates: set[str] = set()
+    seen_ids: set[str] = set()
+    for post_dir in posts:
+        entry = build_entry(post_dir)
+        date_iso = str(entry.get("publish_date") or "")
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_iso):
+            raise ValueError(f"invalid publish_date: {post_dir.name}: {date_iso!r}")
+        if date_iso in seen_dates:
+            raise ValueError(f"duplicate publish_date: {date_iso}")
+        if entry["content_id"] in seen_ids:
+            raise ValueError(f"duplicate content_id: {entry['content_id']}")
+        hero = post_dir / "images" / "hero.png"
+        if not hero.is_file():
+            raise FileNotFoundError(f"hero image missing: {hero}")
+        if len(entry.get("threads_text", "")) > 500:
+            raise ValueError(f"Threads copy exceeds 500 chars: {entry['content_id']}")
+        if "2027" not in entry.get("shorts_script", ""):
+            raise ValueError(f"Shorts script lost 2027 grounding: {entry['content_id']}")
+        seen_dates.add(date_iso)
+        seen_ids.add(entry["content_id"])
+        prepared.append((entry, hero))
+
+    assets_dir = bundle_root / "assets"
+    assets_dir.mkdir(parents=True, exist_ok=True)
+    items: list[dict] = []
+    for entry, hero in prepared:
+        target = bundle_root / entry["asset"]
+        target.parent.mkdir(parents=True, exist_ok=True)
+        tmp = target.with_name(f".{target.name}.{uuid.uuid4().hex}.tmp")
+        with Image.open(hero) as image:
+            image = ImageOps.exif_transpose(image).convert("RGB")
+            image.thumbnail((1280, 1280), Image.Resampling.LANCZOS)
+            image.save(tmp, format="JPEG", quality=88, optimize=True, progressive=True)
+        os.replace(tmp, target)
+        current = dict(entry)
+        current["asset_sha256"] = _sha256(target)
+        current["asset_bytes"] = target.stat().st_size
+        items.append(current)
+
+    manifest = {
+        "schema": "newyear_2027/v1",
+        "count": len(items),
+        "items": items,
+    }
+    _atomic_json_write(bundle_root / "content.json", manifest)
+    return manifest
+
+
+def _cmd_build_bundle(args) -> int:
+    manifest = build_bundle(Path(args.source_root), Path(args.bundle_root), expected_count=args.expected_count)
+    print(json.dumps({"schema": manifest["schema"], "count": manifest["count"]}, ensure_ascii=False))
+    return 0
+
 def _cmd_dispatch(args) -> int:
     result = dispatch_daily(
         date_iso=args.date,
@@ -971,6 +1161,7 @@ def _cmd_dispatch(args) -> int:
         repo=args.repo,
         workflow=args.workflow,
         mode=args.mode,
+        dispatch_key_path=Path(args.dispatch_key_file) if args.dispatch_key_file else None,
     )
     print(json.dumps(result, ensure_ascii=False))
     return 0 if result["action"] in {"dry_run", "dispatched", "hold"} else 1
@@ -984,8 +1175,16 @@ def main(argv: list[str] | None = None) -> int:
     state.add_argument("--date", required=True)
     state.add_argument("--platform", required=True)
     state.add_argument("--bundle-root", default="newyear_2027")
+    state.add_argument("--block-if-platform")
     state.add_argument("--github-output")
     state.set_defaults(func=_cmd_state)
+
+    verify = sub.add_parser("verify-permit")
+    verify.add_argument("--date", required=True)
+    verify.add_argument("--source-url", required=True)
+    verify.add_argument("--permit", required=True)
+    verify.add_argument("--bundle-root", default="newyear_2027")
+    verify.set_defaults(func=_cmd_verify_permit)
 
     intent = sub.add_parser("intent")
     intent.add_argument("--date", required=True)
@@ -1016,6 +1215,12 @@ def main(argv: list[str] | None = None) -> int:
     youtube.add_argument("--canary", action="store_true")
     youtube.set_defaults(func=_cmd_publish_youtube)
 
+    bundle = sub.add_parser("build-bundle")
+    bundle.add_argument("--source-root", required=True)
+    bundle.add_argument("--bundle-root", default="newyear_2027")
+    bundle.add_argument("--expected-count", type=int, default=60)
+    bundle.set_defaults(func=_cmd_build_bundle)
+
     dispatch = sub.add_parser("dispatch")
     dispatch.add_argument("--date", required=True)
     dispatch.add_argument("--manifest", required=True)
@@ -1025,6 +1230,7 @@ def main(argv: list[str] | None = None) -> int:
     dispatch.add_argument("--status", default=r"D:\automation_control\state\newyear_2027_fanout_status.jsonl")
     dispatch.add_argument("--repo", default="gsdo1004-cloud/sajufortune-cards")
     dispatch.add_argument("--workflow", default="newyear-2027-fanout.yml")
+    dispatch.add_argument("--dispatch-key-file")
     dispatch.add_argument("--mode", default="normal", choices=["normal", "threads_canary", "youtube_private_canary"])
     dispatch.set_defaults(func=_cmd_dispatch)
 
