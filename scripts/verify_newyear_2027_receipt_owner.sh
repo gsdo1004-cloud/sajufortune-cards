@@ -7,7 +7,8 @@ case "$RECEIPT" in
   *) echo "[FAIL] invalid receipt path: $RECEIPT" >&2; exit 2 ;;
 esac
 
-ROOT="$(git rev-parse --show-toplevel)"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOCAL="$ROOT/$RECEIPT"
 [ -f "$LOCAL" ] || { echo "[FAIL] local receipt missing: $LOCAL" >&2; exit 3; }
 TMP="$(mktemp "${RUNNER_TEMP:-/tmp}/ny2027-owner.XXXXXX.json")"

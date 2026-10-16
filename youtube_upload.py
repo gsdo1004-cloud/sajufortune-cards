@@ -98,7 +98,7 @@ def _next_slot(publish_at: str | None, slot_hours: list[int]) -> str:
 
 def upload(video: Path, title: str, description: str, tags: list[str],
            publish_at: str | None, slot_hours: list[int],
-           thumbnail: Path | None = None) -> str | None:
+           thumbnail: Path | None = None, authorization_guard=None) -> str | None:
     from googleapiclient.discovery import build
     from googleapiclient.http import MediaFileUpload
 
@@ -142,6 +142,8 @@ def upload(video: Path, title: str, description: str, tags: list[str],
     req = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
     resp = None
     while resp is None:
+        if authorization_guard is not None:
+            authorization_guard("before_chunk")
         status, resp = req.next_chunk()
         if status:
             print(f"  업로드 {int(status.progress() * 100)}%")

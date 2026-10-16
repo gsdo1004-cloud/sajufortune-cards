@@ -183,6 +183,38 @@ def validate_dispatch_authorization(
     return {"ok": True, "reason": "authorized"}
 
 
+def runtime_authorization_guard(
+    item: dict,
+    date_iso: str,
+    mode: str,
+    *,
+    now_fn: Callable[[], datetime] | None = None,
+) -> Callable[[str], None]:
+    """Revalidate the signed permit at each remote side-effect boundary."""
+    key = _load_dispatch_key()
+    source_url = os.environ.get("SOURCE_URL_INPUT", "").strip()
+    expires_at = os.environ.get("EXPIRES_AT_INPUT", "").strip()
+    payload_sha256 = os.environ.get("PAYLOAD_SHA256_INPUT", "").strip()
+    commit_sha = os.environ.get("COMMIT_SHA_INPUT", "").strip()
+    permit = os.environ.get("DISPATCH_PERMIT_INPUT", "").strip()
+    env_mode = os.environ.get("AUTH_MODE", "").strip()
+    if env_mode != str(mode).strip():
+        raise PublicationBlocked(f"runtime authorization mode mismatch: expected {mode}, got {env_mode or 'missing'}")
+    now_fn = now_fn or (lambda: datetime.now(timezone.utc))
+
+    def guard(stage: str) -> None:
+        result = validate_dispatch_authorization(
+            key, item, date_iso, source_url, mode, expires_at,
+            payload_sha256, commit_sha, permit, now=now_fn(),
+        )
+        if not result.get("ok"):
+            raise PublicationBlocked(
+                f"runtime authorization failed at {stage}: {result.get('reason', 'unknown')}"
+            )
+
+    return guard
+
+
 def _current_git_sha() -> str:
     proc = subprocess.run(
         ["git", "rev-parse", "HEAD"],
@@ -736,6 +768,7 @@ def publish_threads_text(
     account: str = "gsdo10042026",
     api_module=None,
     sleep_fn=time.sleep,
+    authorization_guard: Callable[[str], None] | None = None,
 ) -> str:
     """Publish one text-only Threads post after a durable intent exists."""
     _require_intent(receipt_path, item=item, platform="threads", account=account)
@@ -750,6 +783,8 @@ def publish_threads_text(
     if configured_uid and configured_uid != str(uid):
         raise RuntimeError(f"Threads user id mismatch: expected {configured_uid}, got {uid}")
     base = f"https://graph.threads.net/v1.0/{uid}"
+    if authorization_guard is not None:
+        authorization_guard("before_create")
     created = api_module._post(
         f"{base}/threads",
         {"media_type": "TEXT", "text": str(item.get("threads_text") or ""), "access_token": token},
@@ -758,6 +793,8 @@ def publish_threads_text(
     if not creation_id:
         raise RuntimeError(f"Threads container creation failed: {created}")
     sleep_fn(2)
+    if authorization_guard is not None:
+        authorization_guard("before_publish")
     published = api_module._post(
         f"{base}/threads_publish",
         {"creation_id": creation_id, "access_token": token},
@@ -777,6 +814,7 @@ def publish_youtube(
     publish_at: str,
     uploader_module=None,
     youtube_builder=None,
+    authorization_guard: Callable[[str], None] | None = None,
 ) -> str:
     """Use the existing channel-locking YouTube uploader for normal publication."""
     account = "운명과학TV"
@@ -805,6 +843,8 @@ def publish_youtube(
             raise RuntimeError(f"YouTube channel mismatch: expected {expected_title}, got {actual_title or 'unknown'}")
         if actual_id != expected_channel_id:
             raise RuntimeError(f"YouTube channel id mismatch: expected {expected_channel_id}, got {actual_id or 'unknown'}")
+    if authorization_guard is not None:
+        authorization_guard("before_upload")
     remote_id = uploader_module.upload(
         video=video,
         title=str(item.get("youtube_title") or "2027년 신년운세"),
@@ -813,6 +853,7 @@ def publish_youtube(
         publish_at=publish_at,
         slot_hours=[13],
         thumbnail=None,
+        authorization_guard=authorization_guard,
     )
     if not remote_id:
         raise RuntimeError("YouTube upload returned no video id")
@@ -828,6 +869,7 @@ def publish_youtube_private_canary(
     uploader_module=None,
     youtube_builder=None,
     media_factory=None,
+    authorization_guard: Callable[[str], None] | None = None,
 ) -> str:
     """Upload a true private canary: privacy=private and no publishAt field."""
     account = "운명과학TV"
@@ -873,9 +915,13 @@ def publish_youtube_private_canary(
         },
     }
     media = media_factory(str(video), mimetype="video/mp4", chunksize=-1, resumable=True)
+    if authorization_guard is not None:
+        authorization_guard("before_insert")
     req = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
     response = None
     while response is None:
+        if authorization_guard is not None:
+            authorization_guard("before_chunk")
         _status, response = req.next_chunk()
     remote_id = response.get("id") if isinstance(response, dict) else None
     if not remote_id:
@@ -1340,7 +1386,11 @@ def _cmd_publish_threads(args) -> int:
     bundle = Path(args.bundle_root)
     item = _workflow_item(bundle, args.date)
     receipt = _receipt_path(bundle, args.date, "threads")
-    print(publish_threads_text(item, receipt_path=receipt, account=args.account))
+    mode = os.environ.get("AUTH_MODE", "").strip()
+    guard = runtime_authorization_guard(item, args.date, mode)
+    print(publish_threads_text(
+        item, receipt_path=receipt, account=args.account, authorization_guard=guard
+    ))
     return 0
 
 
@@ -1349,12 +1399,22 @@ def _cmd_publish_youtube(args) -> int:
     item = _workflow_item(bundle, args.date)
     video = Path(args.video or (bundle / "rendered" / f"{args.date}.mp4"))
     item["output_sha256"] = _sha256(video)
+    mode = os.environ.get("AUTH_MODE", "").strip()
+    guard = runtime_authorization_guard(item, args.date, mode)
     if args.canary:
+        if mode != "youtube_private_canary":
+            raise PublicationBlocked("private canary requires youtube_private_canary authorization")
         receipt = _receipt_path(bundle, args.date, "youtube_canary")
-        remote = publish_youtube_private_canary(item, video, receipt_path=receipt)
+        remote = publish_youtube_private_canary(
+            item, video, receipt_path=receipt, authorization_guard=guard
+        )
     else:
+        if mode != "normal":
+            raise PublicationBlocked("normal YouTube publish requires normal authorization")
         receipt = _receipt_path(bundle, args.date, "youtube")
-        remote = publish_youtube(item, video, receipt_path=receipt, publish_at=args.publish_at)
+        remote = publish_youtube(
+            item, video, receipt_path=receipt, publish_at=args.publish_at, authorization_guard=guard
+        )
     print(remote)
     return 0
 

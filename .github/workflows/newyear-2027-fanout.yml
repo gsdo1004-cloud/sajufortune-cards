@@ -149,6 +149,7 @@ jobs:
       - name: Threads 발행
         if: ${{ steps.threads_intent.outputs.action == 'publish' }}
         env:
+          NEWYEAR_2027_DISPATCH_KEY: ${{ secrets.NEWYEAR_2027_DISPATCH_KEY }}
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
           THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
           THREADS_EXPECTED_USERNAME: gsdo10042026
@@ -248,6 +249,7 @@ jobs:
       - name: YouTube 정상 예약발행
         if: ${{ steps.youtube_intent.outputs.action == 'publish' && inputs.mode == 'normal' }}
         env:
+          NEWYEAR_2027_DISPATCH_KEY: ${{ secrets.NEWYEAR_2027_DISPATCH_KEY }}
           YOUTUBE_TOKEN_UNMYEONG: ${{ secrets.YOUTUBE_TOKEN_UNMYEONG }}
           YOUTUBE_CLIENT_SECRETS: ${{ secrets.YOUTUBE_CLIENT_SECRETS }}
           YOUTUBE_EXPECT_CHANNEL: 운명과학TV
@@ -256,6 +258,7 @@ jobs:
       - name: YouTube 진짜 비공개 canary (자동 승격 없음)
         if: ${{ steps.youtube_intent.outputs.action == 'publish' && inputs.mode == 'youtube_private_canary' }}
         env:
+          NEWYEAR_2027_DISPATCH_KEY: ${{ secrets.NEWYEAR_2027_DISPATCH_KEY }}
           YOUTUBE_TOKEN_UNMYEONG: ${{ secrets.YOUTUBE_TOKEN_UNMYEONG }}
           YOUTUBE_CLIENT_SECRETS: ${{ secrets.YOUTUBE_CLIENT_SECRETS }}
           YOUTUBE_EXPECT_CHANNEL: 운명과학TV

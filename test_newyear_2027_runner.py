@@ -758,7 +758,7 @@ def test_workflow_receipt_persistence_isolated_from_verified_execution_tree():
     helper = (root / "scripts" / "persist_newyear_2027_receipt.sh").read_text(encoding="utf-8")
     assert "persist_newyear_2027_receipt.sh" in workflow
     assert "worktree add" in helper
-    assert "safe_git_push.sh main" in helper
+    assert 'bash "$ROOT/scripts/safe_git_push.sh" main' in helper
     assert "safe_git_push.sh main" not in workflow
 
 
@@ -923,3 +923,214 @@ def test_source_gate_binds_naver_receipt_to_same_article_version(tmp_path):
     result = ny.source_gate(item, tmp_path, readiness_fn=lambda p: {"ready": True, "reasons": []})
     assert result["ok"] is False
     assert result["reason"] == "naver_receipt_publish_date_mismatch"
+
+
+def test_threads_revalidates_authorization_immediately_before_publication(tmp_path, monkeypatch):
+    api = _FakeThreadsApi()
+    monkeypatch.setenv("THREADS_ACCESS_TOKEN", "token")
+    receipt = tmp_path / "threads.json"
+    item = _intent_item()
+    ny.prepare_intent(receipt, item=item, platform="threads", account="gsdo10042026")
+    checks = []
+
+    def guard(stage):
+        checks.append(stage)
+        if stage == "before_publish":
+            raise ny.PublicationBlocked("authorization expired at publish boundary")
+
+    with pytest.raises(ny.PublicationBlocked, match="publish boundary"):
+        ny.publish_threads_text(
+            item, receipt_path=receipt, account="gsdo10042026",
+            api_module=api, sleep_fn=lambda _: None, authorization_guard=guard,
+        )
+    assert checks == ["before_create", "before_publish"]
+    assert len(api.calls) == 1
+    assert api.calls[0][0].endswith("/threads")
+    assert not any(url.endswith("/threads_publish") for url, _ in api.calls)
+
+
+def test_normal_youtube_revalidates_authorization_immediately_before_upload(tmp_path):
+    uploader = _FakeYoutubeUploader()
+    video = tmp_path / "short.mp4"; video.write_bytes(b"video")
+    receipt = tmp_path / "youtube.json"
+    item = _intent_item()
+    ny.prepare_intent(receipt, item=item, platform="youtube", account="운명과학TV")
+    checks = []
+
+    def guard(stage):
+        checks.append(stage)
+        raise ny.PublicationBlocked("authorization expired before upload")
+
+    with pytest.raises(ny.PublicationBlocked, match="before upload"):
+        ny.publish_youtube(
+            item, video, receipt_path=receipt,
+            publish_at="2026-10-16T15:30:00+09:00",
+            uploader_module=uploader, authorization_guard=guard,
+        )
+    assert checks == ["before_upload"]
+    assert uploader.calls == []
+
+
+def test_private_canary_revalidates_authorization_immediately_before_insert(tmp_path):
+    service = _FakeYoutubeService()
+    video = tmp_path / "short.mp4"; video.write_bytes(b"video")
+    receipt = tmp_path / "youtube_canary.json"
+    item = _intent_item()
+    ny.prepare_intent(receipt, item=item, platform="youtube_canary", account="운명과학TV")
+    checks = []
+
+    def guard(stage):
+        checks.append(stage)
+        raise ny.PublicationBlocked("authorization expired before insert")
+
+    with pytest.raises(ny.PublicationBlocked, match="before insert"):
+        ny.publish_youtube_private_canary(
+            item, video, receipt_path=receipt, uploader_module=_FakePrivateUploaderModule,
+            youtube_builder=lambda *a, **k: service,
+            media_factory=lambda path, **kwargs: {"path": str(path), **kwargs},
+            authorization_guard=guard,
+        )
+    assert checks == ["before_insert"]
+    assert service.insert_body is None
+
+
+def test_runtime_authorization_guard_rechecks_signed_expiry_each_call(monkeypatch):
+    item = _intent_item(); item["publish_date"] = "2026-10-16"
+    url = "https://blog.naver.com/example/123"
+    expires = "2026-10-16T04:00:00+00:00"
+    payload = ny.publication_payload_sha256(item)
+    commit = "a" * 40
+    permit = ny.make_dispatch_permit("secret-key", item, "2026-10-16", url, "normal", expires, payload, commit)
+    monkeypatch.setenv("NEWYEAR_2027_DISPATCH_KEY", "secret-key")
+    monkeypatch.setenv("SOURCE_URL_INPUT", url)
+    monkeypatch.setenv("EXPIRES_AT_INPUT", expires)
+    monkeypatch.setenv("PAYLOAD_SHA256_INPUT", payload)
+    monkeypatch.setenv("COMMIT_SHA_INPUT", commit)
+    monkeypatch.setenv("DISPATCH_PERMIT_INPUT", permit)
+    monkeypatch.setenv("AUTH_MODE", "normal")
+    moments = iter([
+        ny.datetime.fromisoformat("2026-10-16T03:30:00+00:00"),
+        ny.datetime.fromisoformat("2026-10-16T04:01:00+00:00"),
+    ])
+    guard = ny.runtime_authorization_guard(item, "2026-10-16", "normal", now_fn=lambda: next(moments))
+    guard("first")
+    with pytest.raises(ny.PublicationBlocked, match="permit_expired"):
+        guard("second")
+
+
+def test_workflow_passes_signed_authorization_to_platform_publish_steps():
+    text = (Path(__file__).resolve().parent / ".github" / "workflows" / "newyear-2027-fanout.yml").read_text(encoding="utf-8")
+    assert text.count("NEWYEAR_2027_DISPATCH_KEY: ${{ secrets.NEWYEAR_2027_DISPATCH_KEY }}") >= 7
+    assert "SOURCE_URL_INPUT: ${{ inputs.source_url }}" in text
+    assert "EXPIRES_AT_INPUT: ${{ inputs.expires_at }}" in text
+    assert "DISPATCH_PERMIT_INPUT: ${{ inputs.permit }}" in text
+    assert "PAYLOAD_SHA256_INPUT: ${{ inputs.payload_sha256 }}" in text
+    assert "COMMIT_SHA_INPUT: ${{ inputs.commit_sha }}" in text
+    assert "AUTH_MODE: ${{ inputs.mode }}" in text
+
+
+def test_private_canary_revalidates_before_every_resumable_chunk(tmp_path):
+    class MultiChunkReq:
+        def __init__(self): self.calls = 0
+        def next_chunk(self):
+            self.calls += 1
+            if self.calls == 1:
+                return object(), None
+            return None, {"id": "yt_private_456"}
+
+    class MultiChunkService(_FakeYoutubeService):
+        def __init__(self):
+            super().__init__()
+            self.req = MultiChunkReq()
+        def insert(self, *, part, body, media_body):
+            self.insert_body = body
+            self.insert_media = media_body
+            return self.req
+
+    service = MultiChunkService()
+    video = tmp_path / "short.mp4"; video.write_bytes(b"video")
+    receipt = tmp_path / "youtube_canary.json"
+    item = _intent_item()
+    ny.prepare_intent(receipt, item=item, platform="youtube_canary", account="운명과학TV")
+    checks = []
+
+    def guard(stage):
+        checks.append(stage)
+        chunk_checks = sum(1 for x in checks if x == "before_chunk")
+        if stage == "before_chunk" and chunk_checks == 2:
+            raise ny.PublicationBlocked("authorization expired before second chunk")
+
+    with pytest.raises(ny.PublicationBlocked, match="second chunk"):
+        ny.publish_youtube_private_canary(
+            item, video, receipt_path=receipt, uploader_module=_FakePrivateUploaderModule,
+            youtube_builder=lambda *a, **k: service,
+            media_factory=lambda path, **kwargs: {"path": str(path), **kwargs},
+            authorization_guard=guard,
+        )
+    assert checks == ["before_insert", "before_chunk", "before_chunk"]
+    assert service.req.calls == 1
+    assert json.loads(receipt.read_text(encoding="utf-8"))["status"] == "PUBLISHING"
+
+
+def test_existing_youtube_uploader_revalidates_before_each_chunk(tmp_path, monkeypatch):
+    import sys
+    import types
+    import youtube_upload as yu
+
+    class MultiReq:
+        def __init__(self): self.calls = 0
+        def next_chunk(self):
+            self.calls += 1
+            if self.calls == 1:
+                class Status:
+                    @staticmethod
+                    def progress(): return 0.5
+                return Status(), None
+            return None, {"id": "yt_normal_789"}
+
+    req = MultiReq()
+
+    class Service:
+        def channels(self): return self
+        def list(self, **kwargs): return _Exec({"items": [{"snippet": {"title": "운명과학TV"}}]})
+        def videos(self): return self
+        def insert(self, **kwargs): return req
+
+    discovery = types.ModuleType("googleapiclient.discovery")
+    discovery.build = lambda *a, **k: Service()
+    http = types.ModuleType("googleapiclient.http")
+    http.MediaFileUpload = lambda *a, **k: {"args": a, "kwargs": k}
+    pkg = types.ModuleType("googleapiclient")
+    monkeypatch.setitem(sys.modules, "googleapiclient", pkg)
+    monkeypatch.setitem(sys.modules, "googleapiclient.discovery", discovery)
+    monkeypatch.setitem(sys.modules, "googleapiclient.http", http)
+    monkeypatch.setattr(yu, "_credentials", lambda: object())
+
+    video = tmp_path / "short.mp4"; video.write_bytes(b"video")
+    checks = []
+    def guard(stage):
+        checks.append(stage)
+        if stage == "before_chunk" and checks.count("before_chunk") == 2:
+            raise ny.PublicationBlocked("normal upload permit expired")
+
+    with pytest.raises(ny.PublicationBlocked, match="permit expired"):
+        yu.upload(
+            video=video, title="2027 운세", description="설명", tags=["2027운세"],
+            publish_at="2026-10-16T15:30:00+09:00", slot_hours=[15],
+            authorization_guard=guard,
+        )
+    assert checks == ["before_chunk", "before_chunk"]
+    assert req.calls == 1
+
+
+def test_receipt_persistence_executes_safe_push_from_verified_checkout():
+    helper = (Path(__file__).resolve().parent / "scripts" / "persist_newyear_2027_receipt.sh").read_text(encoding="utf-8")
+    assert 'bash "$ROOT/scripts/safe_git_push.sh" main' in helper
+    assert 'bash scripts/safe_git_push.sh main' not in helper
+
+
+def test_receipt_owner_verifier_anchors_runner_to_script_checkout():
+    helper = (Path(__file__).resolve().parent / "scripts" / "verify_newyear_2027_receipt_owner.sh").read_text(encoding="utf-8")
+    assert 'BASH_SOURCE[0]' in helper
+    assert 'ROOT="$(git rev-parse --show-toplevel)"' not in helper
+    assert 'python3 "$ROOT/newyear_2027_runner.py"' in helper
