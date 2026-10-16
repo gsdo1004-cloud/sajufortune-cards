@@ -45,6 +45,8 @@ def _post(tmp_path: Path, *, index=1, slug="wealth", publish_date="2026-10-16") 
         "rss_seen": True,
         "url": "https://blog.naver.com/gsd1004/123",
         "category": "2027 신년운세",
+        "source_sha256": _sha(article),
+        "publish_date": publish_date,
     }, ensure_ascii=False), encoding="utf-8")
     return post, article
 
@@ -899,3 +901,25 @@ def test_workflow_gate_only_uses_secret_on_main_and_checks_durable_owner():
     helper = (root / "scripts" / "verify_newyear_2027_receipt_owner.sh").read_text(encoding="utf-8")
     assert "origin/main" in helper
     assert "receipt-owner" in helper
+
+
+def test_source_gate_binds_naver_receipt_to_same_article_version(tmp_path):
+    post, article = _post(tmp_path)
+    item = {
+        "content_id": "ny2027-001-wealth", "source_dir": post.name,
+        "publish_date": "2026-10-16", "source_sha256": _sha(article),
+    }
+    receipt_path = post / "naver_publish.json"
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    receipt["source_sha256"] = "0" * 64
+    receipt_path.write_text(json.dumps(receipt, ensure_ascii=False), encoding="utf-8")
+    result = ny.source_gate(item, tmp_path, readiness_fn=lambda p: {"ready": True, "reasons": []})
+    assert result["ok"] is False
+    assert result["reason"] == "naver_receipt_source_hash_mismatch"
+
+    receipt["source_sha256"] = _sha(article)
+    receipt["publish_date"] = "2026-10-17"
+    receipt_path.write_text(json.dumps(receipt, ensure_ascii=False), encoding="utf-8")
+    result = ny.source_gate(item, tmp_path, readiness_fn=lambda p: {"ready": True, "reasons": []})
+    assert result["ok"] is False
+    assert result["reason"] == "naver_receipt_publish_date_mismatch"

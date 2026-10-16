@@ -294,6 +294,8 @@ def validate_naver_receipt(path: Path) -> dict:
         (bool(url), "naver_url_missing"),
         (valid_url, "naver_url_invalid"),
         (data.get("category") == EXPECTED_NAVER_CATEGORY, "naver_category_mismatch"),
+        (bool(re.fullmatch(r"[0-9a-f]{64}", str(data.get("source_sha256") or ""))), "naver_source_hash_missing"),
+        (bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(data.get("publish_date") or ""))), "naver_publish_date_missing"),
     )
     for passed, reason in checks:
         if not passed:
@@ -303,6 +305,9 @@ def validate_naver_receipt(path: Path) -> dict:
         "reason": "published_confirmed",
         "url": url,
         "published_at": data.get("published_at", ""),
+        "source_sha256": str(data.get("source_sha256") or ""),
+        "publish_date": str(data.get("publish_date") or ""),
+        "source_dir": str(data.get("source_dir") or ""),
     }
 
 
@@ -365,6 +370,12 @@ def source_gate(
     receipt = validate_naver_receipt(post_dir / "naver_publish.json")
     if not receipt.get("ok"):
         return {"ok": False, "reason": receipt.get("reason", "naver_receipt_blocked")}
+    if receipt.get("source_sha256") != expected_sha:
+        return {"ok": False, "reason": "naver_receipt_source_hash_mismatch"}
+    if receipt.get("publish_date") != item.get("publish_date"):
+        return {"ok": False, "reason": "naver_receipt_publish_date_mismatch"}
+    if receipt.get("source_dir") and receipt.get("source_dir") != source_dir:
+        return {"ok": False, "reason": "naver_receipt_source_dir_mismatch"}
     return {"ok": True, "reason": "ready_and_naver_published", "post_dir": str(post_dir), "naver_url": receipt["url"]}
 
 
