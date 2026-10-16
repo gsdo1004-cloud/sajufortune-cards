@@ -383,7 +383,8 @@ def source_gate(
     except Exception:
         return {"ok": False, "reason": "source_meta_corrupt"}
 
-    if meta.get("publish_date") != item.get("publish_date"):
+    source_publish_date = str(item.get("source_publish_date") or item.get("publish_date") or "").strip()
+    if meta.get("publish_date") != source_publish_date:
         return {"ok": False, "reason": "source_publish_date_mismatch"}
     expected_sha = str(item.get("source_sha256") or "")
     if not expected_sha or _sha256(article) != expected_sha:
@@ -404,11 +405,17 @@ def source_gate(
         return {"ok": False, "reason": receipt.get("reason", "naver_receipt_blocked")}
     if receipt.get("source_sha256") != expected_sha:
         return {"ok": False, "reason": "naver_receipt_source_hash_mismatch"}
-    if receipt.get("publish_date") != item.get("publish_date"):
+    if receipt.get("publish_date") != source_publish_date:
         return {"ok": False, "reason": "naver_receipt_publish_date_mismatch"}
     if receipt.get("source_dir") and receipt.get("source_dir") != source_dir:
         return {"ok": False, "reason": "naver_receipt_source_dir_mismatch"}
-    return {"ok": True, "reason": "ready_and_naver_published", "post_dir": str(post_dir), "naver_url": receipt["url"]}
+    return {
+        "ok": True,
+        "reason": "ready_and_naver_published",
+        "post_dir": str(post_dir),
+        "naver_url": receipt["url"],
+        "source_publish_date": source_publish_date,
+    }
 
 
 class OwnedFileLock:
@@ -825,6 +832,8 @@ def publish_youtube(
     if uploader_module is None:
         import youtube_upload as uploader_module
     expected_channel_id = os.environ.get("YOUTUBE_EXPECT_CHANNEL_ID", "").strip()
+    if not expected_channel_id:
+        raise RuntimeError("YOUTUBE_EXPECT_CHANNEL_ID is required")
     if expected_channel_id:
         creds = uploader_module._credentials()
         if not creds:
@@ -896,6 +905,8 @@ def publish_youtube_private_canary(
     actual_title = str(items[0].get("snippet", {}).get("title") or "").strip()
     expected_title = str(getattr(uploader_module, "EXPECT_CHANNEL_TITLE", account) or account).strip()
     expected_channel_id = os.environ.get("YOUTUBE_EXPECT_CHANNEL_ID", "").strip()
+    if not expected_channel_id:
+        raise RuntimeError("YOUTUBE_EXPECT_CHANNEL_ID is required")
     if expected_title and actual_title != expected_title:
         raise RuntimeError(f"YouTube channel mismatch: expected {expected_title}, got {actual_title or 'unknown'}")
     if expected_channel_id and actual_channel_id != expected_channel_id:
@@ -1439,9 +1450,13 @@ def build_bundle(source_root: Path, bundle_root: Path, *, expected_count: int = 
     seen_ids: set[str] = set()
     for post_dir in posts:
         entry = build_entry(post_dir)
-        date_iso = str(entry.get("publish_date") or "")
-        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_iso):
-            raise ValueError(f"invalid publish_date: {post_dir.name}: {date_iso!r}")
+        source_date_iso = str(entry.get("publish_date") or "")
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", source_date_iso):
+            raise ValueError(f"invalid publish_date: {post_dir.name}: {source_date_iso!r}")
+        source_date = datetime.fromisoformat(source_date_iso).date()
+        date_iso = (source_date + timedelta(days=1)).isoformat()
+        entry["source_publish_date"] = source_date_iso
+        entry["publish_date"] = date_iso
         if date_iso in seen_dates:
             raise ValueError(f"duplicate publish_date: {date_iso}")
         if entry["content_id"] in seen_ids:
@@ -1476,6 +1491,7 @@ def build_bundle(source_root: Path, bundle_root: Path, *, expected_count: int = 
 
     manifest = {
         "schema": "newyear_2027/v1",
+        "fanout_delay_days": 1,
         "count": len(items),
         "items": items,
     }

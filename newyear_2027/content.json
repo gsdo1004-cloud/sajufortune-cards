@@ -1,5 +1,6 @@
 {
   "schema": "newyear_2027/v1",
+  "fanout_delay_days": 1,
   "count": 60,
   "items": [
     {
@@ -7,7 +8,7 @@
       "index": 1,
       "slug": "wealth",
       "format": "conclusion",
-      "publish_date": "2026-10-16",
+      "publish_date": "2026-10-17",
       "source_dir": "01_wealth",
       "source_sha256": "f6f91ed9e669eba2c5b9c50ca15b45d6451aba77c62ab84c76c84e65a7f8e1f3",
       "source_url": "https://sajufortune.kr/2027/wealth",
@@ -29,6 +30,7 @@
         "가장 중요한 현실 체크는 고정비·부채·비상자금·계약 만기·세금 입니다."
       ],
       "asset": "assets/001.jpg",
+      "source_publish_date": "2026-10-16",
       "asset_sha256": "3f9f3eabc7b9b900fef223481fcb3eccd47f9de27575ebd54b1c52dedd1d50a2",
       "asset_bytes": 299743
     },
@@ -37,7 +39,7 @@
       "index": 2,
       "slug": "career",
       "format": "checklist",
-      "publish_date": "2026-10-17",
+      "publish_date": "2026-10-18",
       "source_dir": "02_career",
       "source_sha256": "bb36e1878551941e628669466356023bc4be8b6992543db61a66c6633e080af4",
       "source_url": "https://sajufortune.kr/2027/career",
@@ -59,6 +61,7 @@
         "2027년에는 “더 많이 일할 것인가”보다 어떤 일을 남기고 어떤 일을 버릴 것인가 가 중요합니다."
       ],
       "asset": "assets/002.jpg",
+      "source_publish_date": "2026-10-17",
       "asset_sha256": "7bbee0530bc06e97ee82f9f5155aaa34fa5f2b99cd048fe81105693666310a01",
       "asset_bytes": 268427
     },
@@ -67,7 +70,7 @@
       "index": 3,
       "slug": "love",
       "format": "myth_break",
-      "publish_date": "2026-10-18",
+      "publish_date": "2026-10-19",
       "source_dir": "03_love",
       "source_sha256": "57721a12ad2d91cbeb8521465de12a91666a58a83366581968153ef71674efeb",
       "source_url": "https://sajufortune.kr/2027/love",
@@ -89,6 +92,7 @@
         "2027년에는 “마음이 있나?”보다 관계를 지속할 조건이 있나? 를 확인하는 것이 중요합니다."
       ],
       "asset": "assets/003.jpg",
+      "source_publish_date": "2026-10-18",
       "asset_sha256": "2ece6af24433bfb56f98b0ce9f5a167a4f4df722dea09a974cb7160598847171",
       "asset_bytes": 261237
     },
@@ -97,7 +101,7 @@
       "index": 4,
       "slug": "health",
       "format": "timing",
-      "publish_date": "2026-10-19",
+      "publish_date": "2026-10-20",
       "source_dir": "04_health",
       "source_sha256": "dd9fa692ab5c8108b5ff211eb5988a8cd03a147d4d8da01fd82f5f5760c1945f",
       "source_url": "https://sajufortune.kr/2027/health",
@@ -119,6 +123,7 @@
         "증상이나 이상 수치가 있다면 운세보다 의료진의 진단이 우선입니다."
       ],
       "asset": "assets/004.jpg",
+      "source_publish_date": "2026-10-19",
       "asset_sha256": "d969b310d6d1127ded637edd740193c9471a679b8ca6147988cda917d6ced9ac",
       "asset_bytes": 263981
     },
@@ -127,7 +132,7 @@
       "index": 5,
       "slug": "samjae",
       "format": "caution",
-      "publish_date": "2026-10-20",
+      "publish_date": "2026-10-21",
       "source_dir": "05_samjae",
       "source_sha256": "0b21e9b02b5c29bd2309ae7d8fe2316daa7024f67b831b944d7ec11fbb048f93",
       "source_url": "https://sajufortune.kr/2027/samjae",
@@ -149,6 +154,7 @@
         "실제 2027 운세는 개인 원국 + 대운 + 정미 세운 을 함께 봐야 합니다."
       ],
       "asset": "assets/005.jpg",
+      "source_publish_date": "2026-10-20",
       "asset_sha256": "9f3880ddea488f0b51ccb54b3a88b4907ca27a7fd9f1eb75c0c507f4768efa5e",
       "asset_bytes": 305807
     },
@@ -157,7 +163,7 @@
       "index": 6,
       "slug": "tojeong",
       "format": "action",
-      "publish_date": "2026-10-21",
+      "publish_date": "2026-10-22",
       "source_dir": "06_tojeong",
       "source_sha256": "96c9c9953c07296f460121c7b98b637b40ca3ee79b9fe22866b97d964f71ce71",
       "source_url": "https://sajufortune.kr/2027/tojeong",
@@ -179,6 +185,7 @@
         "좋은 달·조심할 달을 ‘확정 사건’이 아니라 행동 강도를 조절하는 참고자료 로 쓰는 것이 좋습니다."
       ],
       "asset": "assets/006.jpg",
+      "source_publish_date": "2026-10-21",
       "asset_sha256": "a66b4d5fb62ec942165804e987e2821368a80e4c1ddcb78c0e19ac56f5e7e6a5",
       "asset_bytes": 284557
     },
@@ -187,7 +194,7 @@
       "index": 7,
       "slug": "rat",
       "format": "conclusion",
-      "publish_date": "2026-10-22",
+      "publish_date": "2026-10-23",
       "source_dir": "07_rat",
       "source_sha256": "f8cca2b3287566dea0cf88306e7334d01d19351573f9bac7d1c3aa78619f1833",
       "source_url": "https://sajufortune.kr/2027/rat",
@@ -209,6 +216,7 @@
         "직업·재물·관계에서 가장 중요한 것은 길흉을 맞히는 것보다 현실에서 무엇을 점검할지 정하는 것 입니다."
       ],
       "asset": "assets/007.jpg",
+      "source_publish_date": "2026-10-22",
       "asset_sha256": "720ed3e5fa84888d36cf1c9ea8f21cc8c98b67d486af125420959a0914e86a55",
       "asset_bytes": 161119
     },
@@ -217,7 +225,7 @@
       "index": 8,
       "slug": "ox",
       "format": "checklist",
-      "publish_date": "2026-10-23",
+      "publish_date": "2026-10-24",
       "source_dir": "08_ox",
       "source_sha256": "e068eb110b8abc9fafbf9712e2d2cbf7a96702e5bf284a960faca69c4ce0dc60",
       "source_url": "https://sajufortune.kr/2027/ox",
@@ -239,6 +247,7 @@
         "직업·재물·관계에서 가장 중요한 것은 길흉을 맞히는 것보다 현실에서 무엇을 점검할지 정하는 것 입니다."
       ],
       "asset": "assets/008.jpg",
+      "source_publish_date": "2026-10-23",
       "asset_sha256": "3005210ef66030bf5a8275824100acc4d14118f8f1da26dd4e25673ab00d2ca8",
       "asset_bytes": 139789
     },
@@ -247,7 +256,7 @@
       "index": 9,
       "slug": "tiger",
       "format": "myth_break",
-      "publish_date": "2026-10-24",
+      "publish_date": "2026-10-25",
       "source_dir": "09_tiger",
       "source_sha256": "f2416666b7681aba2fa2f1674e6d6e94c7b213540f5840b3d4e97b52df966aba",
       "source_url": "https://sajufortune.kr/2027/tiger",
@@ -269,6 +278,7 @@
         "직업·재물·관계에서 가장 중요한 것은 길흉을 맞히는 것보다 현실에서 무엇을 점검할지 정하는 것 입니다."
       ],
       "asset": "assets/009.jpg",
+      "source_publish_date": "2026-10-24",
       "asset_sha256": "d28cb9b60850122bbb7cedd734cddff4e2658c1de1ea1bd678cf874b9fa99180",
       "asset_bytes": 145033
     },
@@ -277,7 +287,7 @@
       "index": 10,
       "slug": "rabbit",
       "format": "timing",
-      "publish_date": "2026-10-25",
+      "publish_date": "2026-10-26",
       "source_dir": "10_rabbit",
       "source_sha256": "b836e777b7fa10e8f2a4ea590c2c888b677847c1a98f37ec4a880e016ee47bab",
       "source_url": "https://sajufortune.kr/2027/rabbit",
@@ -299,6 +309,7 @@
         "직업·재물·관계에서 가장 중요한 것은 길흉을 맞히는 것보다 현실에서 무엇을 점검할지 정하는 것 입니다."
       ],
       "asset": "assets/010.jpg",
+      "source_publish_date": "2026-10-25",
       "asset_sha256": "d191927687a43f66afcc805d19e8ff98b767f607c8bc62b6d1f32a6cde4c9e68",
       "asset_bytes": 149761
     },
@@ -307,7 +318,7 @@
       "index": 11,
       "slug": "dragon",
       "format": "caution",
-      "publish_date": "2026-10-26",
+      "publish_date": "2026-10-27",
       "source_dir": "11_dragon",
       "source_sha256": "b1999a7254a9ec0d979eb1ee1e736faa50940cb77c929b2a7424f25aa17a4158",
       "source_url": "https://sajufortune.kr/2027/dragon",
@@ -329,6 +340,7 @@
         "직업·재물·관계에서 가장 중요한 것은 길흉을 맞히는 것보다 현실에서 무엇을 점검할지 정하는 것 입니다."
       ],
       "asset": "assets/011.jpg",
+      "source_publish_date": "2026-10-26",
       "asset_sha256": "7c1f065f923f6fa6ccb8f73172c2b84d85e1a2dd853e3d058c6769d7cb4c523e",
       "asset_bytes": 159464
     },
@@ -337,7 +349,7 @@
       "index": 12,
       "slug": "snake",
       "format": "action",
-      "publish_date": "2026-10-27",
+      "publish_date": "2026-10-28",
       "source_dir": "12_snake",
       "source_sha256": "bbff9a406d930e5bb1b6a8e486494c9b56f384481129e1a2cd20d8eebcebaf74",
       "source_url": "https://sajufortune.kr/2027/snake",
@@ -359,6 +371,7 @@
         "직업·재물·관계에서 가장 중요한 것은 길흉을 맞히는 것보다 현실에서 무엇을 점검할지 정하는 것 입니다."
       ],
       "asset": "assets/012.jpg",
+      "source_publish_date": "2026-10-27",
       "asset_sha256": "17183fa38c7d06d671d0a0716ff71104647288c9ee1acac4461bc6b8de7751be",
       "asset_bytes": 147300
     },
@@ -367,7 +380,7 @@
       "index": 13,
       "slug": "horse",
       "format": "conclusion",
-      "publish_date": "2026-10-28",
+      "publish_date": "2026-10-29",
       "source_dir": "13_horse",
       "source_sha256": "96e58d3f065a3069daa01b48c18b46572d4d7cce68d1c1a163296102d182ac86",
       "source_url": "https://sajufortune.kr/2027/horse",
@@ -389,6 +402,7 @@
         "직업·재물·관계에서 가장 중요한 것은 길흉을 맞히는 것보다 현실에서 무엇을 점검할지 정하는 것 입니다."
       ],
       "asset": "assets/013.jpg",
+      "source_publish_date": "2026-10-28",
       "asset_sha256": "0d2eb25268cce1fb8fc19de86470739d92bc93b48589f13a2401e90489ef86fe",
       "asset_bytes": 141024
     },
@@ -397,7 +411,7 @@
       "index": 14,
       "slug": "goat",
       "format": "checklist",
-      "publish_date": "2026-10-29",
+      "publish_date": "2026-10-30",
       "source_dir": "14_goat",
       "source_sha256": "69ad78bc3d5758f230f248d5a87b33d976720e6ed9da63401b5ba4de6f2d71e3",
       "source_url": "https://sajufortune.kr/2027/goat",
@@ -419,6 +433,7 @@
         "직업·재물·관계에서 가장 중요한 것은 길흉을 맞히는 것보다 현실에서 무엇을 점검할지 정하는 것 입니다."
       ],
       "asset": "assets/014.jpg",
+      "source_publish_date": "2026-10-29",
       "asset_sha256": "1a717689304256d92deb056fe80f252c0b974e4ad464dcb0e1782c6143436950",
       "asset_bytes": 131598
     },
@@ -427,7 +442,7 @@
       "index": 15,
       "slug": "monkey",
       "format": "myth_break",
-      "publish_date": "2026-10-30",
+      "publish_date": "2026-10-31",
       "source_dir": "15_monkey",
       "source_sha256": "2ef4a67ab6a9a77f082662ab7378b26bd3723f625d02233d2dd76470d457ff41",
       "source_url": "https://sajufortune.kr/2027/monkey",
@@ -449,6 +464,7 @@
         "직업·재물·관계에서 가장 중요한 것은 길흉을 맞히는 것보다 현실에서 무엇을 점검할지 정하는 것 입니다."
       ],
       "asset": "assets/015.jpg",
+      "source_publish_date": "2026-10-30",
       "asset_sha256": "2f4a5434672a887e8dce0b43bad3846f5c7bf734fb7616d28e5d51be4f824c42",
       "asset_bytes": 142303
     },
@@ -457,7 +473,7 @@
       "index": 16,
       "slug": "rooster",
       "format": "timing",
-      "publish_date": "2026-10-31",
+      "publish_date": "2026-11-01",
       "source_dir": "16_rooster",
       "source_sha256": "1cb480832f060d8b98dc8e91c94a5e87a24032dc7c0d5756e728202619fecfe6",
       "source_url": "https://sajufortune.kr/2027/rooster",
@@ -479,6 +495,7 @@
         "직업·재물·관계에서 가장 중요한 것은 길흉을 맞히는 것보다 현실에서 무엇을 점검할지 정하는 것 입니다."
       ],
       "asset": "assets/016.jpg",
+      "source_publish_date": "2026-10-31",
       "asset_sha256": "96c1c0034f14d87d659446b5b70ca4cfdfd2371d793bcb3e3af550524fdf63a9",
       "asset_bytes": 137375
     },
@@ -487,7 +504,7 @@
       "index": 17,
       "slug": "dog",
       "format": "caution",
-      "publish_date": "2026-11-01",
+      "publish_date": "2026-11-02",
       "source_dir": "17_dog",
       "source_sha256": "8cbf85fdb1f564a21a63546bb1d5be280e4aac1680ab64dc7f584418c2d79fc4",
       "source_url": "https://sajufortune.kr/2027/dog",
@@ -509,6 +526,7 @@
         "직업·재물·관계에서 가장 중요한 것은 길흉을 맞히는 것보다 현실에서 무엇을 점검할지 정하는 것 입니다."
       ],
       "asset": "assets/017.jpg",
+      "source_publish_date": "2026-11-01",
       "asset_sha256": "6be0f6660e74edf4a2434cf7465de15a83a14661f2c8d914134f60f05fe510b9",
       "asset_bytes": 137723
     },
@@ -517,7 +535,7 @@
       "index": 18,
       "slug": "pig",
       "format": "action",
-      "publish_date": "2026-11-02",
+      "publish_date": "2026-11-03",
       "source_dir": "18_pig",
       "source_sha256": "d408769813859a60470ae911ad43a48f5acef9098eca27b1a4f04b1f662496f4",
       "source_url": "https://sajufortune.kr/2027/pig",
@@ -539,6 +557,7 @@
         "직업·재물·관계에서 가장 중요한 것은 길흉을 맞히는 것보다 현실에서 무엇을 점검할지 정하는 것 입니다."
       ],
       "asset": "assets/018.jpg",
+      "source_publish_date": "2026-11-02",
       "asset_sha256": "035f6988f34fb88f6a0aabed971528a368a4fab36afb5905777eca0a01e78ccc",
       "asset_bytes": 140695
     },
@@ -547,7 +566,7 @@
       "index": 19,
       "slug": "1957",
       "format": "conclusion",
-      "publish_date": "2026-11-03",
+      "publish_date": "2026-11-04",
       "source_dir": "19_1957",
       "source_sha256": "67224c8fc04879818a1b900fec67902cc077d091c276a963b828ec8d7cf6600d",
       "source_url": "https://sajufortune.kr/2027/birth-year/1957",
@@ -569,6 +588,7 @@
         "올해의 현실 키워드는 자산 총액보다 생활비 구조 입니다."
       ],
       "asset": "assets/019.jpg",
+      "source_publish_date": "2026-11-03",
       "asset_sha256": "256f464e95ba85ab1e675c043523886a6fd6f9746fd614b9187f45266863a452",
       "asset_bytes": 135953
     },
@@ -577,7 +597,7 @@
       "index": 20,
       "slug": "1961",
       "format": "checklist",
-      "publish_date": "2026-11-04",
+      "publish_date": "2026-11-05",
       "source_dir": "20_1961",
       "source_sha256": "7682c56ada3f1b4f1abf22077da21d888cead6ff8c1669a5e7fd621e262793e0",
       "source_url": "https://sajufortune.kr/2027/birth-year/1961",
@@ -599,6 +619,7 @@
         "올해의 현실 키워드는 소득과 주거를 함께 보는 재설계 입니다."
       ],
       "asset": "assets/020.jpg",
+      "source_publish_date": "2026-11-04",
       "asset_sha256": "8a4c62dab99ef049ce83087c5805d093005c2c079c490aede2c87565e1580462",
       "asset_bytes": 148663
     },
@@ -607,7 +628,7 @@
       "index": 21,
       "slug": "1963",
       "format": "myth_break",
-      "publish_date": "2026-11-05",
+      "publish_date": "2026-11-06",
       "source_dir": "21_1963",
       "source_sha256": "9158023894bd01f48d8c5401d2fc759d303a7b8d9eb6250b694ec7aef610687f",
       "source_url": "https://sajufortune.kr/2027/birth-year/1963",
@@ -629,6 +650,7 @@
         "올해의 현실 키워드는 경험의 재포장 입니다."
       ],
       "asset": "assets/021.jpg",
+      "source_publish_date": "2026-11-05",
       "asset_sha256": "bf29afe902de9f44785b7c7a0466e4717c84259b03bec2522c300b0849fc9d0c",
       "asset_bytes": 142097
     },
@@ -637,7 +659,7 @@
       "index": 22,
       "slug": "1964",
       "format": "timing",
-      "publish_date": "2026-11-06",
+      "publish_date": "2026-11-07",
       "source_dir": "22_1964",
       "source_sha256": "32c7daa044be541e7104ce778082fe3222c069e68712a51ac336a2b6e411df2a",
       "source_url": "https://sajufortune.kr/2027/birth-year/1964",
@@ -659,6 +681,7 @@
         "올해의 현실 키워드는 보유 자산의 유지비 입니다."
       ],
       "asset": "assets/022.jpg",
+      "source_publish_date": "2026-11-06",
       "asset_sha256": "691b161628446212a56ba9eb4e626467962f366f137d53e5054b8764a2803ba2",
       "asset_bytes": 138039
     },
@@ -667,7 +690,7 @@
       "index": 23,
       "slug": "1966",
       "format": "caution",
-      "publish_date": "2026-11-07",
+      "publish_date": "2026-11-08",
       "source_dir": "23_1966",
       "source_sha256": "a6edc8ab32ddc34d540791bd31bab4c90898b13c8d0d1cae9913a3addc9377f1",
       "source_url": "https://sajufortune.kr/2027/birth-year/1966",
@@ -689,6 +712,7 @@
         "올해의 현실 키워드는 일의 형태와 생활의 균형 입니다."
       ],
       "asset": "assets/023.jpg",
+      "source_publish_date": "2026-11-07",
       "asset_sha256": "3d688edc66d6601a3d2d43acabd35fe4852c168f25d2f0f2267b017edcff2c43",
       "asset_bytes": 138323
     },
@@ -697,7 +721,7 @@
       "index": 24,
       "slug": "1968",
       "format": "action",
-      "publish_date": "2026-11-08",
+      "publish_date": "2026-11-09",
       "source_dir": "24_1968",
       "source_sha256": "aa153c8a2b2bf5d5812ad9a2129039a9907b10ffbbbf8718ddef0c0d688e2b23",
       "source_url": "https://sajufortune.kr/2027/birth-year/1968",
@@ -719,6 +743,7 @@
         "올해의 현실 키워드는 경력을 노후 자산으로 바꾸기 입니다."
       ],
       "asset": "assets/024.jpg",
+      "source_publish_date": "2026-11-08",
       "asset_sha256": "82ce1a349bdebdee2a5aaa803bb4547f6b346d36f1af52b9971cc32ec8dc9abf",
       "asset_bytes": 131794
     },
@@ -727,7 +752,7 @@
       "index": 25,
       "slug": "1972",
       "format": "conclusion",
-      "publish_date": "2026-11-09",
+      "publish_date": "2026-11-10",
       "source_dir": "25_1972",
       "source_sha256": "f8236714f34b4ba074199b7a0a3857abb67cc547f48e084214af8da6eea69640",
       "source_url": "https://sajufortune.kr/2027/birth-year/1972",
@@ -749,6 +774,7 @@
         "올해의 현실 키워드는 재정과 가족 책임의 우선순위 입니다."
       ],
       "asset": "assets/025.jpg",
+      "source_publish_date": "2026-11-09",
       "asset_sha256": "404d808f63c63e8c1296070627d6c567bd58279d9e7d0ddbce93fddd1f68e494",
       "asset_bytes": 158959
     },
@@ -757,7 +783,7 @@
       "index": 26,
       "slug": "1973",
       "format": "checklist",
-      "publish_date": "2026-11-10",
+      "publish_date": "2026-11-11",
       "source_dir": "26_1973",
       "source_sha256": "d6952e44f8d8c15d05ff7cc40c8303a00eeed512c5a94b79188d1daf3654ad97",
       "source_url": "https://sajufortune.kr/2027/birth-year/1973",
@@ -779,6 +805,7 @@
         "올해의 현실 키워드는 역할 재조정과 체력 계산 입니다."
       ],
       "asset": "assets/026.jpg",
+      "source_publish_date": "2026-11-10",
       "asset_sha256": "86b18c84cc790aaaeb5b737353fe5cb55a41035082973a8d6f5fb23935f6dc42",
       "asset_bytes": 137503
     },
@@ -787,7 +814,7 @@
       "index": 27,
       "slug": "1974",
       "format": "myth_break",
-      "publish_date": "2026-11-11",
+      "publish_date": "2026-11-12",
       "source_dir": "27_1974",
       "source_sha256": "1017106870eaad8f2596447c7c179bf67901dcb0179d64f84baf80d8e6dd3849",
       "source_url": "https://sajufortune.kr/2027/birth-year/1974",
@@ -809,6 +836,7 @@
         "올해의 현실 키워드는 자리보다 선명한 전문성 입니다."
       ],
       "asset": "assets/027.jpg",
+      "source_publish_date": "2026-11-11",
       "asset_sha256": "7fbc2f23b3699af5ce4ff3538566b8816478de1b189aceaf5c716e6c66a8c46c",
       "asset_bytes": 158984
     },
@@ -817,7 +845,7 @@
       "index": 28,
       "slug": "1975",
       "format": "timing",
-      "publish_date": "2026-11-12",
+      "publish_date": "2026-11-13",
       "source_dir": "28_1975",
       "source_sha256": "c29d1fdd73f0e5e06e403d5ba4d173100eab92148ece903c78a245793b39ff44",
       "source_url": "https://sajufortune.kr/2027/birth-year/1975",
@@ -839,6 +867,7 @@
         "올해의 현실 키워드는 협업 확장과 주거·노후 준비의 균형 입니다."
       ],
       "asset": "assets/028.jpg",
+      "source_publish_date": "2026-11-12",
       "asset_sha256": "d2c571b660ddaaa63d12074a4788e0978cc0e7b8406d5af2d3b714d3f00dee2a",
       "asset_bytes": 142434
     },
@@ -847,7 +876,7 @@
       "index": 29,
       "slug": "1976",
       "format": "caution",
-      "publish_date": "2026-11-13",
+      "publish_date": "2026-11-14",
       "source_dir": "29_1976",
       "source_sha256": "b2adcc1193f56b2db9431178a31c24a5c4f3c624d0ad436fd2f9de1e0128094f",
       "source_url": "https://sajufortune.kr/2027/birth-year/1976",
@@ -869,6 +898,7 @@
         "키워드는 보유 자산의 가동률 입니다. 더 얻기 전에 이미 가진 것을 얼마나 쓰고 있는지 확인하세요."
       ],
       "asset": "assets/029.jpg",
+      "source_publish_date": "2026-11-13",
       "asset_sha256": "d74fe04bcfeccbce6c02d8f3ab7d54707738b756e49ea27e0e9bf1cbdb581c9f",
       "asset_bytes": 145210
     },
@@ -877,7 +907,7 @@
       "index": 30,
       "slug": "1977",
       "format": "action",
-      "publish_date": "2026-11-14",
+      "publish_date": "2026-11-15",
       "source_dir": "30_1977",
       "source_sha256": "69a09cbe564280494a7547cb63c67911597a370f90048a13ce4b2d3d36a2217c",
       "source_url": "https://sajufortune.kr/2027/birth-year/1977",
@@ -899,6 +929,7 @@
         "키워드는 검토 종료일 입니다. 자료를 모으는 시간과 결정하는 시간을 분리하세요."
       ],
       "asset": "assets/030.jpg",
+      "source_publish_date": "2026-11-14",
       "asset_sha256": "a4f6a403a3603a177cde6387b5f6d154a647eabb91abbcdfea68a78ae82fc950",
       "asset_bytes": 142699
     },
@@ -907,7 +938,7 @@
       "index": 31,
       "slug": "1978",
       "format": "conclusion",
-      "publish_date": "2026-11-15",
+      "publish_date": "2026-11-16",
       "source_dir": "31_1978",
       "source_sha256": "d35a7e595da48969bacd58ac3053d572f5f9dbd29605dde998102704ab3c03ec",
       "source_url": "https://sajufortune.kr/2027/birth-year/1978",
@@ -929,6 +960,7 @@
         "키워드는 처음부터 문서로 맞추기 입니다."
       ],
       "asset": "assets/031.jpg",
+      "source_publish_date": "2026-11-15",
       "asset_sha256": "a23c1f4c41f4f70a5fc66b6007db0cb12d2cf3348dd41d3218d55741a50a2482",
       "asset_bytes": 140665
     },
@@ -937,7 +969,7 @@
       "index": 32,
       "slug": "1979",
       "format": "checklist",
-      "publish_date": "2026-11-16",
+      "publish_date": "2026-11-17",
       "source_dir": "32_1979",
       "source_sha256": "3de10f40fee6b1be533b1a23b34180b32e3debe0e453f787782957bb9e1e195e",
       "source_url": "https://sajufortune.kr/2027/birth-year/1979",
@@ -959,6 +991,7 @@
         "키워드는 반복 구조 덜어내기 입니다. 반복 업무와 매달 자동으로 나가는 돈을 점검합니다."
       ],
       "asset": "assets/032.jpg",
+      "source_publish_date": "2026-11-16",
       "asset_sha256": "20fe4416f78ecfbc3d7bafb9d1858c5d4f9ed9f08dbfa003e426095fadb5009d",
       "asset_bytes": 148883
     },
@@ -967,7 +1000,7 @@
       "index": 33,
       "slug": "1980",
       "format": "myth_break",
-      "publish_date": "2026-11-17",
+      "publish_date": "2026-11-18",
       "source_dir": "33_1980",
       "source_sha256": "ea78a3804bde6e60c7ce7e1ab0a38b54cd0c81e3c1c5693f4285919876065344",
       "source_url": "https://sajufortune.kr/2027/birth-year/1980",
@@ -989,6 +1022,7 @@
         "키워드는 학습을 결과물로 바꾸기 입니다."
       ],
       "asset": "assets/033.jpg",
+      "source_publish_date": "2026-11-17",
       "asset_sha256": "7cae350f7fea85d165d236d5355755c753943d2bd190c23e77295f757bc7a65c",
       "asset_bytes": 125551
     },
@@ -997,7 +1031,7 @@
       "index": 34,
       "slug": "1981",
       "format": "timing",
-      "publish_date": "2026-11-18",
+      "publish_date": "2026-11-19",
       "source_dir": "34_1981",
       "source_sha256": "504926437f5a1fe4354f09b8332047e5cc86ef12130350061ca0b12cd1148120",
       "source_url": "https://sajufortune.kr/2027/birth-year/1981",
@@ -1019,6 +1053,7 @@
         "올해의 현실 키워드는 완성도와 속도의 균형 입니다. 완성도를 높이되 완벽주의 때문에 속도를 잃지 마세요."
       ],
       "asset": "assets/034.jpg",
+      "source_publish_date": "2026-11-18",
       "asset_sha256": "e839621c7cfd22220205d21832c5d24933548bcc896ef40bd5439989b30ceab7",
       "asset_bytes": 163680
     },
@@ -1027,7 +1062,7 @@
       "index": 35,
       "slug": "1982",
       "format": "caution",
-      "publish_date": "2026-11-19",
+      "publish_date": "2026-11-20",
       "source_dir": "35_1982",
       "source_sha256": "2770578c987cb28231d83772a12a4e845b9f687b65c2a2ef223512a28bd48d22",
       "source_url": "https://sajufortune.kr/2027/birth-year/1982",
@@ -1049,6 +1084,7 @@
         "올해의 현실 키워드는 오래된 책임과 계약 다시 읽기 입니다. 그래야 다음 단계가 가벼워집니다."
       ],
       "asset": "assets/035.jpg",
+      "source_publish_date": "2026-11-19",
       "asset_sha256": "3b871dd86fb57f85fd70a4491a01676ea7d60e26d7e10e7f184510314523cd2d",
       "asset_bytes": 134979
     },
@@ -1057,7 +1093,7 @@
       "index": 36,
       "slug": "1983",
       "format": "action",
-      "publish_date": "2026-11-20",
+      "publish_date": "2026-11-21",
       "source_dir": "36_1983",
       "source_sha256": "00039e1721a91f123edfa7fbeb82137ae93edb36e217f11ca3fe86ef8d0dd9be",
       "source_url": "https://sajufortune.kr/2027/birth-year/1983",
@@ -1079,6 +1115,7 @@
         "올해의 현실 키워드는 장기계획을 월 현금흐름과 일정으로 바꾸기 입니다."
       ],
       "asset": "assets/036.jpg",
+      "source_publish_date": "2026-11-20",
       "asset_sha256": "6ac5e40d1955f2c42ff18d8a133467d86845953dbb108a302e35dba0207bd0ca",
       "asset_bytes": 157330
     },
@@ -1087,7 +1124,7 @@
       "index": 37,
       "slug": "1988",
       "format": "conclusion",
-      "publish_date": "2026-11-21",
+      "publish_date": "2026-11-22",
       "source_dir": "37_1988",
       "source_sha256": "70e26a5c21e6ec59fcd61d7cc798975f0c303804387c6337743e686b0080e9a5",
       "source_url": "https://sajufortune.kr/2027/birth-year/1988",
@@ -1109,6 +1146,7 @@
         "올해의 현실 키워드는 커리어·주거·가족·자산형성의 동시 관리 입니다."
       ],
       "asset": "assets/037.jpg",
+      "source_publish_date": "2026-11-21",
       "asset_sha256": "8d2b106825b657b800c971ad01e07d8a8b8363a3f0f1cd6f2f52cffcdfdf5071",
       "asset_bytes": 152569
     },
@@ -1117,7 +1155,7 @@
       "index": 38,
       "slug": "2000",
       "format": "checklist",
-      "publish_date": "2026-11-22",
+      "publish_date": "2026-11-23",
       "source_dir": "38_2000",
       "source_sha256": "64774af52b2a13a9b9e612131a96363c18d3f9e48fa1ac80f8b030e0063f51ec",
       "source_url": "https://sajufortune.kr/2027/birth-year/2000",
@@ -1139,6 +1177,7 @@
         "올해의 현실 키워드는 취업·독립·관계에서 “내 기준” 만들기 입니다."
       ],
       "asset": "assets/038.jpg",
+      "source_publish_date": "2026-11-22",
       "asset_sha256": "c9a3ff9f7f6b9f1a5ae6976224a134272b86210fd3aed5b5f113ebf0f75fca05",
       "asset_bytes": 140322
     },
@@ -1147,7 +1186,7 @@
       "index": 39,
       "slug": "gapmok",
       "format": "myth_break",
-      "publish_date": "2026-11-23",
+      "publish_date": "2026-11-24",
       "source_dir": "39_gapmok",
       "source_sha256": "71528c1439593df2559fc7472d1b53c188c242296be801d3c74e2b6cb01c8114",
       "source_url": "https://sajufortune.kr/2027/ilgan/gapmok",
@@ -1169,6 +1208,7 @@
         "미(未)에서의 12운성은 묘 이지만, 12운성은 길흉 점수가 아닙니다."
       ],
       "asset": "assets/039.jpg",
+      "source_publish_date": "2026-11-23",
       "asset_sha256": "54cc49f1875c2e84b73a80369f402c665ca3b9b8dcc350d68d12b8e60efb69f4",
       "asset_bytes": 193131
     },
@@ -1177,7 +1217,7 @@
       "index": 40,
       "slug": "eulmok",
       "format": "timing",
-      "publish_date": "2026-11-24",
+      "publish_date": "2026-11-25",
       "source_dir": "40_eulmok",
       "source_sha256": "10b9b95c82270921d18e50538171554173444f800dc0b587afd13c712eb59549",
       "source_url": "https://sajufortune.kr/2027/ilgan/eulmok",
@@ -1199,6 +1239,7 @@
         "미(未)에서의 12운성은 양 이지만, 12운성은 길흉 점수가 아닙니다."
       ],
       "asset": "assets/040.jpg",
+      "source_publish_date": "2026-11-24",
       "asset_sha256": "333e25dcc8938229fff42c2ddd27a9847287e57761862bf49f8fcb3b8b3ad6c2",
       "asset_bytes": 156820
     },
@@ -1207,7 +1248,7 @@
       "index": 41,
       "slug": "byeonghwa",
       "format": "caution",
-      "publish_date": "2026-11-25",
+      "publish_date": "2026-11-26",
       "source_dir": "41_byeonghwa",
       "source_sha256": "74c69a3d9a477bdea844b2601dde5dcda3763d5de1f6720458f994c9aa2550ed",
       "source_url": "https://sajufortune.kr/2027/ilgan/byeonghwa",
@@ -1229,6 +1270,7 @@
         "미(未)에서의 12운성은 쇠 이지만, 12운성은 길흉 점수가 아닙니다."
       ],
       "asset": "assets/041.jpg",
+      "source_publish_date": "2026-11-25",
       "asset_sha256": "993a9784b54beb908e7ab3fd86c7289de73fa88c5da0f5f8ded1ef2cbe870ef5",
       "asset_bytes": 134111
     },
@@ -1237,7 +1279,7 @@
       "index": 42,
       "slug": "jeonghwa",
       "format": "action",
-      "publish_date": "2026-11-26",
+      "publish_date": "2026-11-27",
       "source_dir": "42_jeonghwa",
       "source_sha256": "b116eeca30e10c6f07d3518806b133bd209b6d5c3ce18bea046b5de6286110a4",
       "source_url": "https://sajufortune.kr/2027/ilgan/jeonghwa",
@@ -1259,6 +1301,7 @@
         "미(未)에서의 12운성은 관대 이지만, 12운성은 길흉 점수가 아닙니다."
       ],
       "asset": "assets/042.jpg",
+      "source_publish_date": "2026-11-26",
       "asset_sha256": "a45a23cdd7da0dd6d419aa7eade17f71d3f24382293936c0bef2dcdd70ca7a5f",
       "asset_bytes": 150300
     },
@@ -1267,7 +1310,7 @@
       "index": 43,
       "slug": "muto",
       "format": "conclusion",
-      "publish_date": "2026-11-27",
+      "publish_date": "2026-11-28",
       "source_dir": "43_muto",
       "source_sha256": "7c192d710ef885538261c6680356bd35d880a7c07b719b6980b0e3f5511744d9",
       "source_url": "https://sajufortune.kr/2027/ilgan/muto",
@@ -1289,6 +1332,7 @@
         "미(未)에서의 12운성은 쇠 이지만, 12운성은 길흉 점수가 아닙니다."
       ],
       "asset": "assets/043.jpg",
+      "source_publish_date": "2026-11-27",
       "asset_sha256": "7ef20932d0bea2c2397d61e7d0767a722a1efad87f3b27a8012904e0e46d03c2",
       "asset_bytes": 167967
     },
@@ -1297,7 +1341,7 @@
       "index": 44,
       "slug": "gito",
       "format": "checklist",
-      "publish_date": "2026-11-28",
+      "publish_date": "2026-11-29",
       "source_dir": "44_gito",
       "source_sha256": "22a9dc53362b450c561b2bdc0e0f4265396ccd8f5cc149c78e64c445f16984e0",
       "source_url": "https://sajufortune.kr/2027/ilgan/gito",
@@ -1319,6 +1363,7 @@
         "미(未)에서의 12운성은 관대 이지만, 12운성은 길흉 점수가 아닙니다."
       ],
       "asset": "assets/044.jpg",
+      "source_publish_date": "2026-11-28",
       "asset_sha256": "d315f281c88b7932288666b395555e04423f070882606441281113f3565d6be7",
       "asset_bytes": 174635
     },
@@ -1327,7 +1372,7 @@
       "index": 45,
       "slug": "gyeonggeum",
       "format": "myth_break",
-      "publish_date": "2026-11-29",
+      "publish_date": "2026-11-30",
       "source_dir": "45_gyeonggeum",
       "source_sha256": "23fc65b0cfb4d6ec9cded0025234e91769aee6e6058173b1a2d73495e63379cf",
       "source_url": "https://sajufortune.kr/2027/ilgan/gyeonggeum",
@@ -1349,6 +1394,7 @@
         "미(未)에서의 12운성은 관대 이지만, 12운성은 길흉 점수가 아닙니다."
       ],
       "asset": "assets/045.jpg",
+      "source_publish_date": "2026-11-29",
       "asset_sha256": "6b044f87f1623b44ecb389ad6c5bdc7a30a406912822fd4f4739c9ea63233d4d",
       "asset_bytes": 137830
     },
@@ -1357,7 +1403,7 @@
       "index": 46,
       "slug": "singeum",
       "format": "timing",
-      "publish_date": "2026-11-30",
+      "publish_date": "2026-12-01",
       "source_dir": "46_singeum",
       "source_sha256": "e41ce040c23d577ad124934de41b505364b74d0963725c539cbe949813c44cee",
       "source_url": "https://sajufortune.kr/2027/ilgan/singeum",
@@ -1379,6 +1425,7 @@
         "미(未)에서의 12운성은 쇠 이지만, 12운성은 길흉 점수가 아닙니다."
       ],
       "asset": "assets/046.jpg",
+      "source_publish_date": "2026-11-30",
       "asset_sha256": "5f12be60f0d2aeaa484e165ec174bc17abec618c1285ee1eb7992c0825f09db8",
       "asset_bytes": 121260
     },
@@ -1387,7 +1434,7 @@
       "index": 47,
       "slug": "imsu",
       "format": "caution",
-      "publish_date": "2026-12-01",
+      "publish_date": "2026-12-02",
       "source_dir": "47_imsu",
       "source_sha256": "3ff7acc2e8d49011e13492694c96c59a191a966b0909509bf1d8c27695aaf949",
       "source_url": "https://sajufortune.kr/2027/ilgan/imsu",
@@ -1409,6 +1456,7 @@
         "미(未)에서의 12운성은 양 이지만, 12운성은 길흉 점수가 아닙니다."
       ],
       "asset": "assets/047.jpg",
+      "source_publish_date": "2026-12-01",
       "asset_sha256": "c904d62a1ad5a978f16e40e425f6cb90c5f0a60214089ef365488f447f7973d3",
       "asset_bytes": 172825
     },
@@ -1417,7 +1465,7 @@
       "index": 48,
       "slug": "gyesu",
       "format": "action",
-      "publish_date": "2026-12-02",
+      "publish_date": "2026-12-03",
       "source_dir": "48_gyesu",
       "source_sha256": "2d508d05c98472496eaf12000bab8ae83c323a0ad91ad60b0fca2b6940a2c6b1",
       "source_url": "https://sajufortune.kr/2027/ilgan/gyesu",
@@ -1439,6 +1487,7 @@
         "미(未)에서의 12운성은 묘 이지만, 12운성은 길흉 점수가 아닙니다."
       ],
       "asset": "assets/048.jpg",
+      "source_publish_date": "2026-12-02",
       "asset_sha256": "91391b0ff397304672d675e9d3b764a11d56bc54a67e394397973b6f881484f9",
       "asset_bytes": 203916
     },
@@ -1447,7 +1496,7 @@
       "index": 49,
       "slug": "month-01",
       "format": "conclusion",
-      "publish_date": "2026-12-03",
+      "publish_date": "2026-12-04",
       "source_dir": "49_month-01",
       "source_sha256": "a2e861f11cc0a5eb27c02cccebfe37805be86df32a037b4113a3d5d78d927aed",
       "source_url": "https://sajufortune.kr/2027",
@@ -1469,6 +1518,7 @@
         "새 목표는 많게 잡기보다 돈·일·건강에서 각각 한두 개만 남기세요."
       ],
       "asset": "assets/049.jpg",
+      "source_publish_date": "2026-12-03",
       "asset_sha256": "b7f4ac6d3b8a58ff3c216a4567a030d18229d20c3597292480582768ece2c0cc",
       "asset_bytes": 307305
     },
@@ -1477,7 +1527,7 @@
       "index": 50,
       "slug": "month-02",
       "format": "checklist",
-      "publish_date": "2026-12-04",
+      "publish_date": "2026-12-05",
       "source_dir": "50_month-02",
       "source_sha256": "c411446402c1723be1c0b58fd49659ef60eb4a1e30c600e664a18464a10ef30f",
       "source_url": "https://sajufortune.kr/2027",
@@ -1499,6 +1549,7 @@
         "큰 결정보다 작은 실행으로 방향이 맞는지 확인하는 것이 좋습니다."
       ],
       "asset": "assets/050.jpg",
+      "source_publish_date": "2026-12-04",
       "asset_sha256": "a77b5e2cfcaad105a358c3e1d0768e53a49d6233e6e734f8e21556ba30cc54d2",
       "asset_bytes": 299583
     },
@@ -1507,7 +1558,7 @@
       "index": 51,
       "slug": "month-03",
       "format": "myth_break",
-      "publish_date": "2026-12-05",
+      "publish_date": "2026-12-06",
       "source_dir": "51_month-03",
       "source_sha256": "a6c92d2627f9b1c29c63aafe3dfc9348dc9af752d732f8003f8522123c27bdc0",
       "source_url": "https://sajufortune.kr/2027",
@@ -1529,6 +1580,7 @@
         "새로운 관계와 제안은 ‘다음 행동’까지 연결해야 실제 기회가 됩니다."
       ],
       "asset": "assets/051.jpg",
+      "source_publish_date": "2026-12-05",
       "asset_sha256": "8ab44c99cb901b33be8a8ee897acfb1cd4686010bf6d84f1f0f8e4fb3d7814e9",
       "asset_bytes": 143518
     },
@@ -1537,7 +1589,7 @@
       "index": 52,
       "slug": "month-04",
       "format": "timing",
-      "publish_date": "2026-12-06",
+      "publish_date": "2026-12-07",
       "source_dir": "52_month-04",
       "source_sha256": "89393785dd01ae45d6dd845e04324d9978987b68153580778a91470022dd3c79",
       "source_url": "https://sajufortune.kr/2027",
@@ -1559,6 +1611,7 @@
         "잘 되는 일을 더 키우기 전에 병목이 어디인지 먼저 찾으세요."
       ],
       "asset": "assets/052.jpg",
+      "source_publish_date": "2026-12-06",
       "asset_sha256": "056dd3dfcde5380a835ce0812abe6529a99d3ae4b23046c4d6d82096973af657",
       "asset_bytes": 190194
     },
@@ -1567,7 +1620,7 @@
       "index": 53,
       "slug": "month-05",
       "format": "caution",
-      "publish_date": "2026-12-07",
+      "publish_date": "2026-12-08",
       "source_dir": "53_month-05",
       "source_sha256": "60bdb220da345985e08f12bb2d25592685b0e15164dd4eb2cd67cc24b097654e",
       "source_url": "https://sajufortune.kr/2027",
@@ -1589,6 +1642,7 @@
         "좋은 기회도 너무 많이 잡으면 집중력이 떨어집니다."
       ],
       "asset": "assets/053.jpg",
+      "source_publish_date": "2026-12-07",
       "asset_sha256": "d67f060c0a92030c735ba47b8a4f6483c37fde43c68646634ba78376124e5564",
       "asset_bytes": 149223
     },
@@ -1597,7 +1651,7 @@
       "index": 54,
       "slug": "month-06",
       "format": "action",
-      "publish_date": "2026-12-08",
+      "publish_date": "2026-12-09",
       "source_dir": "54_month-06",
       "source_sha256": "0d2d167e086f8d7e4e4b28ed5a62f11874d75e2e959c72732cbf5abbea997386",
       "source_url": "https://sajufortune.kr/2027",
@@ -1619,6 +1673,7 @@
         "회복 없는 성장은 7월 이후의 선택권을 줄일 수 있습니다."
       ],
       "asset": "assets/054.jpg",
+      "source_publish_date": "2026-12-08",
       "asset_sha256": "a4c99b144b022c8b0561882a6fd844a53d8cc1e03767956b2d04f8a0d122597d",
       "asset_bytes": 176590
     },
@@ -1627,7 +1682,7 @@
       "index": 55,
       "slug": "month-07",
       "format": "conclusion",
-      "publish_date": "2026-12-09",
+      "publish_date": "2026-12-10",
       "source_dir": "55_month-07",
       "source_sha256": "3c10e9ede7067169b1833d70f721d67052f4637c78f1eccaa1418a2e4b0c5da5",
       "source_url": "https://sajufortune.kr/2027",
@@ -1649,6 +1704,7 @@
         "하반기 예산과 시간을 성과가 확인된 곳에 재배치 하는 것이 좋습니다."
       ],
       "asset": "assets/055.jpg",
+      "source_publish_date": "2026-12-09",
       "asset_sha256": "efc89c177bf0acb01afbcc5a14997b2674d0411cfb028071b470f35c51bdb4da",
       "asset_bytes": 154226
     },
@@ -1657,7 +1713,7 @@
       "index": 56,
       "slug": "month-08",
       "format": "checklist",
-      "publish_date": "2026-12-10",
+      "publish_date": "2026-12-11",
       "source_dir": "56_month-08",
       "source_sha256": "f832138cedc98fa656f3b2883f700836102bf876a21caec54861bf970c8806a4",
       "source_url": "https://sajufortune.kr/2027",
@@ -1679,6 +1735,7 @@
         "하반기 성과를 위해 무엇을 표준화할지 정하는 것이 좋습니다."
       ],
       "asset": "assets/056.jpg",
+      "source_publish_date": "2026-12-10",
       "asset_sha256": "360ba36cab79bcf64992b20c4213934aa100454f375c9b4a0c8dc9d8251e332f",
       "asset_bytes": 167647
     },
@@ -1687,7 +1744,7 @@
       "index": 57,
       "slug": "month-09",
       "format": "myth_break",
-      "publish_date": "2026-12-11",
+      "publish_date": "2026-12-12",
       "source_dir": "57_month-09",
       "source_sha256": "2883759285b00dac2c00fbe75e35b95b7d311848610d5afa4d8c20b6dc7bb4f6",
       "source_url": "https://sajufortune.kr/2027",
@@ -1709,6 +1766,7 @@
         "말로 합의한 내용은 기록으로 남기는 습관 이 중요합니다."
       ],
       "asset": "assets/057.jpg",
+      "source_publish_date": "2026-12-11",
       "asset_sha256": "77275e948293e0d4826fae19ac2de7bb612de99987cfc865cbd1e44ad7a6cb49",
       "asset_bytes": 176352
     },
@@ -1717,7 +1775,7 @@
       "index": 58,
       "slug": "month-10",
       "format": "timing",
-      "publish_date": "2026-12-12",
+      "publish_date": "2026-12-13",
       "source_dir": "58_month-10",
       "source_sha256": "3d8f1179b47de1c85ea6a19a972a5c4672230218df86c95773f9d6ad3c125503",
       "source_url": "https://sajufortune.kr/2027",
@@ -1739,6 +1797,7 @@
         "관계에서도 오래된 의무를 자동으로 계속하지 말고 현실에 맞게 조정하세요."
       ],
       "asset": "assets/058.jpg",
+      "source_publish_date": "2026-12-12",
       "asset_sha256": "d715d27789763814b5afdb261f04c102967e38eb644b267802052f430d309148",
       "asset_bytes": 165916
     },
@@ -1747,7 +1806,7 @@
       "index": 59,
       "slug": "month-11",
       "format": "caution",
-      "publish_date": "2026-12-13",
+      "publish_date": "2026-12-14",
       "source_dir": "59_month-11",
       "source_sha256": "0acd293ba8c14f5d888324f5ec8aaae92094f6bcffb71348369661d2d4ec8a37",
       "source_url": "https://sajufortune.kr/2027",
@@ -1769,6 +1828,7 @@
         "관계에서는 넓게 만나기보다 깊이 필요한 사람에게 시간을 쓰는 것이 좋습니다."
       ],
       "asset": "assets/059.jpg",
+      "source_publish_date": "2026-12-13",
       "asset_sha256": "c72a443ddde0b6d6783a98909fb31c49974a93c74d02097026860a90b6cf810b",
       "asset_bytes": 187036
     },
@@ -1777,7 +1837,7 @@
       "index": 60,
       "slug": "month-12",
       "format": "action",
-      "publish_date": "2026-12-14",
+      "publish_date": "2026-12-15",
       "source_dir": "60_month-12",
       "source_sha256": "c3bf15ec45d977d023c9cb283cdf2b213e66fdd8435ec9b046e7d22efceffeb2",
       "source_url": "https://sajufortune.kr/2027",
@@ -1799,6 +1859,7 @@
         "다음 해 준비보다 먼저 올해의 기록과 정산을 끝내는 것 이 중요합니다."
       ],
       "asset": "assets/060.jpg",
+      "source_publish_date": "2026-12-14",
       "asset_sha256": "80b87739763080bdbbbc6ce6b3cd1c19fb0dd97859884f4a6f5acb98aa8a6ea5",
       "asset_bytes": 164074
     }

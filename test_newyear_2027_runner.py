@@ -194,6 +194,9 @@ class _FakeThreadsApi:
 class _FakeYoutubeUploader:
     EXPECT_CHANNEL_TITLE = "운명과학TV"
 
+    @staticmethod
+    def _credentials(): return object()
+
     def __init__(self, video_id="youtube_123"):
         self.video_id = video_id
         self.calls = []
@@ -286,6 +289,17 @@ class _FakePrivateUploaderModule:
     EXPECT_CHANNEL_TITLE = "운명과학TV"
     @staticmethod
     def _credentials(): return object()
+
+
+@pytest.fixture(autouse=True)
+def _youtube_channel_identity_fixture(monkeypatch):
+    monkeypatch.setenv("YOUTUBE_EXPECT_CHANNEL_ID", "UC_TEST_CHANNEL")
+    import googleapiclient.discovery
+    monkeypatch.setattr(
+        googleapiclient.discovery,
+        "build",
+        lambda *args, **kwargs: _FakeYoutubeService(),
+    )
 
 
 def test_private_youtube_canary_has_no_publish_at(tmp_path):
@@ -1134,3 +1148,84 @@ def test_receipt_owner_verifier_anchors_runner_to_script_checkout():
     assert 'BASH_SOURCE[0]' in helper
     assert 'ROOT="$(git rev-parse --show-toplevel)"' not in helper
     assert 'python3 "$ROOT/newyear_2027_runner.py"' in helper
+
+
+def test_build_bundle_delays_fanout_one_day_and_preserves_source_date(tmp_path):
+    Image = pytest.importorskip("PIL.Image")
+    source = tmp_path / "source"
+    bundle = tmp_path / "bundle"
+    post, _ = _post(source, index=1, slug="wealth", publish_date="2026-10-16")
+    (post / "images").mkdir()
+    Image.new("RGB", (100, 100), "white").save(post / "images" / "hero.png")
+    manifest = ny.build_bundle(source, bundle, expected_count=1)
+    item = manifest["items"][0]
+    assert manifest["fanout_delay_days"] == 1
+    assert item["source_publish_date"] == "2026-10-16"
+    assert item["publish_date"] == "2026-10-17"
+
+
+def test_source_gate_accepts_one_day_delayed_fanout_against_original_naver_date(tmp_path):
+    post, article = _post(tmp_path, publish_date="2026-10-16")
+    item = {
+        "content_id": "ny2027-001-wealth",
+        "source_dir": post.name,
+        "source_publish_date": "2026-10-16",
+        "publish_date": "2026-10-17",
+        "source_sha256": _sha(article),
+    }
+    result = ny.source_gate(item, tmp_path, readiness_fn=lambda p: {"ready": True, "reasons": []})
+    assert result["ok"] is True
+    assert result["source_publish_date"] == "2026-10-16"
+
+
+def test_source_gate_rejects_delayed_item_when_original_source_date_is_wrong(tmp_path):
+    post, article = _post(tmp_path, publish_date="2026-10-16")
+    item = {
+        "content_id": "ny2027-001-wealth",
+        "source_dir": post.name,
+        "source_publish_date": "2026-10-15",
+        "publish_date": "2026-10-17",
+        "source_sha256": _sha(article),
+    }
+    result = ny.source_gate(item, tmp_path, readiness_fn=lambda p: {"ready": True, "reasons": []})
+    assert result["ok"] is False
+    assert result["reason"] == "source_publish_date_mismatch"
+
+
+def test_normal_youtube_requires_fixed_channel_id_before_upload(tmp_path, monkeypatch):
+    uploader = _FakeYoutubeUploader()
+    video = tmp_path / "short.mp4"
+    video.write_bytes(b"video")
+    receipt = tmp_path / "youtube.json"
+    item = _intent_item()
+    ny.prepare_intent(receipt, item=item, platform="youtube", account="운명과학TV")
+    monkeypatch.delenv("YOUTUBE_EXPECT_CHANNEL_ID", raising=False)
+    with pytest.raises(RuntimeError, match="YOUTUBE_EXPECT_CHANNEL_ID is required"):
+        ny.publish_youtube(
+            item,
+            video,
+            receipt_path=receipt,
+            publish_at="2026-10-17T15:30:00+09:00",
+            uploader_module=uploader,
+        )
+    assert uploader.calls == []
+
+
+def test_private_canary_requires_fixed_channel_id_before_insert(tmp_path, monkeypatch):
+    service = _FakeYoutubeService()
+    video = tmp_path / "short.mp4"
+    video.write_bytes(b"video")
+    receipt = tmp_path / "youtube_canary.json"
+    item = _intent_item()
+    ny.prepare_intent(receipt, item=item, platform="youtube_canary", account="운명과학TV")
+    monkeypatch.delenv("YOUTUBE_EXPECT_CHANNEL_ID", raising=False)
+    with pytest.raises(RuntimeError, match="YOUTUBE_EXPECT_CHANNEL_ID is required"):
+        ny.publish_youtube_private_canary(
+            item,
+            video,
+            receipt_path=receipt,
+            uploader_module=_FakePrivateUploaderModule,
+            youtube_builder=lambda *a, **k: service,
+            media_factory=lambda path, **kwargs: {"path": str(path), **kwargs},
+        )
+    assert service.insert_body is None
