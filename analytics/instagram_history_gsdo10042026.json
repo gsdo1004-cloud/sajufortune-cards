@@ -1,0 +1,576 @@
+{
+  "account_key": "gsdo10042026",
+  "updated_at": "2026-10-16T11:33:11+00:00",
+  "media": {
+    "18005869466791992": {
+      "timestamp": "2026-10-16T11:32:55+0000",
+      "permalink": "https://www.instagram.com/reel/DejbwuVCY0a/",
+      "media_product_type": "REELS",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 0,
+            "reach": 0,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 0
+          },
+          "like_count": 0,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18148124935559955": {
+      "timestamp": "2026-10-15T11:40:03+0000",
+      "permalink": "https://www.instagram.com/p/Deg3z6Dm2ye/",
+      "media_product_type": "FEED",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 27,
+            "reach": 16,
+            "saved": 1,
+            "shares": 0,
+            "total_interactions": 4
+          },
+          "like_count": 3,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18137571940642903": {
+      "timestamp": "2026-10-14T12:03:31+0000",
+      "permalink": "https://www.instagram.com/reel/DeeVrClHGnA/",
+      "media_product_type": "REELS",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 17,
+            "reach": 15,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 1
+          },
+          "like_count": 1,
+          "comments_count": 0
+        }
+      ]
+    },
+    "17892501528681702": {
+      "timestamp": "2026-10-13T14:21:13+0000",
+      "permalink": "https://www.instagram.com/p/DecAqmiG6r0/",
+      "media_product_type": "FEED",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 26,
+            "reach": 16,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 3
+          },
+          "like_count": 3,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18119333869752989": {
+      "timestamp": "2026-10-12T15:40:23+0000",
+      "permalink": "https://www.instagram.com/p/DeZk7iNoDcQ/",
+      "media_product_type": "FEED",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 25,
+            "reach": 14,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 3
+          },
+          "like_count": 3,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18108388480932712": {
+      "timestamp": "2026-10-11T13:01:36+0000",
+      "permalink": "https://www.instagram.com/p/DeWt9pykZDy/",
+      "media_product_type": "FEED",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 22,
+            "reach": 18,
+            "saved": 1,
+            "shares": 0,
+            "total_interactions": 4
+          },
+          "like_count": 3,
+          "comments_count": 0
+        }
+      ]
+    },
+    "17894939025612918": {
+      "timestamp": "2026-10-10T16:17:07+0000",
+      "permalink": "https://www.instagram.com/reel/DeUfdhfghVs/",
+      "media_product_type": "REELS",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 26,
+            "reach": 16,
+            "saved": 1,
+            "shares": 0,
+            "total_interactions": 5
+          },
+          "like_count": 4,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18135688885642659": {
+      "timestamp": "2026-10-09T17:28:42+0000",
+      "permalink": "https://www.instagram.com/reel/DeSC3mQEclu/",
+      "media_product_type": "REELS",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 23,
+            "reach": 14,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 1
+          },
+          "like_count": 1,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18104694188368315": {
+      "timestamp": "2026-10-09T13:25:48+0000",
+      "permalink": "https://www.instagram.com/reel/DeRnHUtDoRw/",
+      "media_product_type": "REELS",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 217,
+            "reach": 197,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 1
+          },
+          "like_count": 1,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18123242251718392": {
+      "timestamp": "2026-10-08T17:56:22+0000",
+      "permalink": "https://www.instagram.com/reel/DePhPQhkjl6/",
+      "media_product_type": "REELS",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 12,
+            "reach": 10,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 2
+          },
+          "like_count": 2,
+          "comments_count": 0
+        }
+      ]
+    },
+    "17956481886082279": {
+      "timestamp": "2026-10-08T13:40:04+0000",
+      "permalink": "https://www.instagram.com/p/DePD-wzkUq3/",
+      "media_product_type": "FEED",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 17,
+            "reach": 13,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 2
+          },
+          "like_count": 2,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18129137275888866": {
+      "timestamp": "2026-10-07T17:51:50+0000",
+      "permalink": "https://www.instagram.com/reel/DeM77K9j8-p/",
+      "media_product_type": "REELS",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 16,
+            "reach": 16,
+            "saved": 1,
+            "shares": 0,
+            "total_interactions": 5
+          },
+          "like_count": 4,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18056283134799343": {
+      "timestamp": "2026-10-07T13:34:13+0000",
+      "permalink": "https://www.instagram.com/reel/DeMefXVmw13/",
+      "media_product_type": "REELS",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 124,
+            "reach": 116,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 1
+          },
+          "like_count": 1,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18176404579403089": {
+      "timestamp": "2026-10-06T17:14:57+0000",
+      "permalink": "https://www.instagram.com/reel/DeKS7HVjUOE/",
+      "media_product_type": "REELS",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 142,
+            "reach": 125,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 2
+          },
+          "like_count": 2,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18080919953518900": {
+      "timestamp": "2026-10-06T13:25:24+0000",
+      "permalink": "https://www.instagram.com/p/DeJ4tswFi_6/",
+      "media_product_type": "FEED",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 25,
+            "reach": 15,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 3
+          },
+          "like_count": 3,
+          "comments_count": 0
+        }
+      ]
+    },
+    "17935606767380574": {
+      "timestamp": "2026-10-05T19:54:39+0000",
+      "permalink": "https://www.instagram.com/reel/DeIAZCLkiM-/",
+      "media_product_type": "REELS",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 412,
+            "reach": 371,
+            "saved": 1,
+            "shares": 0,
+            "total_interactions": 6
+          },
+          "like_count": 5,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18125222981313232": {
+      "timestamp": "2026-10-05T15:20:24+0000",
+      "permalink": "https://www.instagram.com/p/DeHhE74kRtA/",
+      "media_product_type": "FEED",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 24,
+            "reach": 16,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 2
+          },
+          "like_count": 2,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18072649886748537": {
+      "timestamp": "2026-10-05T14:52:36+0000",
+      "permalink": "https://www.instagram.com/reel/DeHd3OcCGnN/",
+      "media_product_type": "REELS",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 16,
+            "reach": 13,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 1
+          },
+          "like_count": 1,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18098903384305626": {
+      "timestamp": "2026-10-04T15:49:56+0000",
+      "permalink": "https://www.instagram.com/reel/DeE_l4vEb3f/",
+      "media_product_type": "REELS",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 31,
+            "reach": 20,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 2
+          },
+          "like_count": 2,
+          "comments_count": 0
+        }
+      ]
+    },
+    "17997212756825042": {
+      "timestamp": "2026-10-04T12:30:08+0000",
+      "permalink": "https://www.instagram.com/p/DeEoy_yFick/",
+      "media_product_type": "FEED",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 26,
+            "reach": 18,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 3
+          },
+          "like_count": 3,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18160895527499015": {
+      "timestamp": "2026-10-03T15:11:25+0000",
+      "permalink": "https://www.instagram.com/reel/DeCWZ50gsLO/",
+      "media_product_type": "REELS",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 28,
+            "reach": 13,
+            "saved": 1,
+            "shares": 0,
+            "total_interactions": 4
+          },
+          "like_count": 3,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18115801225791653": {
+      "timestamp": "2026-10-02T16:40:56+0000",
+      "permalink": "https://www.instagram.com/reel/Dd_71i1AcNe/",
+      "media_product_type": "REELS",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 21,
+            "reach": 15,
+            "saved": 1,
+            "shares": 0,
+            "total_interactions": 5
+          },
+          "like_count": 4,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18093762065409572": {
+      "timestamp": "2026-10-02T12:47:12+0000",
+      "permalink": "https://www.instagram.com/reel/Dd_hIJzgoIO/",
+      "media_product_type": "REELS",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 208,
+            "reach": 195,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 1
+          },
+          "like_count": 1,
+          "comments_count": 0
+        }
+      ]
+    },
+    "17910900042508417": {
+      "timestamp": "2026-10-01T17:25:08+0000",
+      "permalink": "https://www.instagram.com/reel/Dd9cHg5AiUU/",
+      "media_product_type": "REELS",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 33,
+            "reach": 23,
+            "saved": 1,
+            "shares": 0,
+            "total_interactions": 6
+          },
+          "like_count": 5,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18108175306923261": {
+      "timestamp": "2026-10-01T13:28:49+0000",
+      "permalink": "https://www.instagram.com/p/Dd9BIPkG3rq/",
+      "media_product_type": "FEED",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 26,
+            "reach": 16,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 2
+          },
+          "like_count": 2,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18158098171506433": {
+      "timestamp": "2026-09-30T16:52:25+0000",
+      "permalink": "https://www.instagram.com/reel/Dd6zkN8DFkK/",
+      "media_product_type": "REELS",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 283,
+            "reach": 257,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 6
+          },
+          "like_count": 6,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18134179624654679": {
+      "timestamp": "2026-09-30T12:44:53+0000",
+      "permalink": "https://www.instagram.com/reel/Dd6XR4UGER0/",
+      "media_product_type": "REELS",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 204,
+            "reach": 195,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 2
+          },
+          "like_count": 2,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18059606528717178": {
+      "timestamp": "2026-09-29T16:55:38+0000",
+      "permalink": "https://www.instagram.com/reel/Dd4PImHiLSg/",
+      "media_product_type": "REELS",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 483,
+            "reach": 411,
+            "saved": 2,
+            "shares": 2,
+            "total_interactions": 16
+          },
+          "like_count": 12,
+          "comments_count": 0
+        }
+      ]
+    },
+    "18134692891652163": {
+      "timestamp": "2026-09-29T13:02:13+0000",
+      "permalink": "https://www.instagram.com/p/Dd30fwdm_u_/",
+      "media_product_type": "FEED",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 34,
+            "reach": 24,
+            "saved": 1,
+            "shares": 0,
+            "total_interactions": 7
+          },
+          "like_count": 6,
+          "comments_count": 0
+        }
+      ]
+    },
+    "17910968826544120": {
+      "timestamp": "2026-09-28T18:41:12+0000",
+      "permalink": "https://www.instagram.com/reel/Dd12bDkgmWt/",
+      "media_product_type": "REELS",
+      "samples": [
+        {
+          "collected_at": "2026-10-16T11:33:11+00:00",
+          "metrics": {
+            "views": 21,
+            "reach": 19,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 2
+          },
+          "like_count": 2,
+          "comments_count": 0
+        }
+      ]
+    }
+  }
+}
