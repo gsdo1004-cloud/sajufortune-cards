@@ -7,6 +7,7 @@ later layers; the functions in this section are safe to exercise offline.
 """
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import os
@@ -14,8 +15,10 @@ import re
 import subprocess
 import tempfile
 import time
+import importlib.util
+import sys
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, time as dt_time, timedelta, timezone
 from pathlib import Path
 from typing import Callable, Iterable
 
@@ -541,7 +544,7 @@ def publish_youtube_private_canary(
 ) -> str:
     """Upload a true private canary: privacy=private and no publishAt field."""
     account = "운명과학TV"
-    _require_intent(receipt_path, item=item, platform="youtube", account=account)
+    _require_intent(receipt_path, item=item, platform="youtube_canary", account=account)
     video = Path(video)
     if not video.is_file():
         raise FileNotFoundError(video)
@@ -765,3 +768,271 @@ def render_short(
             "output_sha256": _sha256(out_path),
             "tts": tts_meta,
         }
+
+
+KST = timezone(timedelta(hours=9))
+
+
+def _receipt_path(bundle_root: Path, date_iso: str, platform: str) -> Path:
+    if not re.fullmatch(r"[a-z0-9_]+", platform):
+        raise ValueError("invalid platform receipt name")
+    return Path(bundle_root) / "receipts" / date_iso / f"{platform}.json"
+
+
+def _receipt_action(path: Path) -> str:
+    path = Path(path)
+    if not path.exists():
+        return "continue"
+    try:
+        status = _read_json(path).get("status")
+    except Exception:
+        return "hold"
+    if status == "PUBLISHED":
+        return "skip"
+    return "hold"
+
+
+def _append_status(path: Path | None, payload: dict) -> None:
+    if path is None:
+        return
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    row = {"ts": _now_iso(), **payload}
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
+def _load_existing_readiness(source_root: Path):
+    source_root = Path(source_root).resolve()
+    project_root = source_root.parent.parent
+    module_path = project_root / "publish_2027_series.py"
+    if not module_path.is_file():
+        raise RuntimeError(f"existing Naver readiness module not found: {module_path}")
+    spec = importlib.util.spec_from_file_location("naver_2027_publish_readonly", module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("cannot load existing Naver readiness module")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    fn = getattr(mod, "readiness", None)
+    if not callable(fn):
+        raise RuntimeError("existing Naver readiness() is unavailable")
+    return fn
+
+
+def dispatch_daily(
+    *,
+    date_iso: str,
+    manifest_path: Path,
+    source_root: Path,
+    send: bool,
+    now: datetime | None = None,
+    readiness_fn=None,
+    command_runner=None,
+    lock_path: Path | None = None,
+    status_path: Path | None = None,
+    repo: str = "gsdo1004-cloud/sajufortune-cards",
+    workflow: str = "newyear-2027-fanout.yml",
+    mode: str = "normal",
+) -> dict:
+    """Gate locally, then dispatch only the independent 2027 GitHub workflow."""
+    command_runner = command_runner or subprocess.run
+    now_kst = now or datetime.now(KST)
+    if now_kst.tzinfo is None:
+        now_kst = now_kst.replace(tzinfo=KST)
+    else:
+        now_kst = now_kst.astimezone(KST)
+    lock_path = Path(lock_path or Path("D:/automation_control/state/newyear_2027_fanout.lock"))
+
+    try:
+        with OwnedFileLock(lock_path):
+            manifest = load_manifest(Path(manifest_path))
+            item = select_manifest_item(manifest, date_iso)
+            if item is None:
+                result = {"action": "hold", "reason": "no_due_content", "date": date_iso}
+                _append_status(status_path, result)
+                return result
+            readiness_fn = readiness_fn or _load_existing_readiness(Path(source_root))
+            gate = source_gate(item, Path(source_root), readiness_fn=readiness_fn)
+            if not gate.get("ok"):
+                result = {"action": "hold", "reason": gate.get("reason", "source_gate_failed"), "date": date_iso}
+                _append_status(status_path, result)
+                return result
+            if not send:
+                result = {"action": "dry_run", "reason": "source_gate_passed", "date": date_iso, "content_id": item["content_id"]}
+                _append_status(status_path, result)
+                return result
+            if now_kst.date().isoformat() != date_iso or not (dt_time(11, 0) <= now_kst.time().replace(tzinfo=None) <= dt_time(14, 0)):
+                result = {"action": "hold", "reason": "outside_safe_dispatch_window", "date": date_iso}
+                _append_status(status_path, result)
+                return result
+            cmd = [
+                "gh", "workflow", "run", workflow,
+                "--repo", repo, "--ref", "main",
+                "-f", f"date={date_iso}", "-f", "send=true", "-f", f"mode={mode}",
+            ]
+            proc = command_runner(cmd, capture_output=True, text=True, timeout=60, check=False)
+            if getattr(proc, "returncode", 1) != 0:
+                result = {"action": "hold", "reason": "gh_dispatch_failed", "date": date_iso,
+                          "stderr": str(getattr(proc, "stderr", ""))[-500:]}
+                _append_status(status_path, result)
+                return result
+            result = {"action": "dispatched", "reason": "source_gate_passed", "date": date_iso,
+                      "content_id": item["content_id"], "workflow": workflow, "mode": mode}
+            _append_status(status_path, result)
+            return result
+    except FileExistsError:
+        result = {"action": "hold", "reason": "newyear_2027_lock_busy", "date": date_iso}
+        _append_status(status_path, result)
+        return result
+
+
+def _workflow_item(bundle_root: Path, date_iso: str) -> dict:
+    manifest = load_manifest(Path(bundle_root) / "content.json")
+    item = select_manifest_item(manifest, date_iso)
+    if item is None:
+        raise RuntimeError(f"no 2027 bundle item for {date_iso}")
+    return dict(item)
+
+
+def _emit_output(path: str | None, **values) -> None:
+    if not path:
+        return
+    with Path(path).open("a", encoding="utf-8") as fh:
+        for key, value in values.items():
+            fh.write(f"{key}={value}\n")
+
+
+def _cmd_state(args) -> int:
+    receipt = _receipt_path(Path(args.bundle_root), args.date, args.platform)
+    action = _receipt_action(receipt)
+    print(json.dumps({"action": action, "receipt": str(receipt)}, ensure_ascii=False))
+    _emit_output(args.github_output, action=action, receipt=str(receipt))
+    return 0
+
+
+def _cmd_intent(args) -> int:
+    bundle = Path(args.bundle_root)
+    item = _workflow_item(bundle, args.date)
+    receipt = _receipt_path(bundle, args.date, args.platform)
+    action = _receipt_action(receipt)
+    if action == "continue":
+        if args.video:
+            video = Path(args.video)
+            if not video.is_file():
+                raise FileNotFoundError(video)
+            item["output_sha256"] = _sha256(video)
+        prepare_intent(receipt, item=item, platform=args.platform, account=args.account)
+        action = "publish"
+    print(json.dumps({"action": action, "receipt": str(receipt)}, ensure_ascii=False))
+    _emit_output(args.github_output, action=action, receipt=str(receipt))
+    return 0
+
+
+def _cmd_render(args) -> int:
+    bundle = Path(args.bundle_root)
+    item = _workflow_item(bundle, args.date)
+    out = Path(args.output or (bundle / "rendered" / f"{args.date}.mp4"))
+    result = render_short(item, bundle, out)
+    print(json.dumps(result, ensure_ascii=False))
+    return 0
+
+
+def _cmd_publish_threads(args) -> int:
+    bundle = Path(args.bundle_root)
+    item = _workflow_item(bundle, args.date)
+    receipt = _receipt_path(bundle, args.date, "threads")
+    print(publish_threads_text(item, receipt_path=receipt, account=args.account))
+    return 0
+
+
+def _cmd_publish_youtube(args) -> int:
+    bundle = Path(args.bundle_root)
+    item = _workflow_item(bundle, args.date)
+    video = Path(args.video or (bundle / "rendered" / f"{args.date}.mp4"))
+    item["output_sha256"] = _sha256(video)
+    if args.canary:
+        receipt = _receipt_path(bundle, args.date, "youtube_canary")
+        remote = publish_youtube_private_canary(item, video, receipt_path=receipt)
+    else:
+        receipt = _receipt_path(bundle, args.date, "youtube")
+        remote = publish_youtube(item, video, receipt_path=receipt, publish_at=args.publish_at)
+    print(remote)
+    return 0
+
+
+def _cmd_dispatch(args) -> int:
+    result = dispatch_daily(
+        date_iso=args.date,
+        manifest_path=Path(args.manifest),
+        source_root=Path(args.source_root),
+        send=args.send,
+        lock_path=Path(args.lock),
+        status_path=Path(args.status),
+        repo=args.repo,
+        workflow=args.workflow,
+        mode=args.mode,
+    )
+    print(json.dumps(result, ensure_ascii=False))
+    return 0 if result["action"] in {"dry_run", "dispatched", "hold"} else 1
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Independent 2027 Threads/Shorts fanout")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    state = sub.add_parser("state")
+    state.add_argument("--date", required=True)
+    state.add_argument("--platform", required=True)
+    state.add_argument("--bundle-root", default="newyear_2027")
+    state.add_argument("--github-output")
+    state.set_defaults(func=_cmd_state)
+
+    intent = sub.add_parser("intent")
+    intent.add_argument("--date", required=True)
+    intent.add_argument("--platform", required=True, choices=["threads", "youtube", "youtube_canary"])
+    intent.add_argument("--account", required=True)
+    intent.add_argument("--video")
+    intent.add_argument("--bundle-root", default="newyear_2027")
+    intent.add_argument("--github-output")
+    intent.set_defaults(func=_cmd_intent)
+
+    render = sub.add_parser("render")
+    render.add_argument("--date", required=True)
+    render.add_argument("--bundle-root", default="newyear_2027")
+    render.add_argument("--output")
+    render.set_defaults(func=_cmd_render)
+
+    threads = sub.add_parser("publish-threads")
+    threads.add_argument("--date", required=True)
+    threads.add_argument("--bundle-root", default="newyear_2027")
+    threads.add_argument("--account", default="gsdo10042026")
+    threads.set_defaults(func=_cmd_publish_threads)
+
+    youtube = sub.add_parser("publish-youtube")
+    youtube.add_argument("--date", required=True)
+    youtube.add_argument("--bundle-root", default="newyear_2027")
+    youtube.add_argument("--video")
+    youtube.add_argument("--publish-at")
+    youtube.add_argument("--canary", action="store_true")
+    youtube.set_defaults(func=_cmd_publish_youtube)
+
+    dispatch = sub.add_parser("dispatch")
+    dispatch.add_argument("--date", required=True)
+    dispatch.add_argument("--manifest", required=True)
+    dispatch.add_argument("--source-root", required=True)
+    dispatch.add_argument("--send", action="store_true")
+    dispatch.add_argument("--lock", default=r"D:\automation_control\state\newyear_2027_fanout.lock")
+    dispatch.add_argument("--status", default=r"D:\automation_control\state\newyear_2027_fanout_status.jsonl")
+    dispatch.add_argument("--repo", default="gsdo1004-cloud/sajufortune-cards")
+    dispatch.add_argument("--workflow", default="newyear-2027-fanout.yml")
+    dispatch.add_argument("--mode", default="normal", choices=["normal", "threads_canary", "youtube_private_canary"])
+    dispatch.set_defaults(func=_cmd_dispatch)
+
+    args = parser.parse_args(argv)
+    if args.command == "publish-youtube" and not args.canary and not args.publish_at:
+        parser.error("publish-youtube requires --publish-at unless --canary is used")
+    return int(args.func(args))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -13,7 +13,7 @@ def _sha(text: str) -> str:
 
 def _post(tmp_path: Path, *, index=1, slug="wealth", publish_date="2026-10-16") -> tuple[Path, str]:
     post = tmp_path / f"{index:02d}_{slug}"
-    post.mkdir()
+    post.mkdir(parents=True)
     article = """# 2027년 재물운 총정리
 
 2027년은 정미(丁未)년입니다. 재물운은 재성 하나만 보는 것이 아니라 원국과 대운의 흐름을 함께 봐야 합니다.
@@ -291,7 +291,7 @@ def test_private_youtube_canary_has_no_publish_at(tmp_path):
     video.write_bytes(b"video")
     receipt = tmp_path / "youtube.json"
     item = _intent_item()
-    ny.prepare_intent(receipt, item=item, platform="youtube", account="운명과학TV")
+    ny.prepare_intent(receipt, item=item, platform="youtube_canary", account="운명과학TV")
     remote_id = ny.publish_youtube_private_canary(
         item,
         video,
@@ -374,3 +374,120 @@ def test_render_short_blocks_out_of_range_narration(tmp_path):
 
     with pytest.raises(ny.RenderBlocked, match="25-40"):
         ny.render_short(item, bundle, tmp_path / "out.mp4", tts_synth=fake_tts, command_runner=lambda *a, **k: None, probe_fn=lambda p: 44.0)
+
+
+def test_private_canary_uses_separate_youtube_canary_publish_key(tmp_path):
+    service = _FakeYoutubeService()
+    video = tmp_path / "short.mp4"
+    video.write_bytes(b"video")
+    receipt = tmp_path / "youtube_canary.json"
+    item = _intent_item()
+    intent = ny.prepare_intent(receipt, item=item, platform="youtube_canary", account="운명과학TV")
+    assert intent["publish_key"].endswith(":youtube_canary:운명과학TV")
+    remote_id = ny.publish_youtube_private_canary(
+        item,
+        video,
+        receipt_path=receipt,
+        uploader_module=_FakePrivateUploaderModule,
+        youtube_builder=lambda *a, **k: service,
+        media_factory=lambda path, **kwargs: {"path": str(path), **kwargs},
+    )
+    assert remote_id == "yt_private_123"
+
+
+def test_dispatch_dry_run_never_invokes_gh(tmp_path):
+    post, _ = _post(tmp_path / "sources")
+    item = ny.build_entry(post)
+    manifest_path = tmp_path / "content.json"
+    manifest_path.write_text(json.dumps({"items": [item]}, ensure_ascii=False), encoding="utf-8")
+
+    def should_not_run(*args, **kwargs):
+        raise AssertionError("gh must not run in dry-run")
+
+    result = ny.dispatch_daily(
+        date_iso="2026-10-16",
+        manifest_path=manifest_path,
+        source_root=post.parent,
+        send=False,
+        now=ny.datetime.fromisoformat("2026-10-16T15:30:00+09:00"),
+        readiness_fn=lambda p: {"ready": True, "reasons": []},
+        command_runner=should_not_run,
+        lock_path=tmp_path / "fanout.lock",
+        status_path=tmp_path / "status.jsonl",
+    )
+    assert result["action"] == "dry_run"
+
+
+def test_dispatch_live_invokes_only_new_workflow_inside_safe_window(tmp_path):
+    post, _ = _post(tmp_path / "sources")
+    item = ny.build_entry(post)
+    manifest_path = tmp_path / "content.json"
+    manifest_path.write_text(json.dumps({"items": [item]}, ensure_ascii=False), encoding="utf-8")
+    calls = []
+
+    class R:
+        returncode = 0
+        stdout = "queued"
+        stderr = ""
+
+    def fake_run(cmd, **kwargs):
+        calls.append(list(cmd))
+        return R()
+
+    result = ny.dispatch_daily(
+        date_iso="2026-10-16",
+        manifest_path=manifest_path,
+        source_root=post.parent,
+        send=True,
+        now=ny.datetime.fromisoformat("2026-10-16T12:20:00+09:00"),
+        readiness_fn=lambda p: {"ready": True, "reasons": []},
+        command_runner=fake_run,
+        lock_path=tmp_path / "fanout.lock",
+        status_path=tmp_path / "status.jsonl",
+        repo="gsdo1004-cloud/sajufortune-cards",
+        workflow="newyear-2027-fanout.yml",
+    )
+    assert result["action"] == "dispatched"
+    assert len(calls) == 1
+    cmd = calls[0]
+    assert cmd[:3] == ["gh", "workflow", "run"]
+    assert "newyear-2027-fanout.yml" in cmd
+    assert "date=2026-10-16" in cmd
+    assert "send=true" in cmd
+    assert not any("zodiac" in x.lower() for x in cmd)
+
+
+def test_dispatch_live_blocks_after_1400_without_gh(tmp_path):
+    post, _ = _post(tmp_path / "sources")
+    item = ny.build_entry(post)
+    manifest_path = tmp_path / "content.json"
+    manifest_path.write_text(json.dumps({"items": [item]}, ensure_ascii=False), encoding="utf-8")
+    calls = []
+    result = ny.dispatch_daily(
+        date_iso="2026-10-16",
+        manifest_path=manifest_path,
+        source_root=post.parent,
+        send=True,
+        now=ny.datetime.fromisoformat("2026-10-16T14:01:00+09:00"),
+        readiness_fn=lambda p: {"ready": True, "reasons": []},
+        command_runner=lambda *a, **k: calls.append(a),
+        lock_path=tmp_path / "fanout.lock",
+        status_path=tmp_path / "status.jsonl",
+    )
+    assert result["action"] == "hold"
+    assert result["reason"] == "outside_safe_dispatch_window"
+    assert calls == []
+
+
+def test_new_workflow_is_dispatch_only_and_platform_isolated():
+    workflow = Path(__file__).resolve().parent / ".github" / "workflows" / "newyear-2027-fanout.yml"
+    text = workflow.read_text(encoding="utf-8")
+    assert "workflow_dispatch:" in text
+    assert "schedule:" not in text
+    assert "newyear-2027-fanout-${{ inputs.date }}" in text
+    assert "threads:" in text
+    assert "youtube:" in text
+    assert "needs: threads" in text
+    assert "always()" in text
+    assert "youtube_canary" in text
+    assert "newyear_2027/receipts" in text

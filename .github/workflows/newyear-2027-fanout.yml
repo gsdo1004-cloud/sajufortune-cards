@@ -1,0 +1,142 @@
+name: 2027 신년운세 추가 발행 (Threads + Shorts)
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'KST 발행 날짜 YYYY-MM-DD'
+        required: true
+        type: string
+      send:
+        description: '실제 원격 발행'
+        required: true
+        default: false
+        type: boolean
+      mode:
+        description: 'normal / threads_canary / youtube_private_canary'
+        required: true
+        default: normal
+        type: choice
+        options:
+          - normal
+          - threads_canary
+          - youtube_private_canary
+
+permissions:
+  contents: write
+
+concurrency:
+  group: newyear-2027-fanout-${{ inputs.date }}
+  cancel-in-progress: false
+
+jobs:
+  threads:
+    if: ${{ inputs.send == true && (inputs.mode == 'normal' || inputs.mode == 'threads_canary') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Threads 의존성
+        run: pip install requests
+      - name: Threads PUBLISHING intent 생성
+        id: threads_intent
+        run: |
+          python newyear_2027_runner.py intent \
+            --date '${{ inputs.date }}' --platform threads --account gsdo10042026 \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Threads intent 영구 저장
+        if: ${{ steps.threads_intent.outputs.action == 'publish' }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add newyear_2027/receipts/
+          git commit -m 'ny2027 threads intent ${{ inputs.date }}'
+          bash scripts/safe_git_push.sh main
+      - name: Threads 발행
+        if: ${{ steps.threads_intent.outputs.action == 'publish' }}
+        env:
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+          THREADS_EXPECTED_USERNAME: gsdo10042026
+        run: python newyear_2027_runner.py publish-threads --date '${{ inputs.date }}'
+      - name: Threads PUBLISHED receipt 저장
+        if: ${{ steps.threads_intent.outputs.action == 'publish' }}
+        run: |
+          git add newyear_2027/receipts/
+          git commit -m 'ny2027 threads published ${{ inputs.date }}'
+          bash scripts/safe_git_push.sh main
+
+  youtube:
+    needs: threads
+    if: ${{ always() && inputs.send == true && (inputs.mode == 'normal' || inputs.mode == 'youtube_private_canary') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 폰트·ffmpeg 설치
+        run: sudo apt-get update && sudo apt-get install -y fonts-noto-cjk ffmpeg
+      - name: Supertonic 모델 캐시
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/supertonic3
+          key: supertonic3-model-v1
+      - name: Shorts/YouTube 의존성
+        run: pip install Pillow edge-tts supertonic google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2
+      - name: YouTube receipt 상태 확인
+        id: youtube_state
+        run: |
+          PLATFORM=youtube
+          if [ '${{ inputs.mode }}' = 'youtube_private_canary' ]; then PLATFORM=youtube_canary; fi
+          python newyear_2027_runner.py state --date '${{ inputs.date }}' --platform "$PLATFORM" --github-output "$GITHUB_OUTPUT"
+      - name: 2027 Shorts 렌더
+        if: ${{ steps.youtube_state.outputs.action == 'continue' }}
+        env:
+          SUPERTONIC_VOICE: M2
+        run: python newyear_2027_runner.py render --date '${{ inputs.date }}'
+      - name: YouTube PUBLISHING intent 생성
+        id: youtube_intent
+        if: ${{ steps.youtube_state.outputs.action == 'continue' }}
+        run: |
+          PLATFORM=youtube
+          if [ '${{ inputs.mode }}' = 'youtube_private_canary' ]; then PLATFORM=youtube_canary; fi
+          python newyear_2027_runner.py intent \
+            --date '${{ inputs.date }}' --platform "$PLATFORM" --account '운명과학TV' \
+            --video 'newyear_2027/rendered/${{ inputs.date }}.mp4' --github-output "$GITHUB_OUTPUT"
+      - name: YouTube intent 영구 저장
+        if: ${{ steps.youtube_intent.outputs.action == 'publish' }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add newyear_2027/receipts/
+          git commit -m 'ny2027 youtube intent ${{ inputs.date }}'
+          bash scripts/safe_git_push.sh main
+      - name: YouTube 정상 예약발행
+        if: ${{ steps.youtube_intent.outputs.action == 'publish' && inputs.mode == 'normal' }}
+        env:
+          YOUTUBE_TOKEN_UNMYEONG: ${{ secrets.YOUTUBE_TOKEN_UNMYEONG }}
+          YOUTUBE_CLIENT_SECRETS: ${{ secrets.YOUTUBE_CLIENT_SECRETS }}
+          YOUTUBE_EXPECT_CHANNEL: 운명과학TV
+        run: python newyear_2027_runner.py publish-youtube --date '${{ inputs.date }}' --publish-at '${{ inputs.date }}T13:00:00+09:00'
+      - name: YouTube 진짜 비공개 canary
+        if: ${{ steps.youtube_intent.outputs.action == 'publish' && inputs.mode == 'youtube_private_canary' }}
+        env:
+          YOUTUBE_TOKEN_UNMYEONG: ${{ secrets.YOUTUBE_TOKEN_UNMYEONG }}
+          YOUTUBE_CLIENT_SECRETS: ${{ secrets.YOUTUBE_CLIENT_SECRETS }}
+          YOUTUBE_EXPECT_CHANNEL: 운명과학TV
+        run: python newyear_2027_runner.py publish-youtube --date '${{ inputs.date }}' --canary
+      - name: YouTube PUBLISHED receipt 저장
+        if: ${{ steps.youtube_intent.outputs.action == 'publish' }}
+        run: |
+          git add newyear_2027/receipts/
+          git commit -m 'ny2027 youtube published ${{ inputs.date }}'
+          bash scripts/safe_git_push.sh main
