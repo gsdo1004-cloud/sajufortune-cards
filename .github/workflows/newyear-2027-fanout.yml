@@ -41,6 +41,8 @@ jobs:
   gate:
     if: ${{ inputs.send == true }}
     runs-on: ubuntu-latest
+    outputs:
+      commit_sha: ${{ steps.pin.outputs.commit_sha }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -49,6 +51,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: 검증 대상 commit 고정
+        id: pin
+        run: echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - name: 로컬 Naver 발행확인 HMAC 검증
         env:
           NEWYEAR_2027_DISPATCH_KEY: ${{ secrets.NEWYEAR_2027_DISPATCH_KEY }}
@@ -65,7 +70,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ needs.gate.outputs.commit_sha }}
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
@@ -107,7 +112,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ needs.gate.outputs.commit_sha }}
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with:

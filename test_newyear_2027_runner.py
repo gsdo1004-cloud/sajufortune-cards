@@ -689,3 +689,9 @@ def test_normal_youtube_fixed_channel_id_mismatch_blocks_before_upload(tmp_path,
             uploader_module=uploader, youtube_builder=lambda *a, **k: service,
         )
     assert uploader.calls == []
+
+
+def test_workflow_pins_platform_jobs_to_gate_verified_commit():
+    text = (Path(__file__).resolve().parent / ".github" / "workflows" / "newyear-2027-fanout.yml").read_text(encoding="utf-8")
+    assert "commit_sha: ${{ steps.pin.outputs.commit_sha }}" in text
+    assert text.count("ref: ${{ needs.gate.outputs.commit_sha }}") == 2
