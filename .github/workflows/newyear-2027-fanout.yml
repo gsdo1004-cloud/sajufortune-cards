@@ -81,6 +81,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TARGET_DATE: ${{ inputs.date }}
+      AUTH_MODE: ${{ inputs.mode }}
+      SOURCE_URL_INPUT: ${{ inputs.source_url }}
+      EXPIRES_AT_INPUT: ${{ inputs.expires_at }}
+      DISPATCH_PERMIT_INPUT: ${{ inputs.permit }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -91,6 +95,14 @@ jobs:
           python-version: '3.11'
       - name: Threads 의존성
         run: pip install requests
+      - name: Threads intent 전 허가 재검증
+        env:
+          NEWYEAR_2027_DISPATCH_KEY: ${{ secrets.NEWYEAR_2027_DISPATCH_KEY }}
+        run: |
+          python newyear_2027_runner.py verify-permit \
+            --date "$TARGET_DATE" --source-url "$SOURCE_URL_INPUT" \
+            --mode "$AUTH_MODE" --expires-at "$EXPIRES_AT_INPUT" \
+            --permit "$DISPATCH_PERMIT_INPUT"
       - name: Threads PUBLISHING intent 생성
         id: threads_intent
         run: |
@@ -100,9 +112,18 @@ jobs:
       - name: Threads intent 영구 저장 (격리 worktree)
         if: ${{ steps.threads_intent.outputs.action == 'publish' }}
         run: |
-          bash scripts/persist_newyear_2027_receipt.sh \
+          bash scripts/persist_newyear_2027_receipt.sh claim \
             "newyear_2027/receipts/$TARGET_DATE/threads.json" \
             "ny2027 threads intent $TARGET_DATE"
+      - name: Threads 발행 직전 허가 재검증
+        if: ${{ steps.threads_intent.outputs.action == 'publish' }}
+        env:
+          NEWYEAR_2027_DISPATCH_KEY: ${{ secrets.NEWYEAR_2027_DISPATCH_KEY }}
+        run: |
+          python newyear_2027_runner.py verify-permit \
+            --date "$TARGET_DATE" --source-url "$SOURCE_URL_INPUT" \
+            --mode "$AUTH_MODE" --expires-at "$EXPIRES_AT_INPUT" \
+            --permit "$DISPATCH_PERMIT_INPUT"
       - name: Threads 발행
         if: ${{ steps.threads_intent.outputs.action == 'publish' }}
         env:
@@ -113,7 +134,7 @@ jobs:
       - name: Threads PUBLISHED receipt 저장 (격리 worktree)
         if: ${{ steps.threads_intent.outputs.action == 'publish' }}
         run: |
-          bash scripts/persist_newyear_2027_receipt.sh \
+          bash scripts/persist_newyear_2027_receipt.sh finalize \
             "newyear_2027/receipts/$TARGET_DATE/threads.json" \
             "ny2027 threads published $TARGET_DATE"
 
@@ -124,6 +145,9 @@ jobs:
     env:
       TARGET_DATE: ${{ inputs.date }}
       AUTH_MODE: ${{ inputs.mode }}
+      SOURCE_URL_INPUT: ${{ inputs.source_url }}
+      EXPIRES_AT_INPUT: ${{ inputs.expires_at }}
+      DISPATCH_PERMIT_INPUT: ${{ inputs.permit }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -154,6 +178,15 @@ jobs:
         env:
           SUPERTONIC_VOICE: M2
         run: python newyear_2027_runner.py render --date "$TARGET_DATE"
+      - name: YouTube intent 전 허가 재검증
+        if: ${{ steps.youtube_state.outputs.action == 'continue' }}
+        env:
+          NEWYEAR_2027_DISPATCH_KEY: ${{ secrets.NEWYEAR_2027_DISPATCH_KEY }}
+        run: |
+          python newyear_2027_runner.py verify-permit \
+            --date "$TARGET_DATE" --source-url "$SOURCE_URL_INPUT" \
+            --mode "$AUTH_MODE" --expires-at "$EXPIRES_AT_INPUT" \
+            --permit "$DISPATCH_PERMIT_INPUT"
       - name: YouTube PUBLISHING intent 생성
         id: youtube_intent
         if: ${{ steps.youtube_state.outputs.action == 'continue' }}
@@ -168,9 +201,18 @@ jobs:
         run: |
           PLATFORM=youtube
           if [ "$AUTH_MODE" = 'youtube_private_canary' ]; then PLATFORM=youtube_canary; fi
-          bash scripts/persist_newyear_2027_receipt.sh \
+          bash scripts/persist_newyear_2027_receipt.sh claim \
             "newyear_2027/receipts/$TARGET_DATE/$PLATFORM.json" \
             "ny2027 $PLATFORM intent $TARGET_DATE"
+      - name: YouTube 발행 직전 허가 재검증
+        if: ${{ steps.youtube_intent.outputs.action == 'publish' }}
+        env:
+          NEWYEAR_2027_DISPATCH_KEY: ${{ secrets.NEWYEAR_2027_DISPATCH_KEY }}
+        run: |
+          python newyear_2027_runner.py verify-permit \
+            --date "$TARGET_DATE" --source-url "$SOURCE_URL_INPUT" \
+            --mode "$AUTH_MODE" --expires-at "$EXPIRES_AT_INPUT" \
+            --permit "$DISPATCH_PERMIT_INPUT"
       - name: YouTube 정상 예약발행
         if: ${{ steps.youtube_intent.outputs.action == 'publish' && inputs.mode == 'normal' }}
         env:
@@ -192,6 +234,6 @@ jobs:
         run: |
           PLATFORM=youtube
           if [ "$AUTH_MODE" = 'youtube_private_canary' ]; then PLATFORM=youtube_canary; fi
-          bash scripts/persist_newyear_2027_receipt.sh \
+          bash scripts/persist_newyear_2027_receipt.sh finalize \
             "newyear_2027/receipts/$TARGET_DATE/$PLATFORM.json" \
             "ny2027 $PLATFORM published $TARGET_DATE"

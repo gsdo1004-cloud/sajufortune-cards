@@ -764,3 +764,37 @@ def test_private_canary_receipt_never_auto_promotes(tmp_path):
     )
     data = json.loads(receipt.read_text(encoding="utf-8"))
     assert data["promotion_policy"] == "never_auto_promote"
+
+
+def test_durable_receipt_claim_blocks_any_existing_state():
+    incoming = {
+        "status": "PUBLISHING", "publish_key": "k", "content_id": "c",
+        "platform": "youtube", "account": "a", "source_sha256": "s", "output_sha256": "o",
+    }
+    assert ny.validate_durable_receipt_transition("claim", None, incoming)["ok"] is True
+    for status in ("PUBLISHING", "PUBLISHED", "UNKNOWN"):
+        current = dict(incoming, status=status)
+        result = ny.validate_durable_receipt_transition("claim", current, incoming)
+        assert result["ok"] is False
+        assert result["reason"] == "durable_receipt_exists"
+
+
+def test_durable_receipt_finalize_requires_same_publish_key_and_hashes():
+    current = {
+        "status": "PUBLISHING", "publish_key": "k", "content_id": "c",
+        "platform": "youtube", "account": "a", "source_sha256": "s", "output_sha256": "o",
+    }
+    incoming = dict(current, status="PUBLISHED", remote_id="vid")
+    assert ny.validate_durable_receipt_transition("finalize", current, incoming)["ok"] is True
+    for field, value in (("publish_key", "other"), ("content_id", "x"), ("source_sha256", "x"), ("output_sha256", "x")):
+        broken = dict(incoming); broken[field] = value
+        result = ny.validate_durable_receipt_transition("finalize", current, broken)
+        assert result["ok"] is False
+        assert result["reason"] == f"receipt_{field}_mismatch"
+
+
+def test_workflow_revalidates_authorization_immediately_before_platform_publish():
+    text = (Path(__file__).resolve().parent / ".github" / "workflows" / "newyear-2027-fanout.yml").read_text(encoding="utf-8")
+    assert text.count("newyear_2027_runner.py verify-permit") >= 3  # gate + Threads + YouTube
+    assert "Threads 발행 직전 허가 재검증" in text
+    assert "YouTube 발행 직전 허가 재검증" in text

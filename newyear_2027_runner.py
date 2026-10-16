@@ -358,6 +358,37 @@ def finalize_receipt(receipt_path: Path, *, remote_id: str, extra: dict | None =
     return data
 
 
+def validate_durable_receipt_transition(action: str, current: dict | None, incoming: dict) -> dict:
+    """Validate main-branch durable receipt transitions before copying state.
+
+    claim: durable path must not exist and incoming must be PUBLISHING.
+    finalize: durable state must be the same PUBLISHING claim and incoming PUBLISHED.
+    """
+    if action not in {"claim", "finalize"}:
+        return {"ok": False, "reason": "invalid_transition_action"}
+    if not isinstance(incoming, dict):
+        return {"ok": False, "reason": "incoming_receipt_invalid"}
+    if action == "claim":
+        if current is not None:
+            return {"ok": False, "reason": "durable_receipt_exists"}
+        if incoming.get("status") != "PUBLISHING":
+            return {"ok": False, "reason": "incoming_not_publishing"}
+        return {"ok": True, "reason": "claim_allowed"}
+
+    if current is None:
+        return {"ok": False, "reason": "durable_receipt_missing"}
+    if current.get("status") != "PUBLISHING":
+        return {"ok": False, "reason": f"durable_state_{current.get('status') or 'UNKNOWN'}"}
+    if incoming.get("status") != "PUBLISHED":
+        return {"ok": False, "reason": "incoming_not_published"}
+    for field in ("publish_key", "content_id", "platform", "account", "source_sha256", "output_sha256"):
+        if str(current.get(field) or "") != str(incoming.get(field) or ""):
+            return {"ok": False, "reason": f"receipt_{field}_mismatch"}
+    if not str(incoming.get("remote_id") or "").strip():
+        return {"ok": False, "reason": "remote_id_missing"}
+    return {"ok": True, "reason": "finalize_allowed"}
+
+
 def _meta_index(meta: dict, post_dir: Path) -> int:
     raw = meta.get("index")
     try:
@@ -1029,7 +1060,7 @@ def dispatch_daily(
                 _append_status(status_path, result)
                 return result
             source_url = str(gate.get("naver_url") or "").strip()
-            expires_at = (now_kst.astimezone(timezone.utc) + timedelta(minutes=45)).isoformat(timespec="seconds")
+            expires_at = (now_kst.astimezone(timezone.utc) + timedelta(minutes=60)).isoformat(timespec="seconds")
             permit = make_dispatch_permit(key, item, date_iso, source_url, mode, expires_at)
             cmd = [
                 "gh", "workflow", "run", workflow,
@@ -1068,6 +1099,22 @@ def _emit_output(path: str | None, **values) -> None:
     with Path(path).open("a", encoding="utf-8") as fh:
         for key, value in values.items():
             fh.write(f"{key}={value}\n")
+
+
+def _cmd_receipt_transition(args) -> int:
+    incoming = _read_json(Path(args.incoming))
+    durable_path = Path(args.durable)
+    current = None
+    if durable_path.exists():
+        try:
+            current = _read_json(durable_path)
+        except Exception as exc:
+            raise PublicationBlocked("durable receipt is corrupt") from exc
+    result = validate_durable_receipt_transition(args.action, current, incoming)
+    print(json.dumps(result, ensure_ascii=False))
+    if not result.get("ok"):
+        raise PublicationBlocked(f"durable receipt transition blocked: {result.get('reason')}")
+    return 0
 
 
 def _cmd_state(args) -> int:
@@ -1230,6 +1277,12 @@ def _cmd_dispatch(args) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Independent 2027 Threads/Shorts fanout")
     sub = parser.add_subparsers(dest="command", required=True)
+
+    transition = sub.add_parser("receipt-transition")
+    transition.add_argument("--action", required=True, choices=["claim", "finalize"])
+    transition.add_argument("--durable", required=True)
+    transition.add_argument("--incoming", required=True)
+    transition.set_defaults(func=_cmd_receipt_transition)
 
     state = sub.add_parser("state")
     state.add_argument("--date", required=True)
