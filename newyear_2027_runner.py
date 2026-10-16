@@ -11,6 +11,9 @@ import hashlib
 import json
 import os
 import re
+import subprocess
+import tempfile
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -437,3 +440,328 @@ def build_entry(post_dir: Path) -> dict:
         "summary_points": bullets,
         "asset": f"assets/{index:03d}.jpg",
     }
+
+
+class RenderBlocked(RuntimeError):
+    """Raised when a Short does not satisfy the publish-quality contract."""
+
+
+def _require_intent(receipt_path: Path, *, item: dict, platform: str, account: str) -> dict:
+    receipt_path = Path(receipt_path)
+    if not receipt_path.is_file():
+        raise PublicationBlocked("publication intent is missing")
+    try:
+        data = _read_json(receipt_path)
+    except Exception as exc:
+        raise PublicationBlocked("publication intent is corrupt") from exc
+    if data.get("status") != "PUBLISHING":
+        raise PublicationBlocked(f"publication intent state is {data.get('status') or 'UNKNOWN'}")
+    expected = _publish_key(str(item.get("content_id") or ""), platform, account)
+    if data.get("publish_key") != expected:
+        raise PublicationBlocked("publication intent key mismatch")
+    return data
+
+
+def publish_threads_text(
+    item: dict,
+    *,
+    receipt_path: Path,
+    account: str = "gsdo10042026",
+    api_module=None,
+    sleep_fn=time.sleep,
+) -> str:
+    """Publish one text-only Threads post after a durable intent exists."""
+    _require_intent(receipt_path, item=item, platform="threads", account=account)
+    if api_module is None:
+        import zodiac_cardnews as api_module
+
+    token = os.environ.get("THREADS_ACCESS_TOKEN", "").strip()
+    if not token:
+        raise RuntimeError("THREADS_ACCESS_TOKEN is missing")
+    uid = api_module._threads_uid(token)
+    base = f"https://graph.threads.net/v1.0/{uid}"
+    created = api_module._post(
+        f"{base}/threads",
+        {"media_type": "TEXT", "text": str(item.get("threads_text") or ""), "access_token": token},
+    )
+    creation_id = created.get("id") if isinstance(created, dict) else None
+    if not creation_id:
+        raise RuntimeError(f"Threads container creation failed: {created}")
+    sleep_fn(2)
+    published = api_module._post(
+        f"{base}/threads_publish",
+        {"creation_id": creation_id, "access_token": token},
+    )
+    remote_id = published.get("id") if isinstance(published, dict) else None
+    if not remote_id:
+        raise RuntimeError(f"Threads publish failed: {published}")
+    finalize_receipt(receipt_path, remote_id=str(remote_id), extra={"creation_id": str(creation_id)})
+    return str(remote_id)
+
+
+def publish_youtube(
+    item: dict,
+    video: Path,
+    *,
+    receipt_path: Path,
+    publish_at: str,
+    uploader_module=None,
+) -> str:
+    """Use the existing channel-locking YouTube uploader for normal publication."""
+    account = "운명과학TV"
+    _require_intent(receipt_path, item=item, platform="youtube", account=account)
+    video = Path(video)
+    if not video.is_file():
+        raise FileNotFoundError(video)
+    if uploader_module is None:
+        import youtube_upload as uploader_module
+    remote_id = uploader_module.upload(
+        video=video,
+        title=str(item.get("youtube_title") or "2027년 신년운세"),
+        description=str(item.get("youtube_description") or ""),
+        tags=list(item.get("tags") or []),
+        publish_at=publish_at,
+        slot_hours=[13],
+        thumbnail=None,
+    )
+    if not remote_id:
+        raise RuntimeError("YouTube upload returned no video id")
+    finalize_receipt(receipt_path, remote_id=str(remote_id), extra={"publish_at": publish_at, "private_canary": False})
+    return str(remote_id)
+
+
+def publish_youtube_private_canary(
+    item: dict,
+    video: Path,
+    *,
+    receipt_path: Path,
+    uploader_module=None,
+    youtube_builder=None,
+    media_factory=None,
+) -> str:
+    """Upload a true private canary: privacy=private and no publishAt field."""
+    account = "운명과학TV"
+    _require_intent(receipt_path, item=item, platform="youtube", account=account)
+    video = Path(video)
+    if not video.is_file():
+        raise FileNotFoundError(video)
+    if uploader_module is None:
+        import youtube_upload as uploader_module
+    creds = uploader_module._credentials()
+    if not creds:
+        raise RuntimeError("YouTube credentials are unavailable")
+    if youtube_builder is None:
+        from googleapiclient.discovery import build as youtube_builder
+    if media_factory is None:
+        from googleapiclient.http import MediaFileUpload as media_factory
+
+    youtube = youtube_builder("youtube", "v3", credentials=creds)
+    me = youtube.channels().list(part="snippet", mine=True).execute()
+    items = me.get("items") or []
+    if not items:
+        raise RuntimeError("YouTube channel lookup returned no channel")
+    actual_title = str(items[0].get("snippet", {}).get("title") or "").strip()
+    expected_title = str(getattr(uploader_module, "EXPECT_CHANNEL_TITLE", account) or account).strip()
+    if expected_title and actual_title != expected_title:
+        raise RuntimeError(f"YouTube channel mismatch: expected {expected_title}, got {actual_title or 'unknown'}")
+
+    body = {
+        "snippet": {
+            "title": str(item.get("youtube_title") or "2027년 신년운세")[:100],
+            "description": str(item.get("youtube_description") or "")[:4900],
+            "tags": list(item.get("tags") or [])[:30],
+            "categoryId": "24",
+        },
+        "status": {
+            "privacyStatus": "private",
+            "selfDeclaredMadeForKids": False,
+            "containsSyntheticMedia": True,
+        },
+    }
+    media = media_factory(str(video), mimetype="video/mp4", chunksize=-1, resumable=True)
+    req = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
+    response = None
+    while response is None:
+        _status, response = req.next_chunk()
+    remote_id = response.get("id") if isinstance(response, dict) else None
+    if not remote_id:
+        raise RuntimeError("YouTube private canary returned no video id")
+    finalize_receipt(receipt_path, remote_id=str(remote_id), extra={"private_canary": True, "publish_at": None})
+    return str(remote_id)
+
+
+def _synthesize_free(text: str, out_mp3: Path) -> dict:
+    """Free-first TTS: local Supertonic, then free Edge. Never Typecast."""
+    try:
+        import tts_supertonic
+        if tts_supertonic.synth(text, out_mp3, speed=1.16):
+            return {"engine": "supertonic", "voice": getattr(tts_supertonic, "VOICE", "M2")}
+    except Exception:
+        pass
+    import typecast_tts
+    typecast_tts.synth_edge(text, out_mp3, tempo=1.10)
+    return {"engine": "edge", "voice": typecast_tts.EDGE_VOICE}
+
+
+def _probe_duration(path: Path) -> float:
+    result = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+         "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
+        capture_output=True, text=True, timeout=30, check=False,
+    )
+    if result.returncode != 0:
+        raise RenderBlocked(f"ffprobe failed: {result.stderr[-300:]}")
+    try:
+        return float(result.stdout.strip())
+    except ValueError as exc:
+        raise RenderBlocked("ffprobe returned invalid duration") from exc
+
+
+def _font_path() -> str | None:
+    candidates = [
+        os.environ.get("NEWYEAR_2027_FONT", ""),
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+        r"C:\Windows\Fonts\malgunbd.ttf",
+        r"C:\Windows\Fonts\malgun.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    ]
+    for candidate in candidates:
+        if candidate and Path(candidate).is_file():
+            return str(candidate)
+    return None
+
+
+def _wrap_caption(text: str, width: int = 18) -> str:
+    words = str(text).strip().split()
+    if not words:
+        return ""
+    lines: list[str] = []
+    current = ""
+    for word in words:
+        proposed = word if not current else f"{current} {word}"
+        if len(proposed) <= width:
+            current = proposed
+        else:
+            if current:
+                lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    return "\n".join(lines[:5])
+
+
+def _visual_captions(item: dict) -> list[str]:
+    points = [str(x).strip() for x in item.get("summary_points", []) if str(x).strip()]
+    while len(points) < 2:
+        points.append("원국과 대운을 함께 확인하세요.")
+    title = _title_core(str(item.get("naver_title") or "2027년 신년운세"))
+    return [
+        f"{title}\n결론부터 확인하세요",
+        _clip(points[0], 62),
+        f"{_clip(points[1], 52)}\n저장하고 다음 편도 확인하세요",
+    ]
+
+
+def _render_scene(asset: Path, caption: str, out_path: Path, *, scene_no: int) -> None:
+    from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont, ImageOps
+
+    with Image.open(asset) as src:
+        src = ImageOps.exif_transpose(src).convert("RGB")
+        background = ImageOps.fit(src, (1080, 1920), method=Image.Resampling.LANCZOS)
+        background = background.filter(ImageFilter.GaussianBlur(20))
+        background = ImageEnhance.Brightness(background).enhance(0.38)
+        main = ImageOps.contain(src, (900, 760), method=Image.Resampling.LANCZOS)
+        canvas = background.copy()
+
+    x = (1080 - main.width) // 2
+    y = 210 + max(0, (760 - main.height) // 2)
+    canvas.paste(main, (x, y))
+    draw = ImageDraw.Draw(canvas, "RGBA")
+    draw.rounded_rectangle((60, 1080, 1020, 1810), radius=48, fill=(0, 0, 0, 190))
+    font_path = _font_path()
+    try:
+        label_font = ImageFont.truetype(font_path, 48) if font_path else ImageFont.load_default()
+        body_font = ImageFont.truetype(font_path, 68) if font_path else ImageFont.load_default()
+    except OSError:
+        label_font = body_font = ImageFont.load_default()
+    draw.text((100, 1135), f"2027 신년운세 · {scene_no}/3", font=label_font, fill=(255, 255, 255, 215))
+    wrapped = _wrap_caption(caption, 17)
+    box = draw.multiline_textbbox((0, 0), wrapped, font=body_font, spacing=20, align="center")
+    tw = box[2] - box[0]
+    th = box[3] - box[1]
+    draw.multiline_text(((1080 - tw) / 2, 1400 - th / 2), wrapped, font=body_font, spacing=20, align="center", fill="white")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    canvas.save(out_path, quality=92, optimize=True)
+
+
+def render_short(
+    item: dict,
+    bundle_root: Path,
+    out_path: Path,
+    *,
+    tts_synth=None,
+    command_runner=None,
+    probe_fn=None,
+) -> dict:
+    """Render an isolated three-scene vertical Short and enforce 25–40 seconds."""
+    bundle_root = Path(bundle_root)
+    out_path = Path(out_path)
+    asset = _safe_child(bundle_root, str(item.get("asset") or ""))
+    if not asset.is_file():
+        raise RenderBlocked(f"asset missing: {asset}")
+    script = str(item.get("shorts_script") or "").strip()
+    if not script:
+        raise RenderBlocked("shorts_script is empty")
+    tts_synth = tts_synth or _synthesize_free
+    command_runner = command_runner or subprocess.run
+    probe_fn = probe_fn or _probe_duration
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="ny2027-render-") as tmp_name:
+        tmp = Path(tmp_name)
+        audio = tmp / "narration.mp3"
+        tts_meta = tts_synth(script, audio) or {}
+        if not audio.is_file() or audio.stat().st_size < 1000:
+            raise RenderBlocked("TTS output missing or too small")
+        narration_duration = float(probe_fn(audio))
+        if not 25.0 <= narration_duration <= 40.0:
+            raise RenderBlocked(f"Short narration must be 25-40 seconds, got {narration_duration:.2f}")
+
+        captions = _visual_captions(item)
+        scenes: list[Path] = []
+        for idx, caption in enumerate(captions, 1):
+            scene = tmp / f"scene_{idx}.jpg"
+            _render_scene(asset, caption, scene, scene_no=idx)
+            scenes.append(scene)
+
+        fractions = (0.28, 0.42, 0.30)
+        concat = tmp / "scenes.txt"
+        lines: list[str] = []
+        for scene, fraction in zip(scenes, fractions):
+            lines.append(f"file '{scene.as_posix()}'")
+            lines.append(f"duration {narration_duration * fraction:.3f}")
+        lines.append(f"file '{scenes[-1].as_posix()}'")
+        concat.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+        cmd = [
+            "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(concat),
+            "-i", str(audio), "-shortest", "-r", "30", "-c:v", "libx264",
+            "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart",
+            str(out_path),
+        ]
+        result = command_runner(cmd, capture_output=True, text=True, timeout=180, check=False)
+        if getattr(result, "returncode", 1) != 0:
+            raise RenderBlocked(f"ffmpeg failed: {str(getattr(result, 'stderr', ''))[-400:]}")
+        if not out_path.is_file() or out_path.stat().st_size < 1000:
+            raise RenderBlocked("rendered video missing or too small")
+        final_duration = float(probe_fn(out_path))
+        if not 25.0 <= final_duration <= 40.0:
+            raise RenderBlocked(f"rendered Short must be 25-40 seconds, got {final_duration:.2f}")
+        return {
+            "path": str(out_path),
+            "duration": final_duration,
+            "scene_count": len(scenes),
+            "output_sha256": _sha256(out_path),
+            "tts": tts_meta,
+        }

@@ -167,3 +167,210 @@ def test_build_entry_rotates_six_formats(tmp_path):
         formats.append(ny.build_entry(post)["format"])
     assert formats == list(ny.CONTENT_FORMATS)
     assert len(set(formats)) == 6
+
+
+class _FakeThreadsApi:
+    def __init__(self, *, fail=False):
+        self.calls = []
+        self.uid_tokens = []
+        self.fail = fail
+
+    def _threads_uid(self, token):
+        self.uid_tokens.append(token)
+        return "threads_uid_1"
+
+    def _post(self, url, data):
+        self.calls.append((url, dict(data)))
+        if self.fail:
+            raise RuntimeError("threads down")
+        if url.endswith("/threads_publish"):
+            return {"id": "threads_post_123"}
+        return {"id": "threads_container_123"}
+
+
+class _FakeYoutubeUploader:
+    EXPECT_CHANNEL_TITLE = "운명과학TV"
+
+    def __init__(self, video_id="youtube_123"):
+        self.video_id = video_id
+        self.calls = []
+
+    def upload(self, **kwargs):
+        self.calls.append(kwargs)
+        return self.video_id
+
+
+def _intent_item():
+    return {
+        "content_id": "ny2027-001-wealth",
+        "source_sha256": "source-sha",
+        "output_sha256": "video-sha",
+        "threads_text": "첫 줄\n둘째 줄\n저장하세요.",
+        "youtube_title": "2027 재물운",
+        "youtube_description": "설명",
+        "tags": ["2027운세"],
+    }
+
+
+def test_publish_threads_requires_committed_intent_before_remote(tmp_path, monkeypatch):
+    api = _FakeThreadsApi()
+    monkeypatch.setenv("THREADS_ACCESS_TOKEN", "token")
+    receipt = tmp_path / "threads.json"
+    with pytest.raises(ny.PublicationBlocked, match="intent"):
+        ny.publish_threads_text(_intent_item(), receipt_path=receipt, account="gsdo10042026", api_module=api, sleep_fn=lambda _: None)
+    assert api.calls == []
+    assert api.uid_tokens == []
+
+
+def test_publish_threads_delegates_account_guard_and_finalizes(tmp_path, monkeypatch):
+    api = _FakeThreadsApi()
+    monkeypatch.setenv("THREADS_ACCESS_TOKEN", "token")
+    receipt = tmp_path / "threads.json"
+    item = _intent_item()
+    ny.prepare_intent(receipt, item=item, platform="threads", account="gsdo10042026")
+    remote_id = ny.publish_threads_text(item, receipt_path=receipt, account="gsdo10042026", api_module=api, sleep_fn=lambda _: None)
+    assert remote_id == "threads_post_123"
+    assert api.uid_tokens == ["token"]
+    assert api.calls[0][1]["media_type"] == "TEXT"
+    assert api.calls[0][1]["text"] == item["threads_text"]
+    final = json.loads(receipt.read_text(encoding="utf-8"))
+    assert final["status"] == "PUBLISHED"
+    assert final["remote_id"] == remote_id
+
+
+def test_publish_youtube_requires_intent_and_delegates_existing_uploader(tmp_path):
+    uploader = _FakeYoutubeUploader()
+    video = tmp_path / "short.mp4"
+    video.write_bytes(b"video")
+    receipt = tmp_path / "youtube.json"
+    item = _intent_item()
+    with pytest.raises(ny.PublicationBlocked, match="intent"):
+        ny.publish_youtube(item, video, receipt_path=receipt, publish_at="2026-10-16T13:00:00+09:00", uploader_module=uploader)
+    assert uploader.calls == []
+
+    ny.prepare_intent(receipt, item=item, platform="youtube", account="운명과학TV")
+    remote_id = ny.publish_youtube(item, video, receipt_path=receipt, publish_at="2026-10-16T13:00:00+09:00", uploader_module=uploader)
+    assert remote_id == "youtube_123"
+    assert uploader.calls[0]["publish_at"] == "2026-10-16T13:00:00+09:00"
+    assert uploader.calls[0]["slot_hours"] == [13]
+    assert json.loads(receipt.read_text(encoding="utf-8"))["status"] == "PUBLISHED"
+
+
+class _Exec:
+    def __init__(self, payload): self.payload = payload
+    def execute(self): return self.payload
+
+
+class _InsertReq:
+    def next_chunk(self): return None, {"id": "yt_private_123"}
+
+
+class _FakeYoutubeService:
+    def __init__(self):
+        self.insert_body = None
+        self.insert_media = None
+
+    def channels(self): return self
+    def list(self, **kwargs): return _Exec({"items": [{"snippet": {"title": "운명과학TV"}}]})
+    def videos(self): return self
+    def insert(self, *, part, body, media_body):
+        self.insert_body = body
+        self.insert_media = media_body
+        return _InsertReq()
+
+
+class _FakePrivateUploaderModule:
+    EXPECT_CHANNEL_TITLE = "운명과학TV"
+    @staticmethod
+    def _credentials(): return object()
+
+
+def test_private_youtube_canary_has_no_publish_at(tmp_path):
+    service = _FakeYoutubeService()
+    video = tmp_path / "short.mp4"
+    video.write_bytes(b"video")
+    receipt = tmp_path / "youtube.json"
+    item = _intent_item()
+    ny.prepare_intent(receipt, item=item, platform="youtube", account="운명과학TV")
+    remote_id = ny.publish_youtube_private_canary(
+        item,
+        video,
+        receipt_path=receipt,
+        uploader_module=_FakePrivateUploaderModule,
+        youtube_builder=lambda *a, **k: service,
+        media_factory=lambda path, **kwargs: {"path": str(path), **kwargs},
+    )
+    assert remote_id == "yt_private_123"
+    assert service.insert_body["status"]["privacyStatus"] == "private"
+    assert "publishAt" not in service.insert_body["status"]
+    assert service.insert_body["status"]["containsSyntheticMedia"] is True
+
+
+def test_platform_failure_does_not_change_other_platform_receipt(tmp_path, monkeypatch):
+    item = _intent_item()
+    video = tmp_path / "short.mp4"
+    video.write_bytes(b"video")
+    yt_receipt = tmp_path / "youtube.json"
+    th_receipt = tmp_path / "threads.json"
+    ny.prepare_intent(yt_receipt, item=item, platform="youtube", account="운명과학TV")
+    ny.publish_youtube(item, video, receipt_path=yt_receipt, publish_at="2026-10-16T13:00:00+09:00", uploader_module=_FakeYoutubeUploader())
+    assert json.loads(yt_receipt.read_text(encoding="utf-8"))["status"] == "PUBLISHED"
+
+    ny.prepare_intent(th_receipt, item=item, platform="threads", account="gsdo10042026")
+    monkeypatch.setenv("THREADS_ACCESS_TOKEN", "token")
+    with pytest.raises(RuntimeError, match="threads down"):
+        ny.publish_threads_text(item, receipt_path=th_receipt, account="gsdo10042026", api_module=_FakeThreadsApi(fail=True), sleep_fn=lambda _: None)
+    assert json.loads(yt_receipt.read_text(encoding="utf-8"))["status"] == "PUBLISHED"
+    assert json.loads(th_receipt.read_text(encoding="utf-8"))["status"] == "PUBLISHING"
+
+
+def test_render_short_uses_three_scenes_and_enforces_duration(tmp_path):
+    Image = pytest.importorskip("PIL.Image")
+    bundle = tmp_path / "bundle"
+    (bundle / "assets").mkdir(parents=True)
+    Image.new("RGB", (800, 600), "white").save(bundle / "assets" / "001.jpg")
+    item = {
+        **_intent_item(),
+        "asset": "assets/001.jpg",
+        "format": "conclusion",
+        "naver_title": "2027년 재물운 총정리",
+        "summary_points": ["현금흐름을 먼저 봅니다.", "원국과 대운을 함께 봅니다.", "고정비를 점검합니다."],
+        "shorts_script": "2027년 정미년 재물운은 원국과 대운, 재성의 연결을 함께 봐야 합니다. " * 4,
+    }
+    out = tmp_path / "short.mp4"
+    commands = []
+
+    def fake_tts(text, path):
+        Path(path).write_bytes(b"a" * 2048)
+        return {"engine": "fake"}
+
+    class R:
+        returncode = 0
+        stderr = ""
+        stdout = ""
+
+    def fake_run(cmd, **kwargs):
+        commands.append(list(cmd))
+        Path(cmd[-1]).write_bytes(b"v" * 4096)
+        return R()
+
+    result = ny.render_short(item, bundle, out, tts_synth=fake_tts, command_runner=fake_run, probe_fn=lambda p: 32.0)
+    assert out.exists()
+    assert result["duration"] == 32.0
+    assert result["scene_count"] == 3
+    assert any("ffmpeg" in str(cmd[0]) for cmd in commands)
+
+
+def test_render_short_blocks_out_of_range_narration(tmp_path):
+    Image = pytest.importorskip("PIL.Image")
+    bundle = tmp_path / "bundle"
+    (bundle / "assets").mkdir(parents=True)
+    Image.new("RGB", (100, 100), "white").save(bundle / "assets" / "001.jpg")
+    item = {**_intent_item(), "asset": "assets/001.jpg", "format": "conclusion", "naver_title": "2027 재물운", "summary_points": [], "shorts_script": "2027년 정미년 운세" * 20}
+
+    def fake_tts(text, path):
+        Path(path).write_bytes(b"a" * 2048)
+        return {"engine": "fake"}
+
+    with pytest.raises(ny.RenderBlocked, match="25-40"):
+        ny.render_short(item, bundle, tmp_path / "out.mp4", tts_synth=fake_tts, command_runner=lambda *a, **k: None, probe_fn=lambda p: 44.0)
