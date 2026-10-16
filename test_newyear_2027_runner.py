@@ -469,6 +469,7 @@ def test_dispatch_live_invokes_only_new_workflow_inside_safe_window(tmp_path):
         repo="gsdo1004-cloud/sajufortune-cards",
         workflow="newyear-2027-fanout.yml",
         dispatch_key="secret-key",
+        remote_commit_sha="a" * 40,
     )
     assert result["action"] == "dispatched"
     assert len(calls) == 1
@@ -588,13 +589,15 @@ def test_dispatch_permit_binds_date_content_hash_and_naver_url():
     item = _intent_item()
     item["publish_date"] = "2026-10-16"
     expires = "2026-10-16T04:00:00+00:00"
-    permit = ny.make_dispatch_permit("secret-key", item, "2026-10-16", "https://blog.naver.com/example/123", "normal", expires)
-    assert ny.verify_dispatch_permit("secret-key", item, "2026-10-16", "https://blog.naver.com/example/123", "normal", expires, permit)
-    assert not ny.verify_dispatch_permit("secret-key", item, "2026-10-17", "https://blog.naver.com/example/123", "normal", expires, permit)
-    assert not ny.verify_dispatch_permit("secret-key", item, "2026-10-16", "https://blog.naver.com/example/999", "normal", expires, permit)
-    assert not ny.verify_dispatch_permit("secret-key", item, "2026-10-16", "https://blog.naver.com/example/123", "youtube_private_canary", expires, permit)
-    assert not ny.verify_dispatch_permit("secret-key", item, "2026-10-16", "https://blog.naver.com/example/123", "normal", "2026-10-16T05:00:00+00:00", permit)
-
+    payload = ny.publication_payload_sha256(item)
+    commit = "a" * 40
+    url = "https://blog.naver.com/example/123"
+    permit = ny.make_dispatch_permit("secret-key", item, "2026-10-16", url, "normal", expires, payload, commit)
+    assert ny.verify_dispatch_permit("secret-key", item, "2026-10-16", url, "normal", expires, payload, commit, permit)
+    assert not ny.verify_dispatch_permit("secret-key", item, "2026-10-17", url, "normal", expires, payload, commit, permit)
+    assert not ny.verify_dispatch_permit("secret-key", item, "2026-10-16", "https://blog.naver.com/example/999", "normal", expires, payload, commit, permit)
+    assert not ny.verify_dispatch_permit("secret-key", item, "2026-10-16", url, "youtube_private_canary", expires, payload, commit, permit)
+    assert not ny.verify_dispatch_permit("secret-key", item, "2026-10-16", url, "normal", "2026-10-16T05:00:00+00:00", payload, commit, permit)
 
 def test_dispatch_live_includes_signed_source_proof(tmp_path):
     post, _ = _post(tmp_path / "sources")
@@ -614,13 +617,18 @@ def test_dispatch_live_includes_signed_source_proof(tmp_path):
         readiness_fn=lambda p: {"ready": True, "reasons": []}, command_runner=fake_run,
         lock_path=tmp_path / "fanout.lock", status_path=tmp_path / "status.jsonl",
         dispatch_key="secret-key",
+        remote_commit_sha="a" * 40,
     )
     assert result["action"] == "dispatched"
     cmd = calls[0]
     source_args = [x for x in cmd if x.startswith("source_url=")]
     permit_args = [x for x in cmd if x.startswith("permit=")]
+    payload_args = [x for x in cmd if x.startswith("payload_sha256=")]
+    commit_args = [x for x in cmd if x.startswith("commit_sha=")]
     assert source_args and source_args[0].startswith("source_url=https://")
     assert permit_args and len(permit_args[0].split("=",1)[1]) == 64
+    assert payload_args and len(payload_args[0].split("=",1)[1]) == 64
+    assert commit_args == ["commit_sha=" + "a" * 40]
 
 
 def test_normal_youtube_state_does_not_consume_private_canary(tmp_path):
@@ -702,26 +710,27 @@ def test_workflow_pins_platform_jobs_to_gate_verified_commit():
 def test_dispatch_authorization_rejects_expired_and_remote_outside_window():
     item = _intent_item(); item["publish_date"] = "2026-10-16"
     url = "https://blog.naver.com/example/123"
+    payload = ny.publication_payload_sha256(item)
+    commit = "a" * 40
     expires = "2026-10-16T04:00:00+00:00"  # 13:00 KST
-    permit = ny.make_dispatch_permit("secret-key", item, "2026-10-16", url, "normal", expires)
+    permit = ny.make_dispatch_permit("secret-key", item, "2026-10-16", url, "normal", expires, payload, commit)
     ok = ny.validate_dispatch_authorization(
-        "secret-key", item, "2026-10-16", url, "normal", expires, permit,
+        "secret-key", item, "2026-10-16", url, "normal", expires, payload, commit, permit,
         now=ny.datetime.fromisoformat("2026-10-16T03:30:00+00:00"),
     )
     assert ok["ok"] is True
     expired = ny.validate_dispatch_authorization(
-        "secret-key", item, "2026-10-16", url, "normal", expires, permit,
+        "secret-key", item, "2026-10-16", url, "normal", expires, payload, commit, permit,
         now=ny.datetime.fromisoformat("2026-10-16T04:01:00+00:00"),
     )
     assert expired["ok"] is False and expired["reason"] == "permit_expired"
     outside_expires = "2026-10-16T02:00:00+00:00"
-    outside_permit = ny.make_dispatch_permit("secret-key", item, "2026-10-16", url, "normal", outside_expires)
+    outside_permit = ny.make_dispatch_permit("secret-key", item, "2026-10-16", url, "normal", outside_expires, payload, commit)
     outside = ny.validate_dispatch_authorization(
-        "secret-key", item, "2026-10-16", url, "normal", outside_expires, outside_permit,
+        "secret-key", item, "2026-10-16", url, "normal", outside_expires, payload, commit, outside_permit,
         now=ny.datetime.fromisoformat("2026-10-16T00:30:00+00:00"),
     )
     assert outside["ok"] is False and outside["reason"] == "outside_remote_window"
-
 
 def test_workflow_shell_does_not_interpolate_untrusted_inputs_in_run_blocks():
     text = (Path(__file__).resolve().parent / ".github" / "workflows" / "newyear-2027-fanout.yml").read_text(encoding="utf-8")
@@ -798,3 +807,45 @@ def test_workflow_revalidates_authorization_immediately_before_platform_publish(
     assert text.count("newyear_2027_runner.py verify-permit") >= 3  # gate + Threads + YouTube
     assert "Threads 발행 직전 허가 재검증" in text
     assert "YouTube 발행 직전 허가 재검증" in text
+
+
+def test_naver_receipt_rejects_foreign_origin_with_naver_substring(tmp_path):
+    receipt = tmp_path / "naver_publish.json"
+    receipt.write_text(json.dumps({
+        "success": True, "status": "PUBLISHED", "rss_seen": True,
+        "url": "https://evil.example/blog.naver.com/post/123",
+        "category": ny.EXPECTED_NAVER_CATEGORY,
+    }), encoding="utf-8")
+    result = ny.validate_naver_receipt(receipt)
+    assert result["ok"] is False
+    assert result["reason"] == "naver_url_invalid"
+
+
+def test_publication_payload_digest_changes_when_publishable_content_changes():
+    item = _intent_item()
+    item.update({"threads_text": "A", "youtube_title": "T", "asset_sha256": "asset1"})
+    digest = ny.publication_payload_sha256(item)
+    for field, value in (("threads_text", "B"), ("youtube_title", "U"), ("asset_sha256", "asset2")):
+        changed = dict(item); changed[field] = value
+        assert ny.publication_payload_sha256(changed) != digest
+
+
+def test_dispatch_permit_binds_payload_digest_and_execution_commit():
+    item = _intent_item(); item["publish_date"] = "2026-10-16"
+    url = "https://blog.naver.com/example/123"
+    expires = "2026-10-16T04:00:00+00:00"
+    payload = ny.publication_payload_sha256(item)
+    commit = "a" * 40
+    permit = ny.make_dispatch_permit("secret-key", item, "2026-10-16", url, "normal", expires, payload, commit)
+    assert ny.verify_dispatch_permit("secret-key", item, "2026-10-16", url, "normal", expires, payload, commit, permit)
+    assert not ny.verify_dispatch_permit("secret-key", item, "2026-10-16", url, "normal", expires, "b" * 64, commit, permit)
+    assert not ny.verify_dispatch_permit("secret-key", item, "2026-10-16", url, "normal", expires, payload, "b" * 40, permit)
+
+
+def test_workflow_binds_and_checks_payload_and_execution_commit():
+    text = (Path(__file__).resolve().parent / ".github" / "workflows" / "newyear-2027-fanout.yml").read_text(encoding="utf-8")
+    assert "payload_sha256:" in text
+    assert "commit_sha:" in text
+    assert "--payload-sha256" in text
+    assert "--commit-sha" in text
+    assert "git rev-parse HEAD" in text

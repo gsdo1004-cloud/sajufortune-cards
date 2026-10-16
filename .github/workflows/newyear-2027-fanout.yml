@@ -29,6 +29,14 @@ on:
         description: 'HMAC 발행허가 만료시각 ISO-8601 UTC'
         required: true
         type: string
+      payload_sha256:
+        description: '승인된 전체 발행 manifest item SHA-256'
+        required: true
+        type: string
+      commit_sha:
+        description: '승인된 실행 main commit SHA'
+        required: true
+        type: string
       permit:
         description: '로컬 소스게이트 HMAC 발행허가'
         required: true
@@ -52,18 +60,23 @@ jobs:
       AUTH_MODE: ${{ inputs.mode }}
       SOURCE_URL_INPUT: ${{ inputs.source_url }}
       EXPIRES_AT_INPUT: ${{ inputs.expires_at }}
+      PAYLOAD_SHA256_INPUT: ${{ inputs.payload_sha256 }}
+      COMMIT_SHA_INPUT: ${{ inputs.commit_sha }}
       DISPATCH_PERMIT_INPUT: ${{ inputs.permit }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.commit_sha }}
           fetch-depth: 1
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: 검증 대상 commit 고정
         id: pin
-        run: echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+        run: |
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          [ "$ACTUAL_SHA" = "$COMMIT_SHA_INPUT" ] || { echo "[FAIL] signed commit mismatch" >&2; exit 78; }
+          echo "commit_sha=$ACTUAL_SHA" >> "$GITHUB_OUTPUT"
       - name: 로컬 Naver 발행확인 HMAC·시간창 검증
         env:
           NEWYEAR_2027_DISPATCH_KEY: ${{ secrets.NEWYEAR_2027_DISPATCH_KEY }}
@@ -73,6 +86,8 @@ jobs:
             --source-url "$SOURCE_URL_INPUT" \
             --mode "$AUTH_MODE" \
             --expires-at "$EXPIRES_AT_INPUT" \
+            --payload-sha256 "$PAYLOAD_SHA256_INPUT" \
+            --commit-sha "$COMMIT_SHA_INPUT" \
             --permit "$DISPATCH_PERMIT_INPUT"
 
   threads:
@@ -84,6 +99,8 @@ jobs:
       AUTH_MODE: ${{ inputs.mode }}
       SOURCE_URL_INPUT: ${{ inputs.source_url }}
       EXPIRES_AT_INPUT: ${{ inputs.expires_at }}
+      PAYLOAD_SHA256_INPUT: ${{ inputs.payload_sha256 }}
+      COMMIT_SHA_INPUT: ${{ inputs.commit_sha }}
       DISPATCH_PERMIT_INPUT: ${{ inputs.permit }}
     steps:
       - uses: actions/checkout@v4
@@ -102,6 +119,7 @@ jobs:
           python newyear_2027_runner.py verify-permit \
             --date "$TARGET_DATE" --source-url "$SOURCE_URL_INPUT" \
             --mode "$AUTH_MODE" --expires-at "$EXPIRES_AT_INPUT" \
+            --payload-sha256 "$PAYLOAD_SHA256_INPUT" --commit-sha "$COMMIT_SHA_INPUT" \
             --permit "$DISPATCH_PERMIT_INPUT"
       - name: Threads PUBLISHING intent 생성
         id: threads_intent
@@ -123,6 +141,7 @@ jobs:
           python newyear_2027_runner.py verify-permit \
             --date "$TARGET_DATE" --source-url "$SOURCE_URL_INPUT" \
             --mode "$AUTH_MODE" --expires-at "$EXPIRES_AT_INPUT" \
+            --payload-sha256 "$PAYLOAD_SHA256_INPUT" --commit-sha "$COMMIT_SHA_INPUT" \
             --permit "$DISPATCH_PERMIT_INPUT"
       - name: Threads 발행
         if: ${{ steps.threads_intent.outputs.action == 'publish' }}
@@ -147,6 +166,8 @@ jobs:
       AUTH_MODE: ${{ inputs.mode }}
       SOURCE_URL_INPUT: ${{ inputs.source_url }}
       EXPIRES_AT_INPUT: ${{ inputs.expires_at }}
+      PAYLOAD_SHA256_INPUT: ${{ inputs.payload_sha256 }}
+      COMMIT_SHA_INPUT: ${{ inputs.commit_sha }}
       DISPATCH_PERMIT_INPUT: ${{ inputs.permit }}
     steps:
       - uses: actions/checkout@v4
@@ -186,6 +207,7 @@ jobs:
           python newyear_2027_runner.py verify-permit \
             --date "$TARGET_DATE" --source-url "$SOURCE_URL_INPUT" \
             --mode "$AUTH_MODE" --expires-at "$EXPIRES_AT_INPUT" \
+            --payload-sha256 "$PAYLOAD_SHA256_INPUT" --commit-sha "$COMMIT_SHA_INPUT" \
             --permit "$DISPATCH_PERMIT_INPUT"
       - name: YouTube PUBLISHING intent 생성
         id: youtube_intent
@@ -212,6 +234,7 @@ jobs:
           python newyear_2027_runner.py verify-permit \
             --date "$TARGET_DATE" --source-url "$SOURCE_URL_INPUT" \
             --mode "$AUTH_MODE" --expires-at "$EXPIRES_AT_INPUT" \
+            --payload-sha256 "$PAYLOAD_SHA256_INPUT" --commit-sha "$COMMIT_SHA_INPUT" \
             --permit "$DISPATCH_PERMIT_INPUT"
       - name: YouTube 정상 예약발행
         if: ${{ steps.youtube_intent.outputs.action == 'publish' && inputs.mode == 'normal' }}

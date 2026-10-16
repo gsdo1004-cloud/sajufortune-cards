@@ -22,6 +22,7 @@ import uuid
 from datetime import datetime, time as dt_time, timedelta, timezone
 from pathlib import Path
 from typing import Callable, Iterable
+from urllib.parse import urlparse
 
 CONTENT_FORMATS = (
     "conclusion",
@@ -42,8 +43,31 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def publication_payload_sha256(item: dict) -> str:
+    """Digest the complete prebuilt publication manifest item.
+
+    Runtime-only output_sha256 is intentionally excluded because it does not
+    exist until the Short has been rendered.  All source-controlled copy,
+    metadata, script, asset path/hash and transformation fields remain bound.
+    """
+    canonical = {k: v for k, v in dict(item).items() if k != "output_sha256"}
+    raw = json.dumps(
+        canonical,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
+
+
 def _dispatch_message(
-    item: dict, date_iso: str, source_url: str, mode: str, expires_at: str
+    item: dict,
+    date_iso: str,
+    source_url: str,
+    mode: str,
+    expires_at: str,
+    payload_sha256: str,
+    commit_sha: str,
 ) -> bytes:
     fields = [
         str(date_iso).strip(),
@@ -52,32 +76,57 @@ def _dispatch_message(
         str(source_url).strip(),
         str(mode).strip(),
         str(expires_at).strip(),
+        str(payload_sha256).strip().lower(),
+        str(commit_sha).strip().lower(),
     ]
     if not all(fields):
         raise ValueError("dispatch permit fields are incomplete")
     if fields[4] not in {"normal", "threads_canary", "youtube_private_canary"}:
         raise ValueError("invalid dispatch mode")
+    if not re.fullmatch(r"[0-9a-f]{64}", fields[6]):
+        raise ValueError("invalid payload digest")
+    if not re.fullmatch(r"[0-9a-f]{40}", fields[7]):
+        raise ValueError("invalid execution commit")
     return "\n".join(fields).encode("utf-8")
 
 
 def make_dispatch_permit(
-    key: str, item: dict, date_iso: str, source_url: str, mode: str, expires_at: str
+    key: str,
+    item: dict,
+    date_iso: str,
+    source_url: str,
+    mode: str,
+    expires_at: str,
+    payload_sha256: str,
+    commit_sha: str,
 ) -> str:
     key = str(key or "").strip()
     if len(key) < 8:
         raise ValueError("dispatch key is missing or too short")
     return hmac.new(
         key.encode("utf-8"),
-        _dispatch_message(item, date_iso, source_url, mode, expires_at),
+        _dispatch_message(
+            item, date_iso, source_url, mode, expires_at, payload_sha256, commit_sha
+        ),
         hashlib.sha256,
     ).hexdigest()
 
 
 def verify_dispatch_permit(
-    key: str, item: dict, date_iso: str, source_url: str, mode: str, expires_at: str, permit: str
+    key: str,
+    item: dict,
+    date_iso: str,
+    source_url: str,
+    mode: str,
+    expires_at: str,
+    payload_sha256: str,
+    commit_sha: str,
+    permit: str,
 ) -> bool:
     try:
-        expected = make_dispatch_permit(key, item, date_iso, source_url, mode, expires_at)
+        expected = make_dispatch_permit(
+            key, item, date_iso, source_url, mode, expires_at, payload_sha256, commit_sha
+        )
     except Exception:
         return False
     return hmac.compare_digest(expected, str(permit or "").strip())
@@ -90,11 +139,21 @@ def validate_dispatch_authorization(
     source_url: str,
     mode: str,
     expires_at: str,
+    payload_sha256: str,
+    commit_sha: str,
     permit: str,
     *,
     now: datetime | None = None,
 ) -> dict:
-    if not verify_dispatch_permit(key, item, date_iso, source_url, mode, expires_at, permit):
+    actual_payload = publication_payload_sha256(item)
+    if not hmac.compare_digest(actual_payload, str(payload_sha256 or "").strip().lower()):
+        return {"ok": False, "reason": "payload_digest_mismatch"}
+    if not re.fullmatch(r"[0-9a-fA-F]{40}", str(commit_sha or "").strip()):
+        return {"ok": False, "reason": "execution_commit_invalid"}
+    if not verify_dispatch_permit(
+        key, item, date_iso, source_url, mode, expires_at,
+        actual_payload, str(commit_sha).lower(), permit,
+    ):
         return {"ok": False, "reason": "permit_invalid"}
     try:
         expiry = datetime.fromisoformat(str(expires_at).replace("Z", "+00:00"))
@@ -122,6 +181,36 @@ def validate_dispatch_authorization(
     if not in_window:
         return {"ok": False, "reason": "outside_remote_window"}
     return {"ok": True, "reason": "authorized"}
+
+
+def _current_git_sha() -> str:
+    proc = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=Path(__file__).resolve().parent,
+        capture_output=True,
+        text=True,
+        timeout=20,
+        check=False,
+    )
+    sha = proc.stdout.strip().lower()
+    if proc.returncode != 0 or not re.fullmatch(r"[0-9a-f]{40}", sha):
+        raise RuntimeError("current git commit is unavailable")
+    return sha
+
+
+def _resolve_remote_main_sha(repo: str, command_runner=None) -> str:
+    command_runner = command_runner or subprocess.run
+    proc = command_runner(
+        ["gh", "api", f"repos/{repo}/commits/main", "--jq", ".sha"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    sha = str(getattr(proc, "stdout", "")).strip().lower()
+    if getattr(proc, "returncode", 1) != 0 or not re.fullmatch(r"[0-9a-f]{40}", sha):
+        raise RuntimeError("remote main commit could not be resolved")
+    return sha
 
 
 def _load_dispatch_key(*, value: str | None = None, path: Path | None = None) -> str:
@@ -188,7 +277,16 @@ def validate_naver_receipt(path: Path) -> dict:
         return {"ok": False, "reason": "naver_receipt_corrupt"}
 
     url = str(data.get("url") or "").strip()
-    valid_url = url.startswith("https://") and ("blog.naver.com/" in url or "m.blog.naver.com/" in url)
+    try:
+        parsed_url = urlparse(url)
+        valid_url = (
+            parsed_url.scheme.lower() == "https"
+            and (parsed_url.hostname or "").lower() in {"blog.naver.com", "m.blog.naver.com"}
+            and parsed_url.username is None
+            and parsed_url.password is None
+        )
+    except Exception:
+        valid_url = False
     checks = (
         (data.get("success") is True, "naver_success_not_true"),
         (data.get("status") == "PUBLISHED", f"naver_status_{data.get('status') or 'missing'}"),
@@ -1016,6 +1114,7 @@ def dispatch_daily(
     mode: str = "normal",
     dispatch_key: str | None = None,
     dispatch_key_path: Path | None = None,
+    remote_commit_sha: str | None = None,
 ) -> dict:
     """Gate locally, then dispatch only the independent 2027 GitHub workflow."""
     command_runner = command_runner or subprocess.run
@@ -1060,13 +1159,27 @@ def dispatch_daily(
                 _append_status(status_path, result)
                 return result
             source_url = str(gate.get("naver_url") or "").strip()
+            payload_sha256 = publication_payload_sha256(item)
+            try:
+                commit_sha = str(remote_commit_sha or _resolve_remote_main_sha(repo, command_runner)).strip().lower()
+            except Exception:
+                result = {"action": "hold", "reason": "remote_commit_unavailable", "date": date_iso}
+                _append_status(status_path, result)
+                return result
+            if not re.fullmatch(r"[0-9a-f]{40}", commit_sha):
+                result = {"action": "hold", "reason": "remote_commit_invalid", "date": date_iso}
+                _append_status(status_path, result)
+                return result
             expires_at = (now_kst.astimezone(timezone.utc) + timedelta(minutes=60)).isoformat(timespec="seconds")
-            permit = make_dispatch_permit(key, item, date_iso, source_url, mode, expires_at)
+            permit = make_dispatch_permit(
+                key, item, date_iso, source_url, mode, expires_at, payload_sha256, commit_sha
+            )
             cmd = [
                 "gh", "workflow", "run", workflow,
                 "--repo", repo, "--ref", "main",
                 "-f", f"date={date_iso}", "-f", "send=true", "-f", f"mode={mode}",
                 "-f", f"source_url={source_url}", "-f", f"expires_at={expires_at}",
+                "-f", f"payload_sha256={payload_sha256}", "-f", f"commit_sha={commit_sha}",
                 "-f", f"permit={permit}",
             ]
             proc = command_runner(cmd, capture_output=True, text=True, timeout=60, check=False)
@@ -1129,12 +1242,22 @@ def _cmd_state(args) -> int:
 def _cmd_verify_permit(args) -> int:
     item = _workflow_item(Path(args.bundle_root), args.date)
     key = _load_dispatch_key()
+    actual_commit = _current_git_sha()
+    expected_commit = str(args.commit_sha or "").strip().lower()
+    if actual_commit != expected_commit:
+        raise PublicationBlocked(
+            f"execution commit mismatch: expected {expected_commit}, got {actual_commit}"
+        )
     result = validate_dispatch_authorization(
-        key, item, args.date, args.source_url, args.mode, args.expires_at, args.permit
+        key, item, args.date, args.source_url, args.mode, args.expires_at,
+        args.payload_sha256, expected_commit, args.permit
     )
     if not result.get("ok"):
         raise PublicationBlocked(f"dispatch permit verification failed: {result.get('reason')}")
-    print(json.dumps({"ok": True, "content_id": item["content_id"], "date": args.date, "mode": args.mode}, ensure_ascii=False))
+    print(json.dumps({
+        "ok": True, "content_id": item["content_id"], "date": args.date,
+        "mode": args.mode, "payload_sha256": args.payload_sha256, "commit_sha": actual_commit,
+    }, ensure_ascii=False))
     return 0
 
 
@@ -1297,6 +1420,8 @@ def main(argv: list[str] | None = None) -> int:
     verify.add_argument("--source-url", required=True)
     verify.add_argument("--mode", required=True, choices=["normal", "threads_canary", "youtube_private_canary"])
     verify.add_argument("--expires-at", required=True)
+    verify.add_argument("--payload-sha256", required=True)
+    verify.add_argument("--commit-sha", required=True)
     verify.add_argument("--permit", required=True)
     verify.add_argument("--bundle-root", default="newyear_2027")
     verify.set_defaults(func=_cmd_verify_permit)
