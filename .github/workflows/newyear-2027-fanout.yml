@@ -51,7 +51,7 @@ concurrency:
 
 jobs:
   gate:
-    if: ${{ inputs.send == true }}
+    if: ${{ inputs.send == true && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     outputs:
       commit_sha: ${{ steps.pin.outputs.commit_sha }}
@@ -66,7 +66,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.commit_sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 1
       - uses: actions/setup-python@v5
         with:
@@ -143,6 +143,9 @@ jobs:
             --mode "$AUTH_MODE" --expires-at "$EXPIRES_AT_INPUT" \
             --payload-sha256 "$PAYLOAD_SHA256_INPUT" --commit-sha "$COMMIT_SHA_INPUT" \
             --permit "$DISPATCH_PERMIT_INPUT"
+      - name: Threads durable claim 소유권 확인
+        if: ${{ steps.threads_intent.outputs.action == 'publish' }}
+        run: bash scripts/verify_newyear_2027_receipt_owner.sh "newyear_2027/receipts/$TARGET_DATE/threads.json"
       - name: Threads 발행
         if: ${{ steps.threads_intent.outputs.action == 'publish' }}
         env:
@@ -236,6 +239,12 @@ jobs:
             --mode "$AUTH_MODE" --expires-at "$EXPIRES_AT_INPUT" \
             --payload-sha256 "$PAYLOAD_SHA256_INPUT" --commit-sha "$COMMIT_SHA_INPUT" \
             --permit "$DISPATCH_PERMIT_INPUT"
+      - name: YouTube durable claim 소유권 확인
+        if: ${{ steps.youtube_intent.outputs.action == 'publish' }}
+        run: |
+          PLATFORM=youtube
+          if [ "$AUTH_MODE" = 'youtube_private_canary' ]; then PLATFORM=youtube_canary; fi
+          bash scripts/verify_newyear_2027_receipt_owner.sh "newyear_2027/receipts/$TARGET_DATE/$PLATFORM.json"
       - name: YouTube 정상 예약발행
         if: ${{ steps.youtube_intent.outputs.action == 'publish' && inputs.mode == 'normal' }}
         env:

@@ -45,3 +45,7 @@ if git diff --cached --quiet; then
 fi
 git commit -m "$MESSAGE"
 bash scripts/safe_git_push.sh main
+
+# A successful push is not enough: confirm origin/main still contains this run's
+# unique owner token and exact receipt state before the caller may continue.
+bash "$ROOT/scripts/verify_newyear_2027_receipt_owner.sh" "$RECEIPT"

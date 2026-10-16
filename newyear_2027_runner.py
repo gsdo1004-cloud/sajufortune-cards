@@ -432,6 +432,7 @@ def prepare_intent(receipt_path: Path, *, item: dict, platform: str, account: st
         "account": account,
         "source_sha256": item.get("source_sha256", ""),
         "output_sha256": item.get("output_sha256", ""),
+        "owner_token": uuid.uuid4().hex,
         "started_at": _now_iso(),
     }
     _atomic_json_write(receipt_path, data)
@@ -471,6 +472,8 @@ def validate_durable_receipt_transition(action: str, current: dict | None, incom
             return {"ok": False, "reason": "durable_receipt_exists"}
         if incoming.get("status") != "PUBLISHING":
             return {"ok": False, "reason": "incoming_not_publishing"}
+        if not re.fullmatch(r"[0-9a-f]{32}", str(incoming.get("owner_token") or "")):
+            return {"ok": False, "reason": "owner_token_invalid"}
         return {"ok": True, "reason": "claim_allowed"}
 
     if current is None:
@@ -479,12 +482,33 @@ def validate_durable_receipt_transition(action: str, current: dict | None, incom
         return {"ok": False, "reason": f"durable_state_{current.get('status') or 'UNKNOWN'}"}
     if incoming.get("status") != "PUBLISHED":
         return {"ok": False, "reason": "incoming_not_published"}
-    for field in ("publish_key", "content_id", "platform", "account", "source_sha256", "output_sha256"):
+    for field in ("publish_key", "content_id", "platform", "account", "source_sha256", "output_sha256", "owner_token"):
         if str(current.get(field) or "") != str(incoming.get(field) or ""):
             return {"ok": False, "reason": f"receipt_{field}_mismatch"}
     if not str(incoming.get("remote_id") or "").strip():
         return {"ok": False, "reason": "remote_id_missing"}
     return {"ok": True, "reason": "finalize_allowed"}
+
+
+def validate_durable_receipt_owner(durable: dict, local: dict) -> dict:
+    """Require remote main receipt to be exactly owned by this local run."""
+    if not isinstance(durable, dict) or not isinstance(local, dict):
+        return {"ok": False, "reason": "receipt_invalid"}
+    if durable.get("status") != local.get("status"):
+        return {"ok": False, "reason": "receipt_status_mismatch"}
+    for field in (
+        "publish_key", "content_id", "platform", "account",
+        "source_sha256", "output_sha256", "owner_token",
+    ):
+        if str(durable.get(field) or "") != str(local.get(field) or ""):
+            return {"ok": False, "reason": f"receipt_{field}_mismatch"}
+    owner = str(local.get("owner_token") or "")
+    if not re.fullmatch(r"[0-9a-f]{32}", owner):
+        return {"ok": False, "reason": "owner_token_invalid"}
+    if local.get("status") == "PUBLISHED":
+        if str(durable.get("remote_id") or "") != str(local.get("remote_id") or ""):
+            return {"ok": False, "reason": "receipt_remote_id_mismatch"}
+    return {"ok": True, "reason": "durable_owner_confirmed"}
 
 
 def _meta_index(meta: dict, post_dir: Path) -> int:
@@ -1230,6 +1254,16 @@ def _cmd_receipt_transition(args) -> int:
     return 0
 
 
+def _cmd_receipt_owner(args) -> int:
+    durable = _read_json(Path(args.durable))
+    local = _read_json(Path(args.local))
+    result = validate_durable_receipt_owner(durable, local)
+    print(json.dumps(result, ensure_ascii=False))
+    if not result.get("ok"):
+        raise PublicationBlocked(f"durable receipt ownership blocked: {result.get('reason')}")
+    return 0
+
+
 def _cmd_state(args) -> int:
     bundle = Path(args.bundle_root)
     receipt = _receipt_path(bundle, args.date, args.platform)
@@ -1272,10 +1306,13 @@ def _cmd_intent(args) -> int:
             if not video.is_file():
                 raise FileNotFoundError(video)
             item["output_sha256"] = _sha256(video)
-        prepare_intent(receipt, item=item, platform=args.platform, account=args.account)
+        intent_data = prepare_intent(receipt, item=item, platform=args.platform, account=args.account)
         action = "publish"
-    print(json.dumps({"action": action, "receipt": str(receipt)}, ensure_ascii=False))
-    _emit_output(args.github_output, action=action, receipt=str(receipt))
+        owner_token = intent_data["owner_token"]
+    else:
+        owner_token = ""
+    print(json.dumps({"action": action, "receipt": str(receipt), "owner_token": owner_token}, ensure_ascii=False))
+    _emit_output(args.github_output, action=action, receipt=str(receipt), owner_token=owner_token)
     return 0
 
 
@@ -1406,6 +1443,11 @@ def main(argv: list[str] | None = None) -> int:
     transition.add_argument("--durable", required=True)
     transition.add_argument("--incoming", required=True)
     transition.set_defaults(func=_cmd_receipt_transition)
+
+    owner = sub.add_parser("receipt-owner")
+    owner.add_argument("--durable", required=True)
+    owner.add_argument("--local", required=True)
+    owner.set_defaults(func=_cmd_receipt_owner)
 
     state = sub.add_parser("state")
     state.add_argument("--date", required=True)

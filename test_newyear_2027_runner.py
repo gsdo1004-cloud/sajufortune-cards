@@ -779,6 +779,7 @@ def test_durable_receipt_claim_blocks_any_existing_state():
     incoming = {
         "status": "PUBLISHING", "publish_key": "k", "content_id": "c",
         "platform": "youtube", "account": "a", "source_sha256": "s", "output_sha256": "o",
+        "owner_token": "a" * 32,
     }
     assert ny.validate_durable_receipt_transition("claim", None, incoming)["ok"] is True
     for status in ("PUBLISHING", "PUBLISHED", "UNKNOWN"):
@@ -849,3 +850,52 @@ def test_workflow_binds_and_checks_payload_and_execution_commit():
     assert "--payload-sha256" in text
     assert "--commit-sha" in text
     assert "git rev-parse HEAD" in text
+
+
+def test_prepare_intent_assigns_unique_owner_tokens(tmp_path):
+    item = _intent_item()
+    a = ny.prepare_intent(tmp_path / "a.json", item=item, platform="threads", account="a")
+    b = ny.prepare_intent(tmp_path / "b.json", item=item, platform="threads", account="a")
+    assert re.fullmatch(r"[0-9a-f]{32}", a["owner_token"])
+    assert re.fullmatch(r"[0-9a-f]{32}", b["owner_token"])
+    assert a["owner_token"] != b["owner_token"]
+
+
+def test_durable_finalize_requires_same_owner_token():
+    current = {
+        "status": "PUBLISHING", "publish_key": "k", "content_id": "c",
+        "platform": "threads", "account": "a", "source_sha256": "s",
+        "output_sha256": "o", "owner_token": "a" * 32,
+    }
+    incoming = dict(current, status="PUBLISHED", remote_id="r")
+    assert ny.validate_durable_receipt_transition("finalize", current, incoming)["ok"] is True
+    incoming["owner_token"] = "b" * 32
+    result = ny.validate_durable_receipt_transition("finalize", current, incoming)
+    assert result["ok"] is False
+    assert result["reason"] == "receipt_owner_token_mismatch"
+
+
+def test_verify_durable_receipt_owner_requires_same_claim():
+    local = {
+        "status": "PUBLISHING", "publish_key": "k", "content_id": "c",
+        "platform": "youtube", "account": "a", "source_sha256": "s",
+        "output_sha256": "o", "owner_token": "a" * 32,
+    }
+    durable = dict(local)
+    assert ny.validate_durable_receipt_owner(durable, local)["ok"] is True
+    durable["owner_token"] = "b" * 32
+    result = ny.validate_durable_receipt_owner(durable, local)
+    assert result["ok"] is False
+    assert result["reason"] == "receipt_owner_token_mismatch"
+
+
+def test_workflow_gate_only_uses_secret_on_main_and_checks_durable_owner():
+    root = Path(__file__).resolve().parent
+    text = (root / ".github" / "workflows" / "newyear-2027-fanout.yml").read_text(encoding="utf-8")
+    assert "github.ref == 'refs/heads/main'" in text
+    assert "ref: ${{ github.sha }}" in text
+    assert "ref: ${{ inputs.commit_sha }}" not in text
+    assert text.count("verify_newyear_2027_receipt_owner.sh") >= 2
+    helper = (root / "scripts" / "verify_newyear_2027_receipt_owner.sh").read_text(encoding="utf-8")
+    assert "origin/main" in helper
+    assert "receipt-owner" in helper
