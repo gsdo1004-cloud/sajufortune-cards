@@ -181,6 +181,28 @@ def build_text(date_iso: str) -> str:
                       으로=_josa(ganzhi, "으로", "로"))
 
 
+def prepare_home_og_publication(text: str, date_iso: str) -> tuple[str, bool]:
+    """Pre-register the social card assignment or fall back to the proven /links URL."""
+    import home_banner_ab_link as ab
+
+    ab_url = ab.tracked_home_og_url("ghost", date_iso)
+    if not ab_url or ab_url not in text:
+        return text, False
+    if ab.register_publication("ghost", date_iso, status="prepared"):
+        return text, True
+    # Never publish a link that the site will reject. Existing attribution survives.
+    return text.replace(ab_url, conv.tracked_url("ghost", date_iso)), False
+
+
+def finalize_home_og_publication(date_iso: str, platform_post_id: str, active: bool) -> bool:
+    if not active:
+        return True
+    import home_banner_ab_link as ab
+    return ab.register_publication(
+        "ghost", date_iso, status="published", platform_post_id=platform_post_id
+    )
+
+
 def publish_ghost(text: str, date_iso: str) -> str:
     import requests
     from zodiac_cardnews import _threads_uid
@@ -222,22 +244,40 @@ def main():
     date_iso = args[0] if args else zs.today_iso()
 
     text = build_text(date_iso)
-    print(f"----- {date_iso} 유령 게시물 -----\n{text}\n------------------------")
     if dry:
+        print(f"----- {date_iso} 유령 게시물 -----\n{text}\n------------------------")
         print("[DRY-RUN] 발행하지 않았습니다.")
         return
 
-    # 멱등 가드: 같은 날 두 번 올리지 않는다.
+    # 멱등 가드가 먼저다. 이미 발행된 날은 새 prepare 호출/재게시를 하지 않고,
+    # 이전 실행에서 published receipt만 실패했을 가능성이 있으면 마커 post_id로 복구한다.
     marker = BASE / "cards" / date_iso / "threads_pub_ghost.json"
     if marker.exists():
+        try:
+            prior = json.loads(marker.read_text(encoding="utf-8"))
+        except Exception:
+            prior = {}
+        prior_text = str(prior.get("text") or "")
+        prior_pid = str(prior.get("post_id") or "")
+        if "/share/home-og/" in prior_text and prior_pid:
+            if finalize_home_og_publication(date_iso, prior_pid, True):
+                print("[OK] home OG A/B published receipt synchronized from marker")
+            else:
+                print("[WARN] home OG A/B published receipt sync still pending")
         print(f"[스킵] {date_iso} 유령 게시물 이미 발행됨")
         return
 
+    text, home_og_ab_active = prepare_home_og_publication(text, date_iso)
+    print(f"----- {date_iso} 유령 게시물 -----\n{text}\n------------------------")
     pid = publish_ghost(text, date_iso)
     print(f"[OK] ghost post: {pid}")
+    # Persist local idempotency evidence first. Receipt sync is downstream bookkeeping and
+    # must never make a successful Threads publish look unpublished to the backup cron.
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.write_text(json.dumps({"post_id": pid, "text": text}, ensure_ascii=False),
                       encoding="utf-8")
+    if home_og_ab_active and not finalize_home_og_publication(date_iso, pid, True):
+        print("[WARN] home OG A/B published receipt sync failed; post stays live but dashboard awaits receipt")
 
 
 if __name__ == "__main__":

@@ -69,8 +69,14 @@ def cta(channel: str, date_iso: str, sign: str = "", focus: str = "") -> str:
     pool=CONVERT if st=="conversion" else BRIDGE if st=="bridge" else REACH
     line=pool[seed % len(pool)]
     # 직접 URL은 약 5%의 sale 글에만 넣는다. 나머지는 프로필 유도로 도달 손실을 줄인다.
+    # OG 배너 A/B는 링크 미리보기가 실제 treatment인 text-only ghost 슬롯에만 붙인다.
+    # 이미지/영상 게시물과 reply는 기존 /links 퍼널을 유지해 실험 노출을 가장하지 않는다.
     if st=="conversion":
-        line += "\n" + tracked_url(channel,date_iso)
+        if channel == "ghost":
+            from home_banner_ab_link import tracked_home_og_url
+            line += "\n" + tracked_home_og_url(channel, date_iso)
+        else:
+            line += "\n" + tracked_url(channel,date_iso)
     return line
 
 
