@@ -507,6 +507,28 @@ def finalize_receipt(receipt_path: Path, *, remote_id: str, extra: dict | None =
     return data
 
 
+def update_published_receipt(
+    receipt_path: Path, *, remote_id: str, extra: dict | None = None
+) -> dict:
+    """Atomically enrich an already-PUBLISHED receipt without changing identity."""
+    receipt_path = Path(receipt_path)
+    if not remote_id:
+        raise ValueError("remote_id is required")
+    if not receipt_path.is_file():
+        raise PublicationBlocked("published receipt is missing")
+    try:
+        data = _read_json(receipt_path)
+    except Exception as exc:
+        raise PublicationBlocked("published receipt is corrupt") from exc
+    if data.get("status") != "PUBLISHED":
+        raise PublicationBlocked(f"cannot update state {data.get('status') or 'UNKNOWN'}")
+    if str(data.get("remote_id") or "") != str(remote_id):
+        raise PublicationBlocked("published receipt remote_id mismatch")
+    data.update(extra or {})
+    _atomic_json_write(receipt_path, data)
+    return data
+
+
 def validate_durable_receipt_transition(action: str, current: dict | None, incoming: dict) -> dict:
     """Validate main-branch durable receipt transitions before copying state.
 
@@ -768,12 +790,68 @@ def _require_intent(receipt_path: Path, *, item: dict, platform: str, account: s
     return data
 
 
+def newyear_threads_home_og_plan(item: dict, *, ab_module=None) -> dict:
+    """Build the deterministic 30/30 social-card assignment for the 60-item lane."""
+    if ab_module is None:
+        import home_banner_ab_link as ab_module
+    try:
+        index = int(item.get("index") or 0)
+    except (TypeError, ValueError):
+        return {}
+    date_iso = str(item.get("publish_date") or "").strip()
+    content_id = str(item.get("content_id") or "").strip()
+    base_text = str(item.get("threads_text") or "").strip()
+    if index < 1 or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_iso) or not content_id or not base_text:
+        return {}
+    target = "A" if index % 2 else "B"
+    publication = ab_module.publication_id_for_variant(
+        "ny2027", date_iso, target, key=f"{index:03d}"
+    )
+    if not publication or ab_module.variant_for(publication) != target:
+        return {}
+    campaign = f"ny2027_{date_iso.replace('-', '')}"
+    url = ab_module.tracked_publication_url(
+        publication, campaign=campaign, content=content_id
+    )
+    if not url:
+        return {}
+    text = f"{base_text}\n\n내 2027년 운세 보기\n{url}"
+    if len(text) > 500:
+        return {}
+    return {
+        "publication_id": publication,
+        "variant": target,
+        "url": url,
+        "text": text,
+    }
+
+
+def _prepare_newyear_threads_home_og(
+    item: dict, *, ab_module=None,
+    authorization_guard: Callable[[str], None] | None = None,
+) -> tuple[str, dict]:
+    if ab_module is None:
+        import home_banner_ab_link as ab_module
+    base_text = str(item.get("threads_text") or "")
+    plan = newyear_threads_home_og_plan(item, ab_module=ab_module)
+    if not plan:
+        return base_text, {}
+    if authorization_guard is not None:
+        authorization_guard("before_home_og_prepare")
+    if not ab_module.register_publication_id(
+        plan["publication_id"], status="prepared"
+    ):
+        return base_text, {}
+    return plan["text"], plan
+
+
 def publish_threads_text(
     item: dict,
     *,
     receipt_path: Path,
     account: str = "gsdo10042026",
     api_module=None,
+    home_og_module=None,
     sleep_fn=time.sleep,
     authorization_guard: Callable[[str], None] | None = None,
 ) -> str:
@@ -790,11 +868,16 @@ def publish_threads_text(
     if configured_uid and configured_uid != str(uid):
         raise RuntimeError(f"Threads user id mismatch: expected {configured_uid}, got {uid}")
     base = f"https://graph.threads.net/v1.0/{uid}"
+    if home_og_module is None:
+        import home_banner_ab_link as home_og_module
+    post_text, home_og = _prepare_newyear_threads_home_og(
+        item, ab_module=home_og_module, authorization_guard=authorization_guard
+    )
     if authorization_guard is not None:
         authorization_guard("before_create")
     created = api_module._post(
         f"{base}/threads",
-        {"media_type": "TEXT", "text": str(item.get("threads_text") or ""), "access_token": token},
+        {"media_type": "TEXT", "text": post_text, "access_token": token},
     )
     creation_id = created.get("id") if isinstance(created, dict) else None
     if not creation_id:
@@ -809,7 +892,45 @@ def publish_threads_text(
     remote_id = published.get("id") if isinstance(published, dict) else None
     if not remote_id:
         raise RuntimeError(f"Threads publish failed: {published}")
-    finalize_receipt(receipt_path, remote_id=str(remote_id), extra={"creation_id": str(creation_id)})
+    # Record the successful remote publish before any non-essential site receipt call.
+    # This keeps the at-most-once boundary durable even if OG finalization fails/raises.
+    extra = {
+        "creation_id": str(creation_id),
+        "home_og_finalized": False,
+        "home_og_finalize_status": "not_applicable",
+    }
+    if home_og:
+        extra.update({
+            "home_og_publication_id": home_og["publication_id"],
+            "home_og_variant": home_og["variant"],
+            "home_og_url": home_og["url"],
+            "home_og_finalize_status": "pending",
+        })
+    finalize_receipt(receipt_path, remote_id=str(remote_id), extra=extra)
+
+    if home_og:
+        home_og_finalized = False
+        finalize_error = ""
+        try:
+            home_og_finalized = bool(home_og_module.register_publication_id(
+                home_og["publication_id"],
+                status="published",
+                platform_post_id=str(remote_id),
+            ))
+        except Exception as exc:
+            # The Threads post already exists. Never turn an auxiliary site receipt
+            # failure into a retryable social publish failure. Persist only the class
+            # name so secrets/URLs from exception messages cannot leak into receipts.
+            finalize_error = type(exc).__name__
+        outcome = {
+            "home_og_finalized": home_og_finalized,
+            "home_og_finalize_status": "published" if home_og_finalized else "failed",
+        }
+        if finalize_error:
+            outcome["home_og_finalize_error"] = finalize_error
+        update_published_receipt(
+            receipt_path, remote_id=str(remote_id), extra=outcome
+        )
     return str(remote_id)
 
 

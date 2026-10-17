@@ -130,3 +130,42 @@ def test_ghost_workflow_code_push_cannot_publish_and_marker_precedes_receipt_syn
     marker_write = source.index("marker.write_text", publish)
     receipt = source.index("finalize_home_og_publication(date_iso, pid, True)", publish)
     assert publish < marker_write < receipt
+
+
+def test_explicit_publication_variant_preserves_server_hash_contract():
+    import home_banner_ab_link as ab
+
+    fn = getattr(ab, "publication_id_for_variant", None)
+    assert callable(fn), "publication_id_for_variant must exist for balanced publisher assignment"
+    for target in ("A", "B"):
+        pub = fn("ny2027", "2026-10-18", target, key="002")
+        assert pub.startswith("threads-20261018-ny2027-002")
+        assert len(pub) <= 80
+        assert ab.variant_for(pub) == target
+
+
+def test_explicit_publication_registration_uses_given_publication(monkeypatch):
+    import json
+    import home_banner_ab_link as ab
+
+    fn = getattr(ab, "register_publication_id", None)
+    assert callable(fn), "register_publication_id must exist for publisher-owned balanced ids"
+    sent = []
+
+    class _Resp:
+        def __enter__(self): return self
+        def __exit__(self, *args): return False
+        def read(self, *args): return b'{"ok":true}'
+
+    def fake_urlopen(req, timeout=0):
+        sent.append((req, timeout))
+        return _Resp()
+
+    monkeypatch.setenv("HOME_OG_AB_TOKEN", "secret-test-token")
+    monkeypatch.setattr(ab.urllib.request, "urlopen", fake_urlopen)
+    pub = ab.publication_id_for_variant("ny2027", "2026-10-18", "B", key="002")
+    assert fn(pub, status="prepared")
+    assert fn(pub, status="published", platform_post_id="thread-ny2027-2")
+    payloads = [json.loads(x[0].data.decode("utf-8")) for x in sent]
+    assert [p["publication_id"] for p in payloads] == [pub, pub]
+    assert [p["variant"] for p in payloads] == ["B", "B"]
