@@ -157,7 +157,7 @@ jobs:
         run: python zodiac_instagram.py "${{ steps.target.outputs.mode }}" "${{ steps.target.outputs.date }}"
 
       - name: Publish scheduled Legacy Reel
-        if: github.event_name == 'schedule' && steps.target.outputs.mode == 'reel'
+        if: always() && github.event_name == 'schedule' && steps.target.outputs.mode == 'reel'
         env:
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_LEGACY_ACCESS_TOKEN }}
           INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_LEGACY_USER_ID }}
@@ -197,7 +197,7 @@ jobs:
         run: python instagram_insights.py
 
       - name: Collect Legacy aggregate insights
-        if: (github.event_name == 'schedule' && steps.target.outputs.mode == 'reel') || (github.event_name == 'workflow_dispatch' && github.event.inputs.publish == 'true' && (github.event.inputs.account == 'legacy' || github.event.inputs.account == 'both'))
+        if: always() && ((github.event_name == 'schedule' && steps.target.outputs.mode == 'reel') || (github.event_name == 'workflow_dispatch' && github.event.inputs.publish == 'true' && (github.event.inputs.account == 'legacy' || github.event.inputs.account == 'both')))
         continue-on-error: true
         env:
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_LEGACY_ACCESS_TOKEN }}
@@ -207,7 +207,7 @@ jobs:
         run: python instagram_insights.py
 
       - name: Persist idempotency markers and aggregate insights
-        if: github.event_name == 'schedule' || github.event.inputs.publish == 'true'
+        if: always() && (github.event_name == 'schedule' || github.event.inputs.publish == 'true')
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
