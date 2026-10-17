@@ -153,6 +153,7 @@ jobs:
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
           THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
           THREADS_EXPECTED_USERNAME: gsdo10042026
+          HOME_OG_AB_TOKEN: ${{ secrets.HOME_OG_AB_TOKEN }}
         run: python newyear_2027_runner.py publish-threads --date "$TARGET_DATE"
       - name: Threads PUBLISHED receipt 저장 (격리 worktree)
         if: ${{ steps.threads_intent.outputs.action == 'publish' }}

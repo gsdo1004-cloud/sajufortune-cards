@@ -1229,3 +1229,144 @@ def test_private_canary_requires_fixed_channel_id_before_insert(tmp_path, monkey
             media_factory=lambda path, **kwargs: {"path": str(path), **kwargs},
         )
     assert service.insert_body is None
+
+
+def test_newyear_threads_home_og_plan_is_exactly_balanced_and_under_limit():
+    fn = getattr(ny, "newyear_threads_home_og_plan", None)
+    assert callable(fn), "newyear_threads_home_og_plan must exist"
+    manifest = json.loads((Path(__file__).parent / "newyear_2027" / "content.json").read_text(encoding="utf-8"))
+    plans = [fn(item) for item in manifest["items"]]
+    variants = [plan["variant"] for plan in plans]
+    assert variants.count("A") == 30
+    assert variants.count("B") == 30
+    assert variants[:4] == ["A", "B", "A", "B"]
+    assert len({plan["publication_id"] for plan in plans}) == 60
+    for item, plan in zip(manifest["items"], plans):
+        assert plan["url"].startswith("https://sajufortune.kr/share/home-og/")
+        assert f"/{plan['variant']}?" in plan["url"]
+        assert len(item["threads_text"] + "\n\n내 2027년 운세 보기\n" + plan["url"]) <= 500
+
+
+class _FakeHomeOg:
+    def __init__(self, *, prepare_ok=True, finalize_ok=True, finalize_error=None):
+        self.prepare_ok = prepare_ok
+        self.finalize_ok = finalize_ok
+        self.finalize_error = finalize_error
+        self.calls = []
+
+    def publication_id_for_variant(self, channel, date_iso, target, *, key=""):
+        return f"threads-{date_iso.replace('-', '')}-{channel}-{key}-{target.lower()}"
+
+    def variant_for(self, publication):
+        return "B" if publication.endswith("-b") else "A"
+
+    def tracked_publication_url(self, publication, *, campaign, content=""):
+        variant = self.variant_for(publication)
+        return f"https://sajufortune.kr/share/home-og/{publication}/{variant}?utm_source=threads&utm_medium=organic&utm_campaign={campaign}&utm_content={content}"
+
+    def register_publication_id(self, publication, *, status="prepared", platform_post_id="", retries=3):
+        self.calls.append((publication, status, platform_post_id))
+        if status == "published" and self.finalize_error is not None:
+            raise self.finalize_error
+        return self.prepare_ok if status == "prepared" else self.finalize_ok
+
+
+def _ny2027_threads_item(index=2):
+    return {
+        "content_id": f"ny2027-{index:03d}-topic",
+        "index": index,
+        "publish_date": f"2026-10-{16 + index:02d}",
+        "source_sha256": "source-sha",
+        "output_sha256": "video-sha",
+        "threads_text": "2027년 핵심 흐름입니다.\n저장해 두고 다시 확인하세요.",
+        "youtube_title": "2027 운세",
+        "youtube_description": "설명",
+        "tags": ["2027운세"],
+    }
+
+
+def test_publish_threads_adds_balanced_home_og_link_and_finalizes_registration(tmp_path, monkeypatch):
+    api = _FakeThreadsApi()
+    ab = _FakeHomeOg()
+    monkeypatch.setenv("THREADS_ACCESS_TOKEN", "token")
+    receipt = tmp_path / "threads.json"
+    item = _ny2027_threads_item(index=2)
+    ny.prepare_intent(receipt, item=item, platform="threads", account="gsdo10042026")
+
+    remote_id = ny.publish_threads_text(
+        item,
+        receipt_path=receipt,
+        account="gsdo10042026",
+        api_module=api,
+        home_og_module=ab,
+        sleep_fn=lambda _: None,
+    )
+
+    assert remote_id == "threads_post_123"
+    posted_text = api.calls[0][1]["text"]
+    assert "내 2027년 운세 보기" in posted_text
+    assert "/B?" in posted_text
+    assert len(posted_text) <= 500
+    assert [c[1] for c in ab.calls] == ["prepared", "published"]
+    assert ab.calls[-1][2] == remote_id
+    final = json.loads(receipt.read_text(encoding="utf-8"))
+    assert final["home_og_variant"] == "B"
+    assert final["home_og_finalized"] is True
+
+
+def test_publish_threads_keeps_original_copy_when_home_og_prepare_fails(tmp_path, monkeypatch):
+    api = _FakeThreadsApi()
+    ab = _FakeHomeOg(prepare_ok=False)
+    monkeypatch.setenv("THREADS_ACCESS_TOKEN", "token")
+    receipt = tmp_path / "threads.json"
+    item = _ny2027_threads_item(index=3)
+    ny.prepare_intent(receipt, item=item, platform="threads", account="gsdo10042026")
+
+    ny.publish_threads_text(
+        item,
+        receipt_path=receipt,
+        account="gsdo10042026",
+        api_module=api,
+        home_og_module=ab,
+        sleep_fn=lambda _: None,
+    )
+
+    assert api.calls[0][1]["text"] == item["threads_text"]
+    assert [c[1] for c in ab.calls] == ["prepared"]
+    final = json.loads(receipt.read_text(encoding="utf-8"))
+    assert final["home_og_finalized"] is False
+
+
+def test_newyear_workflow_supplies_home_og_registration_secret_only_to_threads_publish():
+    workflow = (Path(__file__).parent / ".github" / "workflows" / "newyear-2027-fanout.yml").read_text(encoding="utf-8")
+    threads_block = workflow.split("\n  threads:\n", 1)[1].split("\n  youtube:\n", 1)[0]
+    assert "HOME_OG_AB_TOKEN: ${{ secrets.HOME_OG_AB_TOKEN }}" in threads_block
+
+
+def test_threads_remote_success_is_durable_when_home_og_finalize_raises(tmp_path, monkeypatch):
+    api = _FakeThreadsApi()
+    ab = _FakeHomeOg(finalize_error=RuntimeError("site receipt unavailable"))
+    monkeypatch.setenv("THREADS_ACCESS_TOKEN", "token")
+    receipt = tmp_path / "threads.json"
+    item = _ny2027_threads_item(index=2)
+    ny.prepare_intent(receipt, item=item, platform="threads", account="gsdo10042026")
+
+    remote_id = ny.publish_threads_text(
+        item, receipt_path=receipt, account="gsdo10042026",
+        api_module=api, home_og_module=ab, sleep_fn=lambda _: None,
+    )
+
+    assert remote_id == "threads_post_123"
+    final = json.loads(receipt.read_text(encoding="utf-8"))
+    assert final["status"] == "PUBLISHED"
+    assert final["remote_id"] == remote_id
+    assert final["home_og_variant"] == "B"
+    assert final["home_og_finalized"] is False
+    assert final["home_og_finalize_error"] == "RuntimeError"
+    before = len(api.calls)
+    with pytest.raises(ny.PublicationBlocked, match="state is PUBLISHED"):
+        ny.publish_threads_text(
+            item, receipt_path=receipt, account="gsdo10042026",
+            api_module=api, home_og_module=ab, sleep_fn=lambda _: None,
+        )
+    assert len(api.calls) == before
