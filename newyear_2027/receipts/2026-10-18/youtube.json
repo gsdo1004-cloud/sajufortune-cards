@@ -1,0 +1,11 @@
+{
+  "status": "PUBLISHING",
+  "publish_key": "ny2027-002-career:youtube:운명과학TV",
+  "content_id": "ny2027-002-career",
+  "platform": "youtube",
+  "account": "운명과학TV",
+  "source_sha256": "bb36e1878551941e628669466356023bc4be8b6992543db61a66c6633e080af4",
+  "output_sha256": "d729e000a05bf26b2132abd63549efc992316e9c85c27451a5014bfada1c4262",
+  "owner_token": "6ab0657dccf84e9b809d7e160de60e70",
+  "started_at": "2026-10-18T02:20:15+00:00"
+}
