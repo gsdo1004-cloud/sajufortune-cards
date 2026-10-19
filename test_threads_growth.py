@@ -134,6 +134,81 @@ class GrowthSafetyTests(unittest.TestCase):
         self.assertTrue(ready)
         self.assertEqual(required, 0)
 
+    def test_birth_detail_never_falls_through_to_llm(self):
+        cand = g.Candidate(
+            id="private-birth-1", username="visitor",
+            text="양력 1994.05.24 오전 03:31 남자 재물운",
+            timestamp="2026-10-19T00:00:00Z", kind="inbound",
+        )
+        fake_llm = mock.Mock()
+        fake_llm.ask.return_value = "LLM이 만든 답변"
+        with mock.patch.object(g, "public_fortune_reply", return_value=None), \
+             mock.patch.object(g, "public_birth_detail", return_value=True), \
+             mock.patch.object(g, "llm", fake_llm):
+            out = g.generate_reply(cand, self.cfg, self.state)
+        self.assertIsNone(out)
+        fake_llm.ask.assert_not_called()
+
+    def test_birth_detail_generation_failure_is_retried_not_marked_handled(self):
+        cand = g.Candidate(
+            id="private-birth-retry", username="visitor",
+            text="양력 1994.05.24 오전 03:31 남자 재물운",
+            timestamp=(g.utcnow() - dt.timedelta(hours=2)).isoformat(), kind="inbound",
+        )
+        cfg = dict(self.cfg)
+        cfg["public_saju_reply_min_delay_minutes"] = 0
+        cfg["public_saju_reply_max_delay_minutes"] = 0
+        with mock.patch.object(g, "inbound_candidates", return_value=[cand]), \
+             mock.patch.object(g, "generate_reply", return_value=None), \
+             mock.patch.object(g, "public_birth_detail", return_value=True):
+            g.run_growth(mock.Mock(), cfg, self.state, {"read_replies": True},
+                         send=False, do_external=False, do_inbound=True)
+        self.assertNotIn(cand.id, self.state["handled_inbound_ids"])
+
+    def test_public_saju_root_ids_reads_only_recent_event_receipts(self):
+        old_dir = g.PUBLIC_SAJU_EVENT_DIR
+        with tempfile.TemporaryDirectory(prefix="public_saju_receipts_") as td:
+            root = Path(td)
+            g.PUBLIC_SAJU_EVENT_DIR = root
+            try:
+                (root / "recent.json").write_text(
+                    '{"date":"2026-10-19","post_id":"event-root","kind":"public_saju_event"}',
+                    encoding="utf-8",
+                )
+                (root / "old.json").write_text(
+                    '{"date":"2026-10-10","post_id":"old-root","kind":"public_saju_event"}',
+                    encoding="utf-8",
+                )
+                (root / "other.json").write_text(
+                    '{"date":"2026-10-19","post_id":"other-root","kind":"other"}',
+                    encoding="utf-8",
+                )
+                now = dt.datetime(2026, 10, 19, 12, 0, tzinfo=dt.timezone.utc)
+                self.assertEqual(g.public_saju_root_ids(now), {"event-root"})
+            finally:
+                g.PUBLIC_SAJU_EVENT_DIR = old_dir
+
+    def test_public_saju_only_filters_other_inbound_roots(self):
+        event = g.Candidate(
+            id="event-reply", username="visitor1", text="댓글입니다",
+            timestamp=(g.utcnow() - dt.timedelta(hours=1)).isoformat(),
+            kind="inbound", root_post_id="event-root",
+        )
+        regular = g.Candidate(
+            id="regular-reply", username="visitor2", text="일반 댓글입니다",
+            timestamp=(g.utcnow() - dt.timedelta(hours=1)).isoformat(),
+            kind="inbound", root_post_id="regular-root",
+        )
+        cfg = dict(self.cfg)
+        cfg["_public_saju_only"] = True
+        cfg["inbound_per_run"] = 3
+        with mock.patch.object(g, "inbound_candidates", return_value=[event, regular]), \
+             mock.patch.object(g, "public_saju_root_ids", return_value={"event-root"}, create=True), \
+             mock.patch.object(g, "generate_reply", return_value="맥락 있는 답변입니다."):
+            result = g.run_growth(mock.Mock(), cfg, self.state, {"read_replies": True},
+                                  send=False, do_external=False, do_inbound=True)
+        self.assertEqual([x["target"] for x in result["actions"]], ["event-reply"])
+
 
 class RevenueGateTests(unittest.TestCase):
     def test_external_never_gets_revenue_cta(self):

@@ -44,18 +44,22 @@ try:
     from threads_fortune_public import (
         public_reply as public_fortune_reply,
         has_birth_detail as public_birth_detail,
+        missing_birth_fields as public_birth_missing_fields,
     )
 except Exception:
     public_fortune_reply = None
     public_birth_detail = None
+    public_birth_missing_fields = None
 
 BASE = Path(__file__).resolve().parent
+KST = dt.timezone(dt.timedelta(hours=9))
 GRAPH = os.environ.get("THREADS_GRAPH", "https://graph.threads.net/v1.0").rstrip("/")
 CONFIG_PATH = BASE / "threads_growth_config.json"
 STATE_PATH = BASE / "threads_growth_state.json"
 REPORT_PATH = BASE / "threads_growth_report.md"
 CAP_PATH = BASE / "threads_growth_capabilities.json"
 PAUSE_PATH = BASE / "threads_growth_PAUSED.json"
+PUBLIC_SAJU_EVENT_DIR = BASE / "public_saju_events"
 
 THREAD_FIELDS = "id,text,timestamp,username,permalink,is_reply,has_replies"
 REPLY_FIELDS = (
@@ -648,16 +652,33 @@ def maybe_add_revenue_cta(text: str, candidate: Candidate, cfg: dict[str, Any], 
 
 def generate_reply(candidate: Candidate, cfg: dict[str, Any], state: dict[str, Any]) -> str | None:
     # 내 글의 띠/출생연도 댓글은 LLM보다 정본 띠엔진을 먼저 사용한다.
-    # 생년월일·출생시간이 공개 댓글에 있으면 원문을 되풀이하지 않고 상세 공개풀이한다.
+    # 생년월일·출생시간은 민감 입력으로 취급해 절대 범용 LLM 프롬프트로 넘기지 않는다.
+    birth_sensitive = False
+    birth_missing: list[str] = []
+    if candidate.kind != "external" and public_birth_detail is not None:
+        try:
+            birth_sensitive = bool(public_birth_detail(candidate.text))
+            if birth_sensitive and public_birth_missing_fields is not None:
+                birth_missing = list(public_birth_missing_fields(candidate.text) or [])
+        except Exception:
+            birth_sensitive = True
+
     if candidate.kind != "external" and public_fortune_reply is not None:
         special = public_fortune_reply(candidate.text, date_key())
         if special:
-            # 공개 사주 정밀풀이는 6~9줄 가독성을 유지한다.
             special = special.strip().replace("```", "")
-            ok, reason = quality_gate(special, cfg, state, external=False)
+            # 입력 보완 안내는 여러 사람에게 동일할 수 있다. URL/광고/길이 등 안전검사는
+            # 유지하되 전역 duplicate/near-duplicate 기록만 보지 않는다.
+            gate_state = {**state, "sent": []} if birth_missing else state
+            ok, reason = quality_gate(special, cfg, gate_state, external=False)
             if ok:
                 return special
             log(f"공개 띠풀이 게이트 폐기({reason}): {special[:80]}")
+
+    # 정본 사주 라우터가 실패해도 생년정보 원문을 범용 LLM에 보내지 않는다.
+    if birth_sensitive:
+        log(f"생년정보 보호: 정본 사주 응답 실패 @{candidate.username} — LLM 폴백 차단")
+        return None
     if llm is None:
         return None
     if candidate.kind == "external":
@@ -748,6 +769,34 @@ def my_recent_posts(api: ThreadsAPI, cfg: dict[str, Any]) -> list[dict[str, Any]
     j = api.get("me/threads", {"fields": "id,text,timestamp,username,permalink,has_replies",
                                "limit": int(cfg.get("recent_own_posts", 12))})
     return j.get("data", [])
+
+
+def public_saju_root_ids(now: dt.datetime | None = None, *, max_age_days: int = 2) -> set[str]:
+    """최근 공개사주 이벤트 영수증의 Threads 원글 ID만 반환한다.
+
+    일/목 야간 이벤트가 자정을 넘겨 후속 답글을 받을 수 있어 KST 기준 최근 2일을 본다.
+    손상된 영수증은 무시하고, 영수증이 하나도 없으면 fail-closed로 빈 집합을 반환한다.
+    """
+    current = now or utcnow()
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=dt.timezone.utc)
+    today_kst = current.astimezone(KST).date()
+    out: set[str] = set()
+    if not PUBLIC_SAJU_EVENT_DIR.exists():
+        return out
+    for path in PUBLIC_SAJU_EVENT_DIR.glob("*.json"):
+        try:
+            row = json.loads(path.read_text(encoding="utf-8"))
+            if row.get("kind") != "public_saju_event":
+                continue
+            day = dt.date.fromisoformat(str(row.get("date") or ""))
+            age = (today_kst - day).days
+            pid = str(row.get("post_id") or "").strip()
+            if 0 <= age <= max_age_days and pid:
+                out.add(pid)
+        except Exception:
+            continue
+    return out
 
 
 def inbound_candidates(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, Any]) -> list[Candidate]:
@@ -1334,6 +1383,11 @@ def run_growth(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, Any], caps
                     x for x in candidates
                     if public_birth_detail is not None and public_birth_detail(x.text)
                 ]
+            if cfg.get("_public_saju_only"):
+                roots = public_saju_root_ids()
+                if not roots:
+                    log("공개사주 전용 스캔: 최근 이벤트 영수증 없음 — 인바운드 발송 없음")
+                candidates = [x for x in candidates if x.root_post_id in roots]
             root_contains = str(os.environ.get("PUBLIC_SAJU_ROOT_TEXT_CONTAINS", "")).strip()
             if root_contains:
                 candidates = [x for x in candidates if root_contains in (x.root_text or "")]
@@ -1375,7 +1429,18 @@ def run_growth(api: ThreadsAPI, cfg: dict[str, Any], state: dict[str, Any], caps
                 continue
             text = generate_reply(c, cfg, state)
             if not text:
-                # 같은 댓글을 다음 실행마다 무한 재시도하지 않게 품질 실패도 처리완료로 기록
+                is_birth = False
+                if public_birth_detail is not None:
+                    try:
+                        is_birth = bool(public_birth_detail(c.text))
+                    except Exception:
+                        is_birth = True
+                if is_birth:
+                    # 정본 엔진/네트워크 일시 실패는 다음 실행에서 재시도한다.
+                    # 생년정보 댓글을 범용 LLM로 우회하거나 영구 처리완료로 버리지 않는다.
+                    log(f"공개사주 생성 실패 @{c.username} — 처리완료 표시 없이 다음 실행 재시도")
+                    continue
+                # 일반 댓글의 품질 실패는 무한 재시도하지 않는다.
                 mark_inbound_handled(state, c.id)
                 continue
             text, revenue_cta = maybe_add_revenue_cta(text, c, cfg, state)
@@ -1548,6 +1613,7 @@ def main() -> int:
     ap.add_argument("--no-external", action="store_true")
     ap.add_argument("--no-inbound", action="store_true")
     ap.add_argument("--birth-only", action="store_true", help="생년월일이 공개된 댓글만 자동답변")
+    ap.add_argument("--public-saju-only", action="store_true", help="최근 공개사주 이벤트 원글의 댓글/대댓글만 처리")
     ap.add_argument("--clear-pause", action="store_true")
     a = ap.parse_args()
 
@@ -1564,6 +1630,7 @@ def main() -> int:
         return 2
     cfg = load_config()
     cfg["_birth_only"] = bool(a.birth_only)
+    cfg["_public_saju_only"] = bool(a.public_saju_only)
     event_cap = os.environ.get("PUBLIC_SAJU_EVENT_CAP", "").strip()
     if event_cap.isdigit():
         cap = max(1, int(event_cap))

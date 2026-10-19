@@ -37,7 +37,7 @@ jobs:
       - run: pip install -q requests
 
       - name: 공개사주 댓글만 확인/답변
-        run: python threads_growth.py --send --no-external
+        run: python threads_growth.py --send --no-external --public-saju-only
 
       - name: 상태 저장
         if: always()

@@ -26,7 +26,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: threads-public-saju-event
+  group: threads-growth-main
   cancel-in-progress: false
 
 jobs:
@@ -89,7 +89,7 @@ jobs:
           for i in 1 2 3; do
             echo "[watch] 공개사주 초기 댓글 스캔 $i/3 — 5분 대기"
             sleep 300
-            python threads_growth.py --send --no-external || true
+            python threads_growth.py --send --no-external --public-saju-only || true
           done
 
       - name: 발행 영수증/답글상태 저장

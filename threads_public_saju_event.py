@@ -30,6 +30,7 @@ KST = dt.timezone(dt.timedelta(hours=9))
 # 스하리는 풀이의 대가/조건으로 강제하지 않는다.
 # '마음에 들면' 수준의 선택형 표현만 일부 샘플에 넣는다.
 OPTIONAL_TIP = "복채는 선택이야. 풀이가 마음에 들면 스하리 해주면 고맙고 :)"
+PRIVACY_NOTICE = "이름·전화번호·주소 같은 다른 개인정보는 적지 말아줘."
 
 SPECIAL_TEMPLATES = {
     "holiday_mid": {
@@ -174,11 +175,13 @@ def build_text(day: dt.date, template_id: int | None = None, occasion: str = "")
         item = SPECIAL_TEMPLATES.get(occasion)
         if not item:
             raise ValueError(f"unknown occasion: {occasion}")
-        return item["text"]
-    tid = template_id or scheduled_template_id(day)
-    if tid not in TEMPLATES:
-        raise ValueError(f"template_id must be 1..{len(TEMPLATES)}")
-    return TEMPLATES[tid]["text"]
+        text = item["text"]
+    else:
+        tid = template_id or scheduled_template_id(day)
+        if tid not in TEMPLATES:
+            raise ValueError(f"template_id must be 1..{len(TEMPLATES)}")
+        text = TEMPLATES[tid]["text"]
+    return text.rstrip() + "\n\n" + PRIVACY_NOTICE
 
 
 def marker(day: dt.date, *, manual: bool, template_id: int, occasion: str = "") -> Path:

@@ -49,7 +49,7 @@ _SIJIN_HOUR = {
 
 def has_birth_detail(text: str) -> bool:
     t = str(text or "")
-    return bool(_DATE4.search(t) or "생년월일" in t or "출생시간" in t or "태어난 시간" in t)
+    return bool(_DATE4.search(t) or _DATE2.search(t) or "생년월일" in t or "출생시간" in t or "태어난 시간" in t)
 
 
 def zodiac_slug(text: str) -> str | None:
@@ -106,11 +106,19 @@ def parse_birth_input(text: str) -> dict[str, Any] | None:
                 hour, minute = h, 0
                 break
 
-    cal = "leap" if "윤달" in t else ("lunar" if "음력" in t else "solar")
-    compact = t.replace(" ", "").lower()
-    gender = "F" if any(x in compact for x in ("여자", "여성", "female")) else "M"
-    if any(x in compact for x in ("남자", "남성", "male")):
-        gender = "M"
+    if "윤달" in t:
+        cal = "leap"
+    elif "음력" in t:
+        cal = "lunar"
+    elif "양력" in t:
+        cal = "solar"
+    else:
+        cal = None
+
+    low = t.lower()
+    female = any(x in low for x in ("여자", "여성", "female")) or bool(re.search(r"(?<![가-힣A-Za-z])(?:여|f)(?![가-힣A-Za-z])", low))
+    male = any(x in low for x in ("남자", "남성", "male")) or bool(re.search(r"(?<![가-힣A-Za-z])(?:남|m)(?![가-힣A-Za-z])", low))
+    gender = "F" if female and not male else ("M" if male and not female else None)
     return {
         "birth_date": f"{year:04d}-{month:02d}-{day:02d}",
         "birth_time": f"{hour:02d}:{minute:02d}" if hour is not None else "12:00",
@@ -118,6 +126,37 @@ def parse_birth_input(text: str) -> dict[str, Any] | None:
         "cal": cal,
         "gender": gender,
     }
+
+
+def missing_birth_fields(text: str) -> list[str]:
+    """정확한 공개풀이에 필요한 필수 입력 중 빠진 항목만 반환한다.
+
+    출생시간은 없어도 3주 기준 풀이가 가능하므로 필수로 보지 않는다.
+    """
+    if not has_birth_detail(text):
+        return []
+    birth = parse_birth_input(text)
+    if birth is None:
+        return ["birth_date"]
+    missing: list[str] = []
+    if not birth.get("cal"):
+        missing.append("cal")
+    if not birth.get("gender"):
+        missing.append("gender")
+    return missing
+
+
+def _missing_input_reply(fields: list[str]) -> str:
+    labels = []
+    if "birth_date" in fields:
+        labels.append("생년월일(예: 1994.05.24)")
+    if "cal" in fields:
+        labels.append("양력/음력")
+    if "gender" in fields:
+        labels.append("성별(남/여)")
+    if not labels:
+        return ""
+    return "정확하게 보려면 " + " · ".join(labels) + "만 알려주세요. 이미 적어주신 생년정보는 답글에 다시 쓰지 않을게요."
 
 
 def _intent(text: str) -> tuple[str, str]:
@@ -157,7 +196,7 @@ def _structured_facts(birth: dict[str, Any]) -> dict[str, Any]:
             "birth_time": birth["birth_time"],
             "time_known": birth["time_known"],
             "cal": birth["cal"],
-            "gender": birth.get("gender", "M"),
+            "gender": birth["gender"],
         },
         timeout=15,
         headers={"User-Agent": "sajufortune-threads-public/2.0"},
@@ -264,7 +303,7 @@ def _specific_reply(comment: str, birth: dict[str, Any], facts: dict[str, Any]) 
                 "사업·거래·새로운 돈길은 생기지만 지출도 같이 커질 수 있어요" if "편재" in cy_gods else
                 "돈 자체보다 일의 변화가 먼저 움직이고 그 뒤에 수입이 따라오는 흐름이에요"
             )
-            parts.append(f"올해 {cy_ko}에는 {cy_gods}가 들어와서 {meaning or '재물 쪽 움직임'}이 두드러지고, {action}.")
+            parts.append(f"올해 {cy_ko}에는 {cy_gods} 흐름이 들어오면서 {meaning or '재물 쪽 움직임'} 쪽이 두드러지고, {action}.")
         if yrs:
             future = [y for y in yrs if y not in {"2026"}]
             if future:
@@ -277,8 +316,8 @@ def _specific_reply(comment: str, birth: dict[str, Any], facts: dict[str, Any]) 
             parts.append(f"현재 {dw_name} 대운{span}이라 직업 방향을 바꾸거나 일의 성격이 달라지는 변화가 한 번 크게 들어올 수 있어요.")
         if cy_gods:
             meaning = TEN_GOD_MEANING.get(str((facts.get("current_year") or {}).get("stem_ten_god") or ""), "")
-            inter = f" 여기에 원국과 {'·'.join(cy_kinds)} 작용까지 있어서" if cy_kinds else ""
-            parts.append(f"올해 {cy_ko}에는 {cy_gods}가 잡혀 {meaning or '직장·조직 문제'}가 전면에 나오고,{inter} 제안이 오면 조건만 보지 말고 자리의 지속성까지 같이 보는 게 맞아요.")
+            inter = f" 원국에는 {'·'.join(cy_kinds)} 작용도 있어," if cy_kinds else ""
+            parts.append(f"올해 {cy_ko}에는 {cy_gods} 흐름이 잡혀 {meaning or '직장·조직 문제'} 쪽이 전면에 나옵니다.{inter} 제안이 오면 조건만 보지 말고 자리의 지속성까지 같이 보는 게 맞아요.")
         if ny_gods:
             parts.append(f"내년 {ny_ko}는 {ny_gods}로 흐름이 바뀌니, 올해 안에 이동할지 남을지 윤곽이 잡히는 편입니다.")
 
@@ -322,8 +361,10 @@ def _specific_reply(comment: str, birth: dict[str, Any], facts: dict[str, Any]) 
         if dw_name:
             parts.append(f"지금 {dw_name} 대운에 들어와 있어서 예전 방식 그대로 버티기보다 일·돈·관계 중 하나는 구조를 바꾸는 흐름이 강합니다.")
         if cy_ko:
-            inter = f" 원국과 {'·'.join(cy_kinds)}가 걸려" if cy_kinds else ""
-            parts.append(f"올해 {cy_ko}는{inter} 선택을 미루기보다 정리하고 방향을 잡는 쪽이 낫고, 내년 {ny_ko or '다음 해'}에는 그 선택의 결과가 더 선명해지는 흐름이에요.")
+            if cy_kinds:
+                parts.append(f"올해 {cy_ko}는 원국에 {'·'.join(cy_kinds)} 작용이 있어, 선택을 미루기보다 정리하고 방향을 잡는 쪽이 낫고, 내년 {ny_ko or '다음 해'}에는 그 선택의 결과가 더 선명해지는 흐름이에요.")
+            else:
+                parts.append(f"올해 {cy_ko}는 선택을 미루기보다 정리하고 방향을 잡는 쪽이 낫고, 내년 {ny_ko or '다음 해'}에는 그 선택의 결과가 더 선명해지는 흐름이에요.")
 
     if not precise and key not in {"money"}:
         parts.append("태어난 시간을 알면 시주까지 넣어서 시기를 더 좁혀볼 수 있어요.")
@@ -401,6 +442,10 @@ def _full_birth_reply(comment: str, birth: dict[str, Any]) -> str | None:
 
 def public_reply(comment: str, date_iso: str | None = None) -> str | None:
     """공개 댓글용 간단풀이. 생년정보는 답글에 재노출하지 않는다."""
+    missing = missing_birth_fields(comment)
+    if missing:
+        return _missing_input_reply(missing)
+
     birth = parse_birth_input(comment)
     if birth:
         full = _full_birth_reply(comment, birth)
