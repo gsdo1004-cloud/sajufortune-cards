@@ -13,7 +13,9 @@
     "18198889537386609",
     "18074702807730083",
     "18133163480507653",
-    "18005709863956565"
+    "18005709863956565",
+    "18117514076327948",
+    "18119355514990784"
   ],
   "external_target_ids": [],
   "sent": [
@@ -235,6 +237,44 @@
       "effect": "CONFIRMED",
       "revenue_cta": false,
       "finalized_at": "2026-10-19T08:49:20.098768+00:00"
+    },
+    {
+      "at": "2026-10-19T13:07:40.703521+00:00",
+      "date_kst": "2026-10-19",
+      "kind": "inbound",
+      "target_id": "18117514076327948",
+      "target_username": "bchangmin",
+      "reply_id": "18106752518147787",
+      "text_hash": "609b77f4190779711981",
+      "text": "양띠 재물·일 흐름은 금전 거래는 한 번 더 확인하시면 탈이 없습니다.",
+      "verified_replied_to": "18117514076327948",
+      "source_query": "",
+      "search_type": "",
+      "candidate_score": 997.914,
+      "relevance": 0,
+      "conversation_signal": 0.0,
+      "effect": "CONFIRMED",
+      "revenue_cta": false,
+      "finalized_at": "2026-10-19T13:07:52.080720+00:00"
+    },
+    {
+      "at": "2026-10-19T13:08:18.084438+00:00",
+      "date_kst": "2026-10-19",
+      "kind": "inbound",
+      "target_id": "18119355514990784",
+      "target_username": "seungbae_ji",
+      "reply_id": "18106293071169062",
+      "text_hash": "d7b06beb328b4774b84b",
+      "text": "정확하게 보려면 양력/음력만 알려주세요. 이미 적어주신 생년정보는 답글에 다시 쓰지 않을게요.",
+      "verified_replied_to": "18119355514990784",
+      "source_query": "",
+      "search_type": "",
+      "candidate_score": 997.147,
+      "relevance": 0,
+      "conversation_signal": 0.0,
+      "effect": "CONFIRMED",
+      "revenue_cta": false,
+      "finalized_at": "2026-10-19T13:08:29.296488+00:00"
     }
   ],
   "days": {
@@ -513,9 +553,9 @@
     },
     "2026-10-19": {
       "external": 0,
-      "inbound": 3,
+      "inbound": 5,
       "nested": 1,
-      "total": 4,
+      "total": 6,
       "per_target": {},
       "external_measured": 0,
       "external_engaged": 0,
@@ -526,7 +566,7 @@
       "external_insight_failures": 0
     }
   },
-  "last_run_at": "2026-10-19T08:49:29.745802+00:00",
+  "last_run_at": "2026-10-19T13:08:38.387609+00:00",
   "external_growth": {
     "stage_index": 0,
     "stage_started_kst": "2026-10-11",
