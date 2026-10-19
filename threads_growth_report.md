@@ -1,6 +1,6 @@
 # Threads 성장 자동화 보고 — 2026-10-19
 
-- 실행: 실제 발송
+- 실행: 드라이런/점검
 - PAUSED: False
 - 오늘 카운트: `{"external": 0, "inbound": 3, "nested": 1, "total": 4, "per_target": {}, "external_measured": 0, "external_engaged": 0, "external_replies": 0, "external_likes": 0, "external_errors": 0, "external_safety_stops": 0, "external_insight_failures": 0}`
 - 외부 대화 단계: `{"stage_index": 0, "daily_cap": 8, "promoted": false, "stage_started_kst": "2026-10-11", "sent": 0, "measured": 0, "engaged": 0, "errors": 0, "safety_stops": 0, "insight_failures": 0, "engagement_rate": 0.0, "error_rate": 0.0, "insight_failure_rate": 0.0, "telemetry_available": true, "unresolved": 0}`
@@ -23,11 +23,5 @@
 
 ## 이번 실행
 
-- nested @prado76_: 의료 분야 직장이나 사업 고민이신가요? 양/음력 구분해서 생년월일과 시간, 성별도 같이 남겨주시면 흐름을 볼게요. (sent)
-- inbound @hye__young0415: 전체운으로 보면 을목 일간이고 한 번 방향을 잡으면 밀고 가는 힘이 있는 편이에요.
-
-지금 무자 대운에 들어와 있어서 예전 방식 그대로 버티기보다 일·돈·관계 중 하나는 구조를 바꾸는 흐름이 강합니다.
-
-올해 병오는 원국과 육합가 걸려 선택을 미루기보다 정리하고 방향을 잡는 쪽이 낫고, 내년 정미에는 그 선택의 결과가 더 선명해지는 흐름이에요.
-
-태어난 시간을 알면 시주까지 넣어서 시기를 더 좁혀볼 수 있어요. (sent)
+- inbound @bchangmin: 양띠 재물·일 흐름은 금전 거래는 한 번 더 확인하시면 탈이 없습니다. (dry)
+- inbound @seungbae_ji: 정확하게 보려면 양력/음력만 알려주세요. 이미 적어주신 생년정보는 답글에 다시 쓰지 않을게요. (dry)
