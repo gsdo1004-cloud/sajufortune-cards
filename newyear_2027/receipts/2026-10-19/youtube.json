@@ -1,5 +1,5 @@
 {
-  "status": "PUBLISHING",
+  "status": "PUBLISHED",
   "publish_key": "ny2027-003-love:youtube:운명과학TV",
   "content_id": "ny2027-003-love",
   "platform": "youtube",
@@ -7,5 +7,9 @@
   "source_sha256": "57721a12ad2d91cbeb8521465de12a91666a58a83366581968153ef71674efeb",
   "output_sha256": "835345f20eb78551e337e6792e7d4cd5bec817bcd37d4b04586955d2449e7069",
   "owner_token": "d03e4e43247d4b039b3d0c7f34ce6084",
-  "started_at": "2026-10-19T02:20:06+00:00"
+  "started_at": "2026-10-19T02:20:06+00:00",
+  "publish_at": "2026-10-19T15:30:00+09:00",
+  "private_canary": false,
+  "remote_id": "UG2ob4k3Z4U",
+  "finished_at": "2026-10-19T02:20:22+00:00"
 }
