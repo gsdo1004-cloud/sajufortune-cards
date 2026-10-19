@@ -1,0 +1,11 @@
+{
+  "status": "PUBLISHING",
+  "publish_key": "ny2027-003-love:threads:gsdo10042026",
+  "content_id": "ny2027-003-love",
+  "platform": "threads",
+  "account": "gsdo10042026",
+  "source_sha256": "57721a12ad2d91cbeb8521465de12a91666a58a83366581968153ef71674efeb",
+  "output_sha256": "",
+  "owner_token": "72768b3c91094d72acfb7a27860dac8f",
+  "started_at": "2026-10-19T02:17:29+00:00"
+}
