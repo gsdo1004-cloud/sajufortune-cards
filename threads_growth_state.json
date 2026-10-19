@@ -15,7 +15,9 @@
     "18133163480507653",
     "18005709863956565",
     "18117514076327948",
-    "18119355514990784"
+    "18119355514990784",
+    "18146540152528792",
+    "18096763358655136"
   ],
   "external_target_ids": [],
   "sent": [
@@ -275,6 +277,44 @@
       "effect": "CONFIRMED",
       "revenue_cta": false,
       "finalized_at": "2026-10-19T13:08:29.296488+00:00"
+    },
+    {
+      "at": "2026-10-19T16:29:12.204330+00:00",
+      "date_kst": "2026-10-20",
+      "kind": "inbound",
+      "target_id": "18146540152528792",
+      "target_username": "93.1102k",
+      "reply_id": "18078834479396112",
+      "text_hash": "d7b06beb328b4774b84b",
+      "text": "정확하게 보려면 양력/음력만 알려주세요. 이미 적어주신 생년정보는 답글에 다시 쓰지 않을게요.",
+      "verified_replied_to": "18146540152528792",
+      "source_query": "",
+      "search_type": "",
+      "candidate_score": 999.085,
+      "relevance": 0,
+      "conversation_signal": 0.0,
+      "effect": "CONFIRMED",
+      "revenue_cta": false,
+      "finalized_at": "2026-10-19T16:29:23.191590+00:00"
+    },
+    {
+      "at": "2026-10-19T16:29:23.194763+00:00",
+      "date_kst": "2026-10-20",
+      "kind": "inbound",
+      "target_id": "18096763358655136",
+      "target_username": "yluv_story",
+      "reply_id": "18167200741490173",
+      "text_hash": "c84d1b0707bcd41e9e8c",
+      "text": "양띠 재물·일 흐름은 재물운이 상승하는 흐름입니다.",
+      "verified_replied_to": "18096763358655136",
+      "source_query": "",
+      "search_type": "",
+      "candidate_score": 997.653,
+      "relevance": 0,
+      "conversation_signal": 0.0,
+      "effect": "CONFIRMED",
+      "revenue_cta": false,
+      "finalized_at": "2026-10-19T16:29:33.395451+00:00"
     }
   ],
   "days": {
@@ -564,9 +604,23 @@
       "external_errors": 0,
       "external_safety_stops": 0,
       "external_insight_failures": 0
+    },
+    "2026-10-20": {
+      "external": 0,
+      "inbound": 2,
+      "nested": 0,
+      "total": 2,
+      "per_target": {},
+      "external_measured": 0,
+      "external_engaged": 0,
+      "external_replies": 0,
+      "external_likes": 0,
+      "external_errors": 0,
+      "external_safety_stops": 0,
+      "external_insight_failures": 0
     }
   },
-  "last_run_at": "2026-10-19T13:08:38.387609+00:00",
+  "last_run_at": "2026-10-19T16:29:41.990050+00:00",
   "external_growth": {
     "stage_index": 0,
     "stage_started_kst": "2026-10-11",
