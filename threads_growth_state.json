@@ -11,7 +11,9 @@
     "17907203694603599",
     "18112275464591549",
     "18198889537386609",
-    "18074702807730083"
+    "18074702807730083",
+    "18133163480507653",
+    "18005709863956565"
   ],
   "external_target_ids": [],
   "sent": [
@@ -195,6 +197,44 @@
       "effect": "CONFIRMED",
       "revenue_cta": false,
       "finalized_at": "2026-10-19T04:44:31.966682+00:00"
+    },
+    {
+      "at": "2026-10-19T08:48:57.969828+00:00",
+      "date_kst": "2026-10-19",
+      "kind": "nested",
+      "target_id": "18133163480507653",
+      "target_username": "prado76_",
+      "reply_id": "18123031216913446",
+      "text_hash": "75acb37f7cb0f323125b",
+      "text": "의료 분야 직장이나 사업 고민이신가요? 양/음력 구분해서 생년월일과 시간, 성별도 같이 남겨주시면 흐름을 볼게요.",
+      "verified_replied_to": "18133163480507653",
+      "source_query": "",
+      "search_type": "",
+      "candidate_score": 995.932,
+      "relevance": 0,
+      "conversation_signal": 0.0,
+      "effect": "CONFIRMED",
+      "revenue_cta": false,
+      "finalized_at": "2026-10-19T08:49:07.832771+00:00"
+    },
+    {
+      "at": "2026-10-19T08:49:08.623328+00:00",
+      "date_kst": "2026-10-19",
+      "kind": "inbound",
+      "target_id": "18005709863956565",
+      "target_username": "hye__young0415",
+      "reply_id": "17953298466311759",
+      "text_hash": "81bbbde1d0e4db9caf38",
+      "text": "전체운으로 보면 을목 일간이고 한 번 방향을 잡으면 밀고 가는 힘이 있는 편이에요.\n\n지금 무자 대운에 들어와 있어서 예전 방식 그대로 버티기보다 일·돈·관계 중 하나는 구조를 바꾸는 흐름이 강합니다.\n\n올해 병오는 원국과 육합가 걸려 선택을 미루기보다 정리하고 방향을 잡는 쪽이 낫고, 내년 정미에는 그 선택의 결과가 더 선명해지는 흐름이에요.\n\n태어난 시간을 알면 시주까지 넣어서 시기를 더 좁혀볼 수 있어요.",
+      "verified_replied_to": "18005709863956565",
+      "source_query": "",
+      "search_type": "",
+      "candidate_score": 994.145,
+      "relevance": 0,
+      "conversation_signal": 0.0,
+      "effect": "CONFIRMED",
+      "revenue_cta": false,
+      "finalized_at": "2026-10-19T08:49:20.098768+00:00"
     }
   ],
   "days": {
@@ -473,9 +513,9 @@
     },
     "2026-10-19": {
       "external": 0,
-      "inbound": 2,
-      "nested": 0,
-      "total": 2,
+      "inbound": 3,
+      "nested": 1,
+      "total": 4,
       "per_target": {},
       "external_measured": 0,
       "external_engaged": 0,
@@ -486,7 +526,7 @@
       "external_insight_failures": 0
     }
   },
-  "last_run_at": "2026-10-19T04:45:05.239416+00:00",
+  "last_run_at": "2026-10-19T08:49:29.745802+00:00",
   "external_growth": {
     "stage_index": 0,
     "stage_started_kst": "2026-10-11",
