@@ -1,5 +1,5 @@
 {
-  "status": "PUBLISHING",
+  "status": "PUBLISHED",
   "publish_key": "ny2027-003-love:threads:gsdo10042026",
   "content_id": "ny2027-003-love",
   "platform": "threads",
@@ -7,5 +7,10 @@
   "source_sha256": "57721a12ad2d91cbeb8521465de12a91666a58a83366581968153ef71674efeb",
   "output_sha256": "",
   "owner_token": "72768b3c91094d72acfb7a27860dac8f",
-  "started_at": "2026-10-19T02:17:29+00:00"
+  "started_at": "2026-10-19T02:17:29+00:00",
+  "creation_id": "18062027693632789",
+  "home_og_finalized": false,
+  "home_og_finalize_status": "not_applicable",
+  "remote_id": "18007640267785855",
+  "finished_at": "2026-10-19T02:17:52+00:00"
 }
