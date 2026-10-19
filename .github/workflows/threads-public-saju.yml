@@ -21,6 +21,11 @@ on:
         type: boolean
         required: false
         default: false
+      scheduled_backup:
+        description: '집PC 정시 백업 트리거. true면 예약 발행과 같은 중복마커 사용'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: write
@@ -64,7 +69,15 @@ jobs:
       - name: 공개 사주 이벤트 실행
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.scheduled_backup }}" = "true" ]; then
+            # 집PC 정시 백업은 --manual을 쓰지 않는다. GitHub schedule과 동일한
+            # YYYY-MM-DD_scheduled.json 영수증을 써서 직렬화 후 중복 발행을 막는다.
+            if [ "${{ inputs.publish }}" = "true" ]; then
+              python threads_public_saju_event.py
+            else
+              PUBLIC_SAJU_DRY_RUN=1 python threads_public_saju_event.py
+            fi
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             TID="${{ inputs.template_id }}"
             if ! [[ "$TID" =~ ^([1-9]|10)$ ]]; then
               echo "[FAIL] template_id must be 1..10"

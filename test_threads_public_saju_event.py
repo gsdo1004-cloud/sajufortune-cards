@@ -39,6 +39,19 @@ class PublicSajuEventTest(unittest.TestCase):
         self.assertIn("전화번호", special)
         self.assertIn("주소", special)
 
+    def test_public_saju_workflow_supports_deduplicated_scheduled_backup(self):
+        workflow = (Path(__file__).resolve().parent / ".github" / "workflows" / "threads-public-saju.yml").read_text(encoding="utf-8")
+        self.assertIn("scheduled_backup:", workflow)
+        self.assertIn("inputs.scheduled_backup", workflow)
+        self.assertIn("python threads_public_saju_event.py", workflow)
+        self.assertIn("group: threads-growth-main", workflow)
+
+    def test_cloud_reply_scan_is_low_frequency_fallback_after_event_start(self):
+        workflow = (Path(__file__).resolve().parent / ".github" / "workflows" / "threads-public-saju-replies.yml").read_text(encoding="utf-8")
+        self.assertNotIn("*/5", workflow)
+        self.assertIn("30 0-4 * * 2", workflow)
+        self.assertIn("30 11-15 * * 0,4", workflow)
+
     def test_threads_writer_workflows_are_serialized_and_public_scans_scoped(self):
         root = Path(__file__).resolve().parent / ".github" / "workflows"
         growth = (root / "threads-growth.yml").read_text(encoding="utf-8")
