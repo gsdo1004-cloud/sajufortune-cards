@@ -9,7 +9,9 @@
     "18424689436159462",
     "18184636828421155",
     "17907203694603599",
-    "18112275464591549"
+    "18112275464591549",
+    "18198889537386609",
+    "18074702807730083"
   ],
   "external_target_ids": [],
   "sent": [
@@ -155,6 +157,44 @@
       "effect": "CONFIRMED",
       "revenue_cta": false,
       "finalized_at": "2026-10-16T16:46:01.159722+00:00"
+    },
+    {
+      "at": "2026-10-19T04:44:07.331544+00:00",
+      "date_kst": "2026-10-19",
+      "kind": "inbound",
+      "target_id": "18198889537386609",
+      "target_username": "prado76_",
+      "reply_id": "17914716843534589",
+      "text_hash": "db73b26f04d4ad207407",
+      "text": "올해 퇴사 후 준비하느라 마음고생 많으셨겠어요. 전공을 살릴지 아예 틀지, 현재 가장 마음이 기울고 있는 직종은 어느 쪽인가요?",
+      "verified_replied_to": "18198889537386609",
+      "source_query": "",
+      "search_type": "",
+      "candidate_score": 999.652,
+      "relevance": 0,
+      "conversation_signal": 0.0,
+      "effect": "CONFIRMED",
+      "revenue_cta": false,
+      "finalized_at": "2026-10-19T04:44:19.997004+00:00"
+    },
+    {
+      "at": "2026-10-19T04:44:20.000779+00:00",
+      "date_kst": "2026-10-19",
+      "kind": "inbound",
+      "target_id": "18074702807730083",
+      "target_username": "blue2020__",
+      "reply_id": "17883774906528643",
+      "text_hash": "d7eb161d28a5b980197e",
+      "text": "양띠 직장 흐름은 오늘은 병인일, 오늘 기운이 나를 눌러오는 날 — 무리하지 말고 완급을 조절하면 무탈합니다.",
+      "verified_replied_to": "18074702807730083",
+      "source_query": "",
+      "search_type": "",
+      "candidate_score": 999.514,
+      "relevance": 0,
+      "conversation_signal": 0.0,
+      "effect": "CONFIRMED",
+      "revenue_cta": false,
+      "finalized_at": "2026-10-19T04:44:31.966682+00:00"
     }
   ],
   "days": {
@@ -430,9 +470,23 @@
       "external_errors": 0,
       "external_safety_stops": 0,
       "external_insight_failures": 0
+    },
+    "2026-10-19": {
+      "external": 0,
+      "inbound": 2,
+      "nested": 0,
+      "total": 2,
+      "per_target": {},
+      "external_measured": 0,
+      "external_engaged": 0,
+      "external_replies": 0,
+      "external_likes": 0,
+      "external_errors": 0,
+      "external_safety_stops": 0,
+      "external_insight_failures": 0
     }
   },
-  "last_run_at": "2026-10-18T17:28:17.154566+00:00",
+  "last_run_at": "2026-10-19T04:45:05.239416+00:00",
   "external_growth": {
     "stage_index": 0,
     "stage_started_kst": "2026-10-11",
