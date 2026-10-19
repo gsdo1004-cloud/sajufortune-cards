@@ -17,7 +17,9 @@
     "18117514076327948",
     "18119355514990784",
     "18146540152528792",
-    "18096763358655136"
+    "18096763358655136",
+    "18129830086829835",
+    "18147258202569874"
   ],
   "external_target_ids": [],
   "sent": [
@@ -315,6 +317,44 @@
       "effect": "CONFIRMED",
       "revenue_cta": false,
       "finalized_at": "2026-10-19T16:29:33.395451+00:00"
+    },
+    {
+      "at": "2026-10-19T18:46:15.252129+00:00",
+      "date_kst": "2026-10-20",
+      "kind": "nested",
+      "target_id": "18129830086829835",
+      "target_username": "seungbae_ji",
+      "reply_id": "18110302268101075",
+      "text_hash": "a1c0ee041e9deb7d4f2d",
+      "text": "정확하게 보려면 성별(남/여)만 알려주세요. 이미 적어주신 생년정보는 답글에 다시 쓰지 않을게요.",
+      "verified_replied_to": "18129830086829835",
+      "source_query": "",
+      "search_type": "",
+      "candidate_score": 999.277,
+      "relevance": 0,
+      "conversation_signal": 0.0,
+      "effect": "CONFIRMED",
+      "revenue_cta": false,
+      "finalized_at": "2026-10-19T18:46:28.236566+00:00"
+    },
+    {
+      "at": "2026-10-19T18:47:05.239190+00:00",
+      "date_kst": "2026-10-20",
+      "kind": "inbound",
+      "target_id": "18147258202569874",
+      "target_username": "93.1102k",
+      "reply_id": "18117788350787680",
+      "text_hash": "a1c0ee041e9deb7d4f2d",
+      "text": "정확하게 보려면 성별(남/여)만 알려주세요. 이미 적어주신 생년정보는 답글에 다시 쓰지 않을게요.",
+      "verified_replied_to": "18147258202569874",
+      "source_query": "",
+      "search_type": "",
+      "candidate_score": 998.823,
+      "relevance": 0,
+      "conversation_signal": 0.0,
+      "effect": "CONFIRMED",
+      "revenue_cta": false,
+      "finalized_at": "2026-10-19T18:47:16.590228+00:00"
     }
   ],
   "days": {
@@ -607,9 +647,9 @@
     },
     "2026-10-20": {
       "external": 0,
-      "inbound": 2,
-      "nested": 0,
-      "total": 2,
+      "inbound": 3,
+      "nested": 1,
+      "total": 4,
       "per_target": {},
       "external_measured": 0,
       "external_engaged": 0,
@@ -620,7 +660,7 @@
       "external_insight_failures": 0
     }
   },
-  "last_run_at": "2026-10-19T16:29:41.990050+00:00",
+  "last_run_at": "2026-10-19T18:47:27.635832+00:00",
   "external_growth": {
     "stage_index": 0,
     "stage_started_kst": "2026-10-11",
