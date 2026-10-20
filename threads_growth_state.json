@@ -23,7 +23,9 @@
     "18024171527946202",
     "18074037188751789",
     "17936817351401436",
-    "18131338222783599"
+    "18131338222783599",
+    "18118078364072410",
+    "18009306443970383"
   ],
   "external_target_ids": [],
   "sent": [
@@ -435,6 +437,44 @@
       "effect": "CONFIRMED",
       "revenue_cta": false,
       "finalized_at": "2026-10-20T05:11:02.507832+00:00"
+    },
+    {
+      "at": "2026-10-20T06:01:59.224554+00:00",
+      "date_kst": "2026-10-20",
+      "kind": "inbound",
+      "target_id": "18118078364072410",
+      "target_username": "jang_e_un80",
+      "reply_id": "18101364050306133",
+      "text_hash": "d7b06beb328b4774b84b",
+      "text": "정확하게 보려면 양력/음력만 알려주세요. 이미 적어주신 생년정보는 답글에 다시 쓰지 않을게요.",
+      "verified_replied_to": "18118078364072410",
+      "source_query": "",
+      "search_type": "",
+      "candidate_score": 999.162,
+      "relevance": 0,
+      "conversation_signal": 0.0,
+      "effect": "CONFIRMED",
+      "revenue_cta": false,
+      "finalized_at": "2026-10-20T06:02:10.301517+00:00"
+    },
+    {
+      "at": "2026-10-20T06:02:11.430715+00:00",
+      "date_kst": "2026-10-20",
+      "kind": "nested",
+      "target_id": "18009306443970383",
+      "target_username": "jstory_hw",
+      "reply_id": "18097290413659906",
+      "text_hash": "a59fd7e26cd2fb6c04e9",
+      "text": "시가 바뀌면 사주판 자체가 달라질 수 있어서, 정확하게 보려면 확인해 보는 게 좋아요. 아침 4시 35분이 태어난 시각으로 확실한가요?",
+      "verified_replied_to": "18009306443970383",
+      "source_query": "",
+      "search_type": "",
+      "candidate_score": 998.903,
+      "relevance": 0,
+      "conversation_signal": 0.0,
+      "effect": "CONFIRMED",
+      "revenue_cta": false,
+      "finalized_at": "2026-10-20T06:02:22.247174+00:00"
     }
   ],
   "days": {
@@ -727,9 +767,9 @@
     },
     "2026-10-20": {
       "external": 0,
-      "inbound": 5,
-      "nested": 3,
-      "total": 8,
+      "inbound": 6,
+      "nested": 4,
+      "total": 10,
       "per_target": {},
       "external_measured": 0,
       "external_engaged": 0,
@@ -740,7 +780,7 @@
       "external_insight_failures": 0
     }
   },
-  "last_run_at": "2026-10-20T05:11:02.510015+00:00",
+  "last_run_at": "2026-10-20T06:02:32.037491+00:00",
   "external_growth": {
     "stage_index": 0,
     "stage_started_kst": "2026-10-11",
