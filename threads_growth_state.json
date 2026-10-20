@@ -19,7 +19,9 @@
     "18146540152528792",
     "18096763358655136",
     "18129830086829835",
-    "18147258202569874"
+    "18147258202569874",
+    "18024171527946202",
+    "18074037188751789"
   ],
   "external_target_ids": [],
   "sent": [
@@ -355,6 +357,44 @@
       "effect": "CONFIRMED",
       "revenue_cta": false,
       "finalized_at": "2026-10-19T18:47:16.590228+00:00"
+    },
+    {
+      "at": "2026-10-20T04:54:38.092753+00:00",
+      "date_kst": "2026-10-20",
+      "kind": "inbound",
+      "target_id": "18024171527946202",
+      "target_username": "jstory_hw",
+      "reply_id": "17917123197261651",
+      "text_hash": "eb9db218ec265a77c8b2",
+      "text": "재물운만 볼게요. 출생시간이 없어서 시주는 빼고, 연·월·일 기준으로 돈 흐름만 보겠습니다.\n\n올해 병오에는 정재·편재 흐름이 들어오면서 고정수입·계약·재정관리 쪽이 두드러지고, 수입·계약·현금흐름을 실제 숫자로 챙길수록 유리해요.\n\n특히 다음 재성 흐름은 2027년에 다시 잡히니, 지금은 무리하게 크게 벌리기보다 그때까지 돈 되는 구조를 만들어두는 게 좋아요.",
+      "verified_replied_to": "18024171527946202",
+      "source_query": "",
+      "search_type": "",
+      "candidate_score": 999.687,
+      "relevance": 0,
+      "conversation_signal": 0.0,
+      "effect": "CONFIRMED",
+      "revenue_cta": false,
+      "finalized_at": "2026-10-20T04:54:51.454313+00:00"
+    },
+    {
+      "at": "2026-10-20T04:54:52.686867+00:00",
+      "date_kst": "2026-10-20",
+      "kind": "inbound",
+      "target_id": "18074037188751789",
+      "target_username": "jin_ssj",
+      "reply_id": "17962096419228828",
+      "text_hash": "456fc1706005fa804283",
+      "text": "사업과 재물은 결국 하나의 흐름이라 함께 풀어서 조만간 자세히 답글 남겨드릴게요. 혹시 현재 준비 중인 새로운 사업이나 변화를 고민 중인 상황이신가요?",
+      "verified_replied_to": "18074037188751789",
+      "source_query": "",
+      "search_type": "",
+      "candidate_score": 999.654,
+      "relevance": 0,
+      "conversation_signal": 0.0,
+      "effect": "CONFIRMED",
+      "revenue_cta": false,
+      "finalized_at": "2026-10-20T04:55:03.180497+00:00"
     }
   ],
   "days": {
@@ -647,9 +687,9 @@
     },
     "2026-10-20": {
       "external": 0,
-      "inbound": 3,
+      "inbound": 5,
       "nested": 1,
-      "total": 4,
+      "total": 6,
       "per_target": {},
       "external_measured": 0,
       "external_engaged": 0,
@@ -660,7 +700,7 @@
       "external_insight_failures": 0
     }
   },
-  "last_run_at": "2026-10-19T18:47:27.635832+00:00",
+  "last_run_at": "2026-10-20T04:55:10.502490+00:00",
   "external_growth": {
     "stage_index": 0,
     "stage_started_kst": "2026-10-11",
