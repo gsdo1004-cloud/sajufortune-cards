@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime as dt
+import json
 import unittest
 from pathlib import Path
 
@@ -39,28 +40,33 @@ class PublicSajuEventTest(unittest.TestCase):
         self.assertIn("전화번호", special)
         self.assertIn("주소", special)
 
-    def test_public_saju_workflow_supports_deduplicated_scheduled_backup(self):
+    def test_public_saju_workflow_is_post_only(self):
         workflow = (Path(__file__).resolve().parent / ".github" / "workflows" / "threads-public-saju.yml").read_text(encoding="utf-8")
         self.assertIn("scheduled_backup:", workflow)
         self.assertIn("inputs.scheduled_backup", workflow)
         self.assertIn("python threads_public_saju_event.py", workflow)
         self.assertIn("group: threads-growth-main", workflow)
+        self.assertNotIn("threads_growth.py", workflow)
+        self.assertNotIn("--send", workflow)
+        self.assertNotIn("초기 댓글", workflow)
 
-    def test_cloud_reply_scan_is_low_frequency_fallback_after_event_start(self):
-        workflow = (Path(__file__).resolve().parent / ".github" / "workflows" / "threads-public-saju-replies.yml").read_text(encoding="utf-8")
-        self.assertNotIn("*/5", workflow)
-        self.assertIn("30 0-4 * * 2", workflow)
-        self.assertIn("30 11-15 * * 0,4", workflow)
-
-    def test_threads_writer_workflows_are_serialized_and_public_scans_scoped(self):
+    def test_reply_automation_workflows_are_removed(self):
         root = Path(__file__).resolve().parent / ".github" / "workflows"
-        growth = (root / "threads-growth.yml").read_text(encoding="utf-8")
-        event = (root / "threads-public-saju.yml").read_text(encoding="utf-8")
-        replies = (root / "threads-public-saju-replies.yml").read_text(encoding="utf-8")
-        for body in (growth, event, replies):
-            self.assertIn("group: threads-growth-main", body)
-        self.assertIn("--public-saju-only", event)
-        self.assertIn("--public-saju-only", replies)
+        for name in (
+            "threads-public-saju-replies.yml",
+            "threads-public-saju-tonight.yml",
+            "threads-replies.yml",
+            "threads-growth.yml",
+        ):
+            self.assertFalse((root / name).exists(), name)
+
+    def test_growth_config_is_manual_reply_only_defense(self):
+        cfg = json.loads((Path(__file__).resolve().parent / "threads_growth_config.json").read_text(encoding="utf-8"))
+        self.assertFalse(cfg.get("auto_interactions_enabled", True))
+        self.assertEqual(cfg.get("interaction_policy"), "manual_replies_only")
+        for key in ("external_daily_cap", "external_per_run", "inbound_daily_cap", "inbound_per_run", "total_daily_cap"):
+            self.assertEqual(cfg.get(key), 0, key)
+        self.assertFalse(cfg.get("keyword_discovery_enabled", True))
 
     def test_scheduled_rotation_range(self):
         for offset in range(35):

@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "account_username": "gsdo10042026",
-  "external_daily_cap": 8,
-  "external_per_run": 2,
-  "inbound_daily_cap": 10,
-  "inbound_per_run": 2,
-  "total_daily_cap": 30,
+  "external_daily_cap": 0,
+  "external_per_run": 0,
+  "inbound_daily_cap": 0,
+  "inbound_per_run": 0,
+  "total_daily_cap": 0,
   "per_target_daily_cap": 1,
   "max_target_age_hours": 36,
-  "keyword_discovery_enabled": true,
+  "keyword_discovery_enabled": false,
   "keyword_discovery_min_relevance": 2,
   "keyword_search_types": [
     "TOP",
@@ -165,5 +165,7 @@
     "문의주세요",
     "풀이가 필요하면"
   ],
-  "external_growth_require_insights": true
+  "external_growth_require_insights": true,
+  "auto_interactions_enabled": false,
+  "interaction_policy": "manual_replies_only"
 }
