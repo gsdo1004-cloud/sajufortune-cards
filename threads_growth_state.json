@@ -21,7 +21,9 @@
     "18129830086829835",
     "18147258202569874",
     "18024171527946202",
-    "18074037188751789"
+    "18074037188751789",
+    "17936817351401436",
+    "18131338222783599"
   ],
   "external_target_ids": [],
   "sent": [
@@ -395,6 +397,44 @@
       "effect": "CONFIRMED",
       "revenue_cta": false,
       "finalized_at": "2026-10-20T04:55:03.180497+00:00"
+    },
+    {
+      "at": "2026-10-20T05:10:38.698360+00:00",
+      "date_kst": "2026-10-20",
+      "kind": "nested",
+      "target_id": "17936817351401436",
+      "target_username": "98o2o9",
+      "reply_id": "18144477508578509",
+      "text_hash": "31a6f4c1b999cc4be184",
+      "text": "현재 연애 중이시라면 지금 만나는 분과의 궁합이나 연애 흐름을 집중적으로 봐드릴 수 있어요. 사주 정보와 함께 연애 고민을 자세히 남겨주세요.",
+      "verified_replied_to": "17936817351401436",
+      "source_query": "",
+      "search_type": "",
+      "candidate_score": 999.955,
+      "relevance": 0,
+      "conversation_signal": 0.0,
+      "effect": "CONFIRMED",
+      "revenue_cta": false,
+      "finalized_at": "2026-10-20T05:10:50.924181+00:00"
+    },
+    {
+      "at": "2026-10-20T05:10:52.004486+00:00",
+      "date_kst": "2026-10-20",
+      "kind": "nested",
+      "target_id": "18131338222783599",
+      "target_username": "jang_e_un80",
+      "reply_id": "18218558143343939",
+      "text_hash": "6478117d6246eb2b4504",
+      "text": "감사합니다. 재물운을 보려면 게시글에 적힌 필수 정보가 필요하니, 정보와 함께 댓글 남겨주시면 자세히 봐드릴게요!",
+      "verified_replied_to": "18131338222783599",
+      "source_query": "",
+      "search_type": "",
+      "candidate_score": 999.775,
+      "relevance": 0,
+      "conversation_signal": 0.0,
+      "effect": "CONFIRMED",
+      "revenue_cta": false,
+      "finalized_at": "2026-10-20T05:11:02.507832+00:00"
     }
   ],
   "days": {
@@ -688,8 +728,8 @@
     "2026-10-20": {
       "external": 0,
       "inbound": 5,
-      "nested": 1,
-      "total": 6,
+      "nested": 3,
+      "total": 8,
       "per_target": {},
       "external_measured": 0,
       "external_engaged": 0,
@@ -700,7 +740,7 @@
       "external_insight_failures": 0
     }
   },
-  "last_run_at": "2026-10-20T04:55:10.502490+00:00",
+  "last_run_at": "2026-10-20T05:11:02.510015+00:00",
   "external_growth": {
     "stage_index": 0,
     "stage_started_kst": "2026-10-11",

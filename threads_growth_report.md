@@ -2,8 +2,8 @@
 
 - 실행: 실제 발송
 - PAUSED: False
-- 오늘 카운트: `{"external": 0, "inbound": 5, "nested": 1, "total": 6, "per_target": {}, "external_measured": 0, "external_engaged": 0, "external_replies": 0, "external_likes": 0, "external_errors": 0, "external_safety_stops": 0, "external_insight_failures": 0}`
-- 외부 대화 단계: `{"stage_index": 0, "daily_cap": 8, "promoted": false, "stage_started_kst": "2026-10-11", "sent": 0, "measured": 0, "engaged": 0, "errors": 0, "safety_stops": 0, "insight_failures": 0, "engagement_rate": 0.0, "error_rate": 0.0, "insight_failure_rate": 0.0, "telemetry_available": true, "unresolved": 0}`
+- 오늘 카운트: `{"external": 0, "inbound": 5, "nested": 3, "total": 8, "per_target": {}, "external_measured": 0, "external_engaged": 0, "external_replies": 0, "external_likes": 0, "external_errors": 0, "external_safety_stops": 0, "external_insight_failures": 0}`
+- 외부 대화 단계: `{"stage_index": 0, "daily_cap": 8, "promoted": false}`
 - 외부 댓글 성과측정: `{"attempted": 0, "measured": 0, "failed": 0, "skipped": 0}`
 
 ## API 기능
@@ -23,9 +23,5 @@
 
 ## 이번 실행
 
-- inbound @jstory_hw: 재물운만 볼게요. 출생시간이 없어서 시주는 빼고, 연·월·일 기준으로 돈 흐름만 보겠습니다.
-
-올해 병오에는 정재·편재 흐름이 들어오면서 고정수입·계약·재정관리 쪽이 두드러지고, 수입·계약·현금흐름을 실제 숫자로 챙길수록 유리해요.
-
-특히 다음 재성 흐름은 2027년에 다시 잡히니, 지금은 무리하게 크게 벌리기보다 그때까지 돈 되는 구조를 만들어두는 게 좋아요. (sent)
-- inbound @jin_ssj: 사업과 재물은 결국 하나의 흐름이라 함께 풀어서 조만간 자세히 답글 남겨드릴게요. 혹시 현재 준비 중인 새로운 사업이나 변화를 고민 중인 상황이신가요? (sent)
+- nested @98o2o9: 현재 연애 중이시라면 지금 만나는 분과의 궁합이나 연애 흐름을 집중적으로 봐드릴 수 있어요. 사주 정보와 함께 연애 고민을 자세히 남겨주세요. (sent)
+- nested @jang_e_un80: 감사합니다. 재물운을 보려면 게시글에 적힌 필수 정보가 필요하니, 정보와 함께 댓글 남겨주시면 자세히 봐드릴게요! (sent)
