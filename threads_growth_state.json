@@ -25,7 +25,9 @@
     "17936817351401436",
     "18131338222783599",
     "18118078364072410",
-    "18009306443970383"
+    "18009306443970383",
+    "18146426842577272",
+    "18137200903736910"
   ],
   "external_target_ids": [],
   "sent": [
@@ -475,6 +477,44 @@
       "effect": "CONFIRMED",
       "revenue_cta": false,
       "finalized_at": "2026-10-20T06:02:22.247174+00:00"
+    },
+    {
+      "at": "2026-10-20T17:18:43.930406+00:00",
+      "date_kst": "2026-10-21",
+      "kind": "inbound",
+      "target_id": "18146426842577272",
+      "target_username": "heya_0712",
+      "reply_id": "17951391009321351",
+      "text_hash": "a1c0ee041e9deb7d4f2d",
+      "text": "정확하게 보려면 성별(남/여)만 알려주세요. 이미 적어주신 생년정보는 답글에 다시 쓰지 않을게요.",
+      "verified_replied_to": "18146426842577272",
+      "source_query": "",
+      "search_type": "",
+      "candidate_score": 994.941,
+      "relevance": 0,
+      "conversation_signal": 0.0,
+      "effect": "CONFIRMED",
+      "revenue_cta": false,
+      "finalized_at": "2026-10-20T17:18:58.754110+00:00"
+    },
+    {
+      "at": "2026-10-20T17:18:58.761022+00:00",
+      "date_kst": "2026-10-21",
+      "kind": "inbound",
+      "target_id": "18137200903736910",
+      "target_username": "shabet_yj",
+      "reply_id": "18452667742120812",
+      "text_hash": "090b01d06908b0b2ce67",
+      "text": "양띠 직장 흐름은 오늘은 무진일, 오늘 기운과 같은 흙의 흐름을 나란히 타는 무난한 날 — 하던 일을 꾸준히.",
+      "verified_replied_to": "18137200903736910",
+      "source_query": "",
+      "search_type": "",
+      "candidate_score": 992.352,
+      "relevance": 0,
+      "conversation_signal": 0.0,
+      "effect": "CONFIRMED",
+      "revenue_cta": false,
+      "finalized_at": "2026-10-20T17:19:10.184911+00:00"
     }
   ],
   "days": {
@@ -778,9 +818,23 @@
       "external_errors": 0,
       "external_safety_stops": 0,
       "external_insight_failures": 0
+    },
+    "2026-10-21": {
+      "external": 0,
+      "inbound": 2,
+      "nested": 0,
+      "total": 2,
+      "per_target": {},
+      "external_measured": 0,
+      "external_engaged": 0,
+      "external_replies": 0,
+      "external_likes": 0,
+      "external_errors": 0,
+      "external_safety_stops": 0,
+      "external_insight_failures": 0
     }
   },
-  "last_run_at": "2026-10-20T14:20:14.478740+00:00",
+  "last_run_at": "2026-10-20T17:19:21.615093+00:00",
   "external_growth": {
     "stage_index": 0,
     "stage_started_kst": "2026-10-11",
