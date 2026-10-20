@@ -1,5 +1,5 @@
 {
-  "status": "PUBLISHING",
+  "status": "PUBLISHED",
   "publish_key": "ny2027-004-health:youtube:운명과학TV",
   "content_id": "ny2027-004-health",
   "platform": "youtube",
@@ -7,5 +7,9 @@
   "source_sha256": "dd9fa692ab5c8108b5ff211eb5988a8cd03a147d4d8da01fd82f5f5760c1945f",
   "output_sha256": "425ff49dc0b538a9892d11d8948a7f35b1d5164f94772ef7df71ef7f6a946e05",
   "owner_token": "cfc32031d4b34508b79078aa511904a2",
-  "started_at": "2026-10-20T02:20:07+00:00"
+  "started_at": "2026-10-20T02:20:07+00:00",
+  "publish_at": "2026-10-20T15:30:00+09:00",
+  "private_canary": false,
+  "remote_id": "B_yes_lEbLM",
+  "finished_at": "2026-10-20T02:20:24+00:00"
 }
