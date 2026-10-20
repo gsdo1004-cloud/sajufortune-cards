@@ -1,0 +1,11 @@
+{
+  "status": "PUBLISHING",
+  "publish_key": "ny2027-004-health:threads:gsdo10042026",
+  "content_id": "ny2027-004-health",
+  "platform": "threads",
+  "account": "gsdo10042026",
+  "source_sha256": "dd9fa692ab5c8108b5ff211eb5988a8cd03a147d4d8da01fd82f5f5760c1945f",
+  "output_sha256": "",
+  "owner_token": "32268be5344b4f40836e826fd5794f7f",
+  "started_at": "2026-10-20T02:17:47+00:00"
+}
