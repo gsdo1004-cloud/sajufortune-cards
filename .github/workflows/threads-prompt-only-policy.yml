@@ -1,0 +1,28 @@
+name: Threads 사주 유도글 전용 정책 검증
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+      - 'test_threads_prompt_only_policy.py'
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - 'test_threads_prompt_only_policy.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Threads 유도글 전용 정책 테스트
+        run: python -m unittest -v test_threads_prompt_only_policy.py

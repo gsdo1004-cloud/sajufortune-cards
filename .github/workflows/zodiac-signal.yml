@@ -43,35 +43,7 @@ jobs:
     permissions:
       contents: write
     env:
-      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
-      THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
     steps:
-      - name: Threads 토큰 사전검사
-        shell: bash
-        run: |
-          python3 - <<'PYTOKEN'
-          import json, os, sys, urllib.parse, urllib.request, urllib.error
-          tok=os.environ.get('THREADS_ACCESS_TOKEN','')
-          if not tok:
-              print('[FAIL] THREADS_ACCESS_TOKEN secret is missing')
-              sys.exit(78)
-          url='https://graph.threads.net/v1.0/me?' + urllib.parse.urlencode({'fields':'id','access_token':tok})
-          try:
-              with urllib.request.urlopen(url, timeout=15) as r:
-                  data=json.load(r)
-              if not data.get('id'):
-                  raise RuntimeError('token validation returned no id')
-              print('[OK] Threads token valid')
-          except urllib.error.HTTPError as e:
-              body=e.read().decode('utf-8','replace')[:1500]
-              body=body.replace(tok,'[REDACTED]')
-              print('[FAIL] Threads token invalid/expired:', body)
-              sys.exit(78)
-          except Exception as e:
-              print('[FAIL] Threads token preflight:', type(e).__name__, str(e)[:500])
-              sys.exit(78)
-          PYTOKEN
-
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
@@ -224,14 +196,6 @@ jobs:
 
       # Threads 낮 슬롯은 실제 게시물 1편만 발행한다.
       # 같은 대본의 VIDEO+카드 2중 게시를 없애고 캐러셀 하나로 집중한다.
-      - name: Threads 카드뉴스 발행 (낮 1편)
-        if: github.event.inputs.dry_run != 'true'
-        continue-on-error: true
-        run: python zodiac_signal.py ${{ steps.args.outputs.v }}
-
-      # 발행 마커를 남긴다. 발행 '뒤'에 생기므로 이 스텝은 발행 뒤에 와야 하고,
-      # 실패해도 남겨야 하므로 always() 다 — 2026-07-30 에 carousel/reels 가 이걸 놓쳐
-      # 마커가 원격에 안 남고 멱등 가드가 무효였던 전례가 있다.
       - name: 발행 마커 커밋
         if: always() && github.event.inputs.dry_run != 'true'
         run: |
@@ -241,8 +205,6 @@ jobs:
           # 실패하므로, 한 줄로 묶으면 영상 생성이 실패해 유튜브 마커가 없는 날
           # 스레드 마커까지 못 남긴다 → 재실행 시 스레드 중복 발행.
           # (실측: 한 줄 = 0개 스테이징, 두 줄 = 있는 것만 정상 스테이징)
-          git add cards/*/threads_pub_signal.json 2>/dev/null || true
-          git add cards/*/threads_pub_signal_video.json 2>/dev/null || true
           git add cards/*/youtube_pub_signal.json 2>/dev/null || true
           if git diff --staged --quiet; then
             echo "[SKIP] 새 발행 마커 없음 — push 생략"

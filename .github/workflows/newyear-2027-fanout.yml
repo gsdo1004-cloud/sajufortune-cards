@@ -1,4 +1,4 @@
-name: 2027 신년운세 추가 발행 (Threads + Shorts)
+name: 2027 신년운세 추가 발행 (Shorts)
 
 on:
   workflow_dispatch:
@@ -13,13 +13,12 @@ on:
         default: false
         type: boolean
       mode:
-        description: 'normal / threads_canary / youtube_private_canary'
+        description: 'normal / youtube_private_canary'
         required: true
         default: normal
         type: choice
         options:
           - normal
-          - threads_canary
           - youtube_private_canary
       source_url:
         description: '로컬 Naver PUBLISHED/RSS 게이트가 확인한 URL'
@@ -90,80 +89,8 @@ jobs:
             --commit-sha "$COMMIT_SHA_INPUT" \
             --permit "$DISPATCH_PERMIT_INPUT"
 
-  threads:
-    needs: gate
-    if: ${{ needs.gate.result == 'success' && inputs.send == true && (inputs.mode == 'normal' || inputs.mode == 'threads_canary') }}
-    runs-on: ubuntu-latest
-    env:
-      TARGET_DATE: ${{ inputs.date }}
-      AUTH_MODE: ${{ inputs.mode }}
-      SOURCE_URL_INPUT: ${{ inputs.source_url }}
-      EXPIRES_AT_INPUT: ${{ inputs.expires_at }}
-      PAYLOAD_SHA256_INPUT: ${{ inputs.payload_sha256 }}
-      COMMIT_SHA_INPUT: ${{ inputs.commit_sha }}
-      DISPATCH_PERMIT_INPUT: ${{ inputs.permit }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.gate.outputs.commit_sha }}
-          fetch-depth: 0
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Threads 의존성
-        run: pip install requests
-      - name: Threads intent 전 허가 재검증
-        env:
-          NEWYEAR_2027_DISPATCH_KEY: ${{ secrets.NEWYEAR_2027_DISPATCH_KEY }}
-        run: |
-          python newyear_2027_runner.py verify-permit \
-            --date "$TARGET_DATE" --source-url "$SOURCE_URL_INPUT" \
-            --mode "$AUTH_MODE" --expires-at "$EXPIRES_AT_INPUT" \
-            --payload-sha256 "$PAYLOAD_SHA256_INPUT" --commit-sha "$COMMIT_SHA_INPUT" \
-            --permit "$DISPATCH_PERMIT_INPUT"
-      - name: Threads PUBLISHING intent 생성
-        id: threads_intent
-        run: |
-          python newyear_2027_runner.py intent \
-            --date "$TARGET_DATE" --platform threads --account gsdo10042026 \
-            --github-output "$GITHUB_OUTPUT"
-      - name: Threads intent 영구 저장 (격리 worktree)
-        if: ${{ steps.threads_intent.outputs.action == 'publish' }}
-        run: |
-          bash scripts/persist_newyear_2027_receipt.sh claim \
-            "newyear_2027/receipts/$TARGET_DATE/threads.json" \
-            "ny2027 threads intent $TARGET_DATE"
-      - name: Threads 발행 직전 허가 재검증
-        if: ${{ steps.threads_intent.outputs.action == 'publish' }}
-        env:
-          NEWYEAR_2027_DISPATCH_KEY: ${{ secrets.NEWYEAR_2027_DISPATCH_KEY }}
-        run: |
-          python newyear_2027_runner.py verify-permit \
-            --date "$TARGET_DATE" --source-url "$SOURCE_URL_INPUT" \
-            --mode "$AUTH_MODE" --expires-at "$EXPIRES_AT_INPUT" \
-            --payload-sha256 "$PAYLOAD_SHA256_INPUT" --commit-sha "$COMMIT_SHA_INPUT" \
-            --permit "$DISPATCH_PERMIT_INPUT"
-      - name: Threads durable claim 소유권 확인
-        if: ${{ steps.threads_intent.outputs.action == 'publish' }}
-        run: bash scripts/verify_newyear_2027_receipt_owner.sh "newyear_2027/receipts/$TARGET_DATE/threads.json"
-      - name: Threads 발행
-        if: ${{ steps.threads_intent.outputs.action == 'publish' }}
-        env:
-          NEWYEAR_2027_DISPATCH_KEY: ${{ secrets.NEWYEAR_2027_DISPATCH_KEY }}
-          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
-          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
-          THREADS_EXPECTED_USERNAME: gsdo10042026
-          HOME_OG_AB_TOKEN: ${{ secrets.HOME_OG_AB_TOKEN }}
-        run: python newyear_2027_runner.py publish-threads --date "$TARGET_DATE"
-      - name: Threads PUBLISHED receipt 저장 (격리 worktree)
-        if: ${{ steps.threads_intent.outputs.action == 'publish' }}
-        run: |
-          bash scripts/persist_newyear_2027_receipt.sh finalize \
-            "newyear_2027/receipts/$TARGET_DATE/threads.json" \
-            "ny2027 threads published $TARGET_DATE"
-
   youtube:
-    needs: [gate, threads]
+    needs: gate
     if: ${{ always() && needs.gate.result == 'success' && inputs.send == true && (inputs.mode == 'normal' || inputs.mode == 'youtube_private_canary') }}
     runs-on: ubuntu-latest
     env:

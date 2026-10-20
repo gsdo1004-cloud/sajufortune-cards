@@ -54,7 +54,7 @@ jobs:
         run: python -m pip install --disable-pip-version-check -q requests
 
       - name: 공개 사주 유도글 테스트
-        run: python -m unittest -v test_threads_public_saju_event.py
+        run: python -m unittest -v test_threads_public_saju_event.py test_threads_prompt_only_policy.py
 
       - name: 계정 사전검증
         run: |
