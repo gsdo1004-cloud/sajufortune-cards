@@ -1,5 +1,5 @@
 {
-  "status": "PUBLISHING",
+  "status": "PUBLISHED",
   "publish_key": "ny2027-005-samjae:youtube:운명과학TV",
   "content_id": "ny2027-005-samjae",
   "platform": "youtube",
@@ -7,5 +7,9 @@
   "source_sha256": "0b21e9b02b5c29bd2309ae7d8fe2316daa7024f67b831b944d7ec11fbb048f93",
   "output_sha256": "d28cd901cf7ea61bfc4af3cbd538e6640c3b4ba99b4b37bb659bb529436648ef",
   "owner_token": "ef9f23e9d66240d5a916f54aeae87b2c",
-  "started_at": "2026-10-21T02:19:17+00:00"
+  "started_at": "2026-10-21T02:19:17+00:00",
+  "publish_at": "2026-10-21T15:30:00+09:00",
+  "private_canary": false,
+  "remote_id": "FihDeRmNdYc",
+  "finished_at": "2026-10-21T02:19:37+00:00"
 }
