@@ -1,24 +1,41 @@
 {
-  "collected_at": "2026-10-20T15:51:12+00:00",
+  "collected_at": "2026-10-21T16:00:49+00:00",
   "account_key": "sajufortune.kr",
   "expected_username": "sajufortune.kr",
   "count": 30,
   "media": [
     {
-      "id": "18118664672007467",
+      "id": "18081486077340763",
       "media_type": "VIDEO",
       "media_product_type": "REELS",
-      "timestamp": "2026-10-20T15:41:43+0000",
-      "permalink": "https://www.instagram.com/reel/DeuLXj9E3fL/",
+      "timestamp": "2026-10-21T16:00:17+0000",
+      "permalink": "https://www.instagram.com/reel/DewySo3iSD0/",
       "like_count": 0,
       "comments_count": 0,
-      "caption_head": "재물·인연 흐름이 달라지는 띠, 내 띠도 있을까요? 🍀 2026년 10월 21일 수요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #",
+      "caption_head": "오늘 내 띠의 흐름, 끝까지 확인해 보세요 🔮 2026년 10월 22일 목요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세",
       "metrics": {
         "views": 0,
         "reach": 0,
         "saved": 0,
         "shares": 0,
         "total_interactions": 0
+      }
+    },
+    {
+      "id": "18118664672007467",
+      "media_type": "VIDEO",
+      "media_product_type": "REELS",
+      "timestamp": "2026-10-20T15:41:43+0000",
+      "permalink": "https://www.instagram.com/reel/DeuLXj9E3fL/",
+      "like_count": 2,
+      "comments_count": 0,
+      "caption_head": "재물·인연 흐름이 달라지는 띠, 내 띠도 있을까요? 🍀 2026년 10월 21일 수요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #",
+      "metrics": {
+        "views": 38,
+        "reach": 30,
+        "saved": 1,
+        "shares": 0,
+        "total_interactions": 3
       }
     },
     {
@@ -31,8 +48,8 @@
       "comments_count": 0,
       "caption_head": "오늘 내 띠의 흐름, 끝까지 확인해 보세요 🔮 2026년 10월 20일 화요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세",
       "metrics": {
-        "views": 11,
-        "reach": 10,
+        "views": 16,
+        "reach": 14,
         "saved": 0,
         "shares": 0,
         "total_interactions": 2
@@ -48,8 +65,8 @@
       "comments_count": 0,
       "caption_head": "재물·인연 흐름이 달라지는 띠, 내 띠도 있을까요? 🍀 2026년 10월 19일 월요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #",
       "metrics": {
-        "views": 28,
-        "reach": 21,
+        "views": 34,
+        "reach": 25,
         "saved": 0,
         "shares": 0,
         "total_interactions": 2
@@ -65,8 +82,8 @@
       "comments_count": 0,
       "caption_head": "오늘 내 띠의 흐름, 끝까지 확인해 보세요 🔮 2026년 10월 18일 일요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세",
       "metrics": {
-        "views": 36,
-        "reach": 23,
+        "views": 41,
+        "reach": 26,
         "saved": 0,
         "shares": 0,
         "total_interactions": 4
@@ -82,8 +99,8 @@
       "comments_count": 0,
       "caption_head": "오늘 내 띠의 흐름, 끝까지 확인해 보세요 🔮 2026년 10월 16일 금요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세",
       "metrics": {
-        "views": 39,
-        "reach": 29,
+        "views": 41,
+        "reach": 31,
         "saved": 1,
         "shares": 0,
         "total_interactions": 4
@@ -99,8 +116,8 @@
       "comments_count": 0,
       "caption_head": "재물·인연 흐름이 달라지는 띠, 내 띠도 있을까요? 🍀 2026년 10월 13일 화요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #",
       "metrics": {
-        "views": 53,
-        "reach": 42,
+        "views": 55,
+        "reach": 44,
         "saved": 1,
         "shares": 0,
         "total_interactions": 4
@@ -495,23 +512,6 @@
         "saved": 0,
         "shares": 2,
         "total_interactions": 4
-      }
-    },
-    {
-      "id": "18108165467105845",
-      "media_type": "VIDEO",
-      "media_product_type": "REELS",
-      "timestamp": "2026-08-04T13:51:23+0000",
-      "permalink": "https://www.instagram.com/reel/Dbnthe4BPaT/",
-      "like_count": 3,
-      "comments_count": 0,
-      "caption_head": "#오늘의운세",
-      "metrics": {
-        "views": 150,
-        "reach": 128,
-        "saved": 0,
-        "shares": 0,
-        "total_interactions": 3
       }
     }
   ]
