@@ -1,5 +1,5 @@
 {
-  "collected_at": "2026-10-22T12:02:13+00:00",
+  "collected_at": "2026-10-22T12:30:50+00:00",
   "account_key": "gsdo10042026",
   "expected_username": "gsdo10042026",
   "count": 30,
@@ -10,7 +10,7 @@
       "media_product_type": "FEED",
       "timestamp": "2026-10-22T12:01:54+0000",
       "permalink": "https://www.instagram.com/p/Dey74CsoNA8/",
-      "like_count": 0,
+      "like_count": 1,
       "comments_count": 0,
       "caption_head": "2026년 10월 22일 목요일 오늘의 띠별 운세 🔮 내 띠의 흐름을 먼저 보고, 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 #띠별운세 #사주 #운세 #12띠 #데일리운세",
       "metrics": {
@@ -18,7 +18,7 @@
         "reach": 0,
         "saved": 0,
         "shares": 0,
-        "total_interactions": 0
+        "total_interactions": 1
       }
     },
     {
@@ -48,8 +48,8 @@
       "comments_count": 0,
       "caption_head": "오늘 내 띠의 흐름, 끝까지 확인해 보세요 🔮 2026년 10월 21일 수요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세",
       "metrics": {
-        "views": 2165,
-        "reach": 1907,
+        "views": 2167,
+        "reach": 1909,
         "saved": 3,
         "shares": 2,
         "total_interactions": 23
