@@ -1,0 +1,11 @@
+{
+  "status": "PUBLISHING",
+  "publish_key": "ny2027-007-rat:youtube:운명과학TV",
+  "content_id": "ny2027-007-rat",
+  "platform": "youtube",
+  "account": "운명과학TV",
+  "source_sha256": "f8cca2b3287566dea0cf88306e7334d01d19351573f9bac7d1c3aa78619f1833",
+  "output_sha256": "c192c18502533181eac2c1aaac6a04c65861bf6ffd04e7b7d278d92a94341388",
+  "owner_token": "8a7f67751d8148f69690f55cd50ce7b2",
+  "started_at": "2026-10-23T02:18:52+00:00"
+}
