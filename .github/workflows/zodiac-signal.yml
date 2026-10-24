@@ -42,7 +42,6 @@ jobs:
     # 기본 GITHUB_TOKEN 은 읽기 전용이라 이게 없으면 push 가 403 으로 죽는다.
     permissions:
       contents: write
-    env:
     steps:
       - uses: actions/checkout@v4
 
