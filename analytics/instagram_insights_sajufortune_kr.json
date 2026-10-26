@@ -1,18 +1,18 @@
 {
-  "collected_at": "2026-10-25T15:04:12+00:00",
+  "collected_at": "2026-10-26T17:27:41+00:00",
   "account_key": "sajufortune.kr",
   "expected_username": "sajufortune.kr",
   "count": 30,
   "media": [
     {
-      "id": "18072385091773627",
+      "id": "18024634532713067",
       "media_type": "VIDEO",
       "media_product_type": "REELS",
-      "timestamp": "2026-10-25T14:59:07+0000",
-      "permalink": "https://www.instagram.com/reel/De6-es_jP2T/",
+      "timestamp": "2026-10-26T17:27:06+0000",
+      "permalink": "https://www.instagram.com/reel/De90ND2iL3p/",
       "like_count": 0,
       "comments_count": 0,
-      "caption_head": "오늘 내 띠의 흐름, 끝까지 확인해 보세요 🔮 2026년 10월 26일 월요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세",
+      "caption_head": "재물·인연 흐름이 달라지는 띠, 내 띠도 있을까요? 🍀 2026년 10월 27일 화요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #",
       "metrics": {
         "views": 0,
         "reach": 0,
@@ -22,20 +22,37 @@
       }
     },
     {
+      "id": "18072385091773627",
+      "media_type": "VIDEO",
+      "media_product_type": "REELS",
+      "timestamp": "2026-10-25T14:59:07+0000",
+      "permalink": "https://www.instagram.com/reel/De6-es_jP2T/",
+      "like_count": 4,
+      "comments_count": 0,
+      "caption_head": "오늘 내 띠의 흐름, 끝까지 확인해 보세요 🔮 2026년 10월 26일 월요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세",
+      "metrics": {
+        "views": 26,
+        "reach": 21,
+        "saved": 1,
+        "shares": 0,
+        "total_interactions": 5
+      }
+    },
+    {
       "id": "18096328367450020",
       "media_type": "VIDEO",
       "media_product_type": "REELS",
       "timestamp": "2026-10-24T14:37:26+0000",
       "permalink": "https://www.instagram.com/reel/De4XJMhFURy/",
-      "like_count": 1,
+      "like_count": 2,
       "comments_count": 0,
       "caption_head": "재물·인연 흐름이 달라지는 띠, 내 띠도 있을까요? 🍀 2026년 10월 25일 일요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #",
       "metrics": {
-        "views": 20,
-        "reach": 14,
+        "views": 23,
+        "reach": 17,
         "saved": 0,
         "shares": 0,
-        "total_interactions": 1
+        "total_interactions": 2
       }
     },
     {
@@ -44,15 +61,15 @@
       "media_product_type": "REELS",
       "timestamp": "2026-10-23T15:48:33+0000",
       "permalink": "https://www.instagram.com/reel/De16gi_DOGH/",
-      "like_count": 2,
+      "like_count": 3,
       "comments_count": 0,
       "caption_head": "오늘 내 띠의 흐름, 끝까지 확인해 보세요 🔮 2026년 10월 24일 토요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세",
       "metrics": {
-        "views": 20,
-        "reach": 17,
+        "views": 25,
+        "reach": 20,
         "saved": 0,
         "shares": 0,
-        "total_interactions": 2
+        "total_interactions": 3
       }
     },
     {
@@ -65,8 +82,8 @@
       "comments_count": 0,
       "caption_head": "재물·인연 흐름이 달라지는 띠, 내 띠도 있을까요? 🍀 2026년 10월 23일 금요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #",
       "metrics": {
-        "views": 24,
-        "reach": 18,
+        "views": 33,
+        "reach": 24,
         "saved": 1,
         "shares": 0,
         "total_interactions": 5
@@ -82,8 +99,8 @@
       "comments_count": 0,
       "caption_head": "오늘 내 띠의 흐름, 끝까지 확인해 보세요 🔮 2026년 10월 22일 목요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세",
       "metrics": {
-        "views": 21,
-        "reach": 18,
+        "views": 22,
+        "reach": 19,
         "saved": 0,
         "shares": 0,
         "total_interactions": 2
@@ -99,8 +116,8 @@
       "comments_count": 0,
       "caption_head": "재물·인연 흐름이 달라지는 띠, 내 띠도 있을까요? 🍀 2026년 10월 21일 수요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #",
       "metrics": {
-        "views": 41,
-        "reach": 34,
+        "views": 42,
+        "reach": 35,
         "saved": 1,
         "shares": 0,
         "total_interactions": 3
@@ -495,23 +512,6 @@
         "saved": 0,
         "shares": 0,
         "total_interactions": 0
-      }
-    },
-    {
-      "id": "18212153065344021",
-      "media_type": "VIDEO",
-      "media_product_type": "REELS",
-      "timestamp": "2026-08-18T18:27:51+0000",
-      "permalink": "https://www.instagram.com/reel/DcMQTn3THHt/",
-      "like_count": 1,
-      "comments_count": 0,
-      "caption_head": "#오늘의운세",
-      "metrics": {
-        "views": 131,
-        "reach": 118,
-        "saved": 0,
-        "shares": 0,
-        "total_interactions": 1
       }
     }
   ]
