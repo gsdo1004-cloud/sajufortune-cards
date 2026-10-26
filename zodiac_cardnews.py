@@ -314,10 +314,13 @@ def do_publish():
     tmp_marker = marker.with_suffix(marker.suffix + ".tmp")
     tmp_marker.write_text(json.dumps({"post_id": pid}, ensure_ascii=False), encoding="utf-8")
     tmp_marker.replace(marker)
-    # [2026-07-16] 스레드 외부링크 도달저하 회피 — 첫댓글을 일진 풀이·사주 상식 훅으로.
-    # 사주포춘 링크는 주 1회(일요일 캐러셀)만. comment_hooks 참조.
-    from comment_hooks import build_first_comment
-    publish_reply(pid, build_first_comment(date_iso, "carousel"))
+    # 첫댓글 자동화는 호출 경로별로 명시적으로 허용할 때만 사용한다.
+    # 데일리 Threads 카드뉴스 워크플로는 THREADS_CARDNEWS_AUTO_REPLY=0 으로 차단한다.
+    if os.environ.get("THREADS_CARDNEWS_AUTO_REPLY", "1").strip() == "1":
+        from comment_hooks import build_first_comment
+        publish_reply(pid, build_first_comment(date_iso, "carousel"))
+    else:
+        print("[SKIP] automatic first reply disabled")
 
 
 if __name__ == "__main__":

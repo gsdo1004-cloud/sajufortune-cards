@@ -69,6 +69,13 @@ class ThreadsPromptOnlyPolicyTest(unittest.TestCase):
         self.assertNotIn("zodiac_ghost.py", body)
         self.assertIn("threads_pub_carousel.json", body)
 
+    def test_daily_cardnews_disables_automatic_first_reply(self):
+        workflow = (WF / DAILY_CARDNEWS_WORKFLOW).read_text(encoding="utf-8")
+        publisher = (ROOT / "zodiac_cardnews.py").read_text(encoding="utf-8")
+        self.assertIn('THREADS_CARDNEWS_AUTO_REPLY: "0"', workflow)
+        self.assertIn('THREADS_CARDNEWS_AUTO_REPLY', publisher)
+        self.assertIn('[SKIP] automatic first reply disabled', publisher)
+
     def test_public_saju_is_prompt_only(self):
         body = (WF / PUBLISH_WORKFLOW).read_text(encoding="utf-8")
         self.assertIn("threads_public_saju_event.py", body)
