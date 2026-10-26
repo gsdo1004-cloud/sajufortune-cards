@@ -1,0 +1,11 @@
+{
+  "status": "PUBLISHING",
+  "publish_key": "ny2027-010-rabbit:youtube:운명과학TV",
+  "content_id": "ny2027-010-rabbit",
+  "platform": "youtube",
+  "account": "운명과학TV",
+  "source_sha256": "b836e777b7fa10e8f2a4ea590c2c888b677847c1a98f37ec4a880e016ee47bab",
+  "output_sha256": "d645978b9867bef2c13bfd94d4c2818a139ad0642aeec18cc107028ff19badb1",
+  "owner_token": "a07a10463fe94fdaae067334493e9e58",
+  "started_at": "2026-10-26T02:19:16+00:00"
+}
