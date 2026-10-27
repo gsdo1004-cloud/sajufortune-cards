@@ -1,24 +1,41 @@
 {
-  "collected_at": "2026-10-26T17:39:48+00:00",
+  "collected_at": "2026-10-27T16:45:14+00:00",
   "account_key": "sajufortune.kr",
   "expected_username": "sajufortune.kr",
   "count": 30,
   "media": [
     {
-      "id": "18024634532713067",
+      "id": "18112814585082845",
       "media_type": "VIDEO",
       "media_product_type": "REELS",
-      "timestamp": "2026-10-26T17:27:06+0000",
-      "permalink": "https://www.instagram.com/reel/De90ND2iL3p/",
+      "timestamp": "2026-10-27T16:44:44+0000",
+      "permalink": "https://www.instagram.com/reel/DfAUJbBDPJp/",
       "like_count": 0,
       "comments_count": 0,
-      "caption_head": "재물·인연 흐름이 달라지는 띠, 내 띠도 있을까요? 🍀 2026년 10월 27일 화요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #",
+      "caption_head": "오늘 내 띠의 흐름, 끝까지 확인해 보세요 🔮 2026년 10월 28일 수요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세",
       "metrics": {
         "views": 0,
         "reach": 0,
         "saved": 0,
         "shares": 0,
         "total_interactions": 0
+      }
+    },
+    {
+      "id": "18024634532713067",
+      "media_type": "VIDEO",
+      "media_product_type": "REELS",
+      "timestamp": "2026-10-26T17:27:06+0000",
+      "permalink": "https://www.instagram.com/reel/De90ND2iL3p/",
+      "like_count": 1,
+      "comments_count": 0,
+      "caption_head": "재물·인연 흐름이 달라지는 띠, 내 띠도 있을까요? 🍀 2026년 10월 27일 화요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #",
+      "metrics": {
+        "views": 39,
+        "reach": 35,
+        "saved": 0,
+        "shares": 0,
+        "total_interactions": 1
       }
     },
     {
@@ -31,8 +48,8 @@
       "comments_count": 0,
       "caption_head": "오늘 내 띠의 흐름, 끝까지 확인해 보세요 🔮 2026년 10월 26일 월요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세",
       "metrics": {
-        "views": 26,
-        "reach": 21,
+        "views": 33,
+        "reach": 26,
         "saved": 1,
         "shares": 0,
         "total_interactions": 5
@@ -48,8 +65,8 @@
       "comments_count": 0,
       "caption_head": "재물·인연 흐름이 달라지는 띠, 내 띠도 있을까요? 🍀 2026년 10월 25일 일요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #",
       "metrics": {
-        "views": 23,
-        "reach": 17,
+        "views": 30,
+        "reach": 22,
         "saved": 0,
         "shares": 0,
         "total_interactions": 2
@@ -65,8 +82,8 @@
       "comments_count": 0,
       "caption_head": "오늘 내 띠의 흐름, 끝까지 확인해 보세요 🔮 2026년 10월 24일 토요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세",
       "metrics": {
-        "views": 25,
-        "reach": 20,
+        "views": 27,
+        "reach": 22,
         "saved": 0,
         "shares": 0,
         "total_interactions": 3
@@ -116,8 +133,8 @@
       "comments_count": 0,
       "caption_head": "재물·인연 흐름이 달라지는 띠, 내 띠도 있을까요? 🍀 2026년 10월 21일 수요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #",
       "metrics": {
-        "views": 42,
-        "reach": 35,
+        "views": 43,
+        "reach": 36,
         "saved": 1,
         "shares": 0,
         "total_interactions": 3
@@ -495,23 +512,6 @@
         "saved": 0,
         "shares": 2,
         "total_interactions": 7
-      }
-    },
-    {
-      "id": "18113652046760083",
-      "media_type": "VIDEO",
-      "media_product_type": "REELS",
-      "timestamp": "2026-08-18T18:28:45+0000",
-      "permalink": "https://www.instagram.com/reel/DcMQdF6Tsvo/",
-      "like_count": 0,
-      "comments_count": 0,
-      "caption_head": "#사주",
-      "metrics": {
-        "views": 124,
-        "reach": 117,
-        "saved": 0,
-        "shares": 0,
-        "total_interactions": 0
       }
     }
   ]
