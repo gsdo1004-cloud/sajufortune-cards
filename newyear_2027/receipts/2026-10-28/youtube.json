@@ -1,5 +1,5 @@
 {
-  "status": "PUBLISHING",
+  "status": "PUBLISHED",
   "publish_key": "ny2027-012-snake:youtube:운명과학TV",
   "content_id": "ny2027-012-snake",
   "platform": "youtube",
@@ -7,5 +7,9 @@
   "source_sha256": "bbff9a406d930e5bb1b6a8e486494c9b56f384481129e1a2cd20d8eebcebaf74",
   "output_sha256": "b7104e1f1a8ba29e4837b4d35fec8006586e747d8173e004415f24ca019f993c",
   "owner_token": "77d9662dab454e538342ece54baf8d16",
-  "started_at": "2026-10-28T02:19:21+00:00"
+  "started_at": "2026-10-28T02:19:21+00:00",
+  "publish_at": "2026-10-28T15:30:00+09:00",
+  "private_canary": false,
+  "remote_id": "nlWLEI9t6QM",
+  "finished_at": "2026-10-28T02:19:39+00:00"
 }
