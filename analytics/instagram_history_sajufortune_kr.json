@@ -1,24 +1,12 @@
 {
   "account_key": "sajufortune.kr",
-  "updated_at": "2026-10-27T16:52:39+00:00",
+  "updated_at": "2026-10-28T17:13:27+00:00",
   "media": {
     "18109732001461481": {
       "timestamp": "2026-10-15T17:49:35+0000",
       "permalink": "https://www.instagram.com/reel/DehiDLpgASj/",
       "media_product_type": "REELS",
       "samples": [
-        {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 39,
-            "reach": 28,
-            "saved": 1,
-            "shares": 0,
-            "total_interactions": 4
-          },
-          "like_count": 3,
-          "comments_count": 0
-        },
         {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
@@ -198,6 +186,18 @@
           },
           "like_count": 3,
           "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
+          "metrics": {
+            "views": 43,
+            "reach": 32,
+            "saved": 1,
+            "shares": 0,
+            "total_interactions": 4
+          },
+          "like_count": 3,
+          "comments_count": 0
         }
       ]
     },
@@ -206,18 +206,6 @@
       "permalink": "https://www.instagram.com/reel/DeaQHogjOj_/",
       "media_product_type": "REELS",
       "samples": [
-        {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 53,
-            "reach": 42,
-            "saved": 1,
-            "shares": 0,
-            "total_interactions": 4
-          },
-          "like_count": 3,
-          "comments_count": 0
-        },
         {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
@@ -388,6 +376,18 @@
         },
         {
           "collected_at": "2026-10-27T16:52:39+00:00",
+          "metrics": {
+            "views": 55,
+            "reach": 44,
+            "saved": 1,
+            "shares": 0,
+            "total_interactions": 4
+          },
+          "like_count": 3,
+          "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
           "metrics": {
             "views": 55,
             "reach": 44,
@@ -406,18 +406,6 @@
       "media_product_type": "REELS",
       "samples": [
         {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 577,
-            "reach": 401,
-            "saved": 0,
-            "shares": 0,
-            "total_interactions": 6
-          },
-          "like_count": 6,
-          "comments_count": 0
-        },
-        {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
             "views": 577,
@@ -587,6 +575,18 @@
         },
         {
           "collected_at": "2026-10-27T16:52:39+00:00",
+          "metrics": {
+            "views": 577,
+            "reach": 401,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 6
+          },
+          "like_count": 6,
+          "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
           "metrics": {
             "views": 577,
             "reach": 401,
@@ -605,18 +605,6 @@
       "media_product_type": "REELS",
       "samples": [
         {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 353,
-            "reach": 246,
-            "saved": 3,
-            "shares": 0,
-            "total_interactions": 16
-          },
-          "like_count": 12,
-          "comments_count": 1
-        },
-        {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
             "views": 353,
@@ -786,6 +774,18 @@
         },
         {
           "collected_at": "2026-10-27T16:52:39+00:00",
+          "metrics": {
+            "views": 353,
+            "reach": 246,
+            "saved": 3,
+            "shares": 0,
+            "total_interactions": 16
+          },
+          "like_count": 12,
+          "comments_count": 1
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
           "metrics": {
             "views": 353,
             "reach": 246,
@@ -804,18 +804,6 @@
       "media_product_type": "REELS",
       "samples": [
         {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 2100,
-            "reach": 1470,
-            "saved": 6,
-            "shares": 0,
-            "total_interactions": 41
-          },
-          "like_count": 34,
-          "comments_count": 0
-        },
-        {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
             "views": 2100,
@@ -985,6 +973,18 @@
         },
         {
           "collected_at": "2026-10-27T16:52:39+00:00",
+          "metrics": {
+            "views": 2100,
+            "reach": 1470,
+            "saved": 6,
+            "shares": 0,
+            "total_interactions": 41
+          },
+          "like_count": 34,
+          "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
           "metrics": {
             "views": 2100,
             "reach": 1470,
@@ -1003,18 +1003,6 @@
       "media_product_type": "REELS",
       "samples": [
         {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 3239,
-            "reach": 2357,
-            "saved": 6,
-            "shares": 0,
-            "total_interactions": 36
-          },
-          "like_count": 29,
-          "comments_count": 0
-        },
-        {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
             "views": 3239,
@@ -1184,6 +1172,18 @@
         },
         {
           "collected_at": "2026-10-27T16:52:39+00:00",
+          "metrics": {
+            "views": 3239,
+            "reach": 2357,
+            "saved": 6,
+            "shares": 0,
+            "total_interactions": 36
+          },
+          "like_count": 29,
+          "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
           "metrics": {
             "views": 3239,
             "reach": 2357,
@@ -1202,18 +1202,6 @@
       "media_product_type": "REELS",
       "samples": [
         {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 347,
-            "reach": 281,
-            "saved": 0,
-            "shares": 0,
-            "total_interactions": 9
-          },
-          "like_count": 9,
-          "comments_count": 0
-        },
-        {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
             "views": 347,
@@ -1383,6 +1371,18 @@
         },
         {
           "collected_at": "2026-10-27T16:52:39+00:00",
+          "metrics": {
+            "views": 347,
+            "reach": 281,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 9
+          },
+          "like_count": 9,
+          "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
           "metrics": {
             "views": 347,
             "reach": 281,
@@ -1401,18 +1401,6 @@
       "media_product_type": "REELS",
       "samples": [
         {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 220,
-            "reach": 184,
-            "saved": 0,
-            "shares": 0,
-            "total_interactions": 3
-          },
-          "like_count": 3,
-          "comments_count": 0
-        },
-        {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
             "views": 220,
@@ -1582,6 +1570,18 @@
         },
         {
           "collected_at": "2026-10-27T16:52:39+00:00",
+          "metrics": {
+            "views": 220,
+            "reach": 184,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 3
+          },
+          "like_count": 3,
+          "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
           "metrics": {
             "views": 220,
             "reach": 184,
@@ -1600,18 +1600,6 @@
       "media_product_type": "REELS",
       "samples": [
         {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 1163,
-            "reach": 1067,
-            "saved": 0,
-            "shares": 0,
-            "total_interactions": 9
-          },
-          "like_count": 9,
-          "comments_count": 0
-        },
-        {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
             "views": 1163,
@@ -1781,6 +1769,18 @@
         },
         {
           "collected_at": "2026-10-27T16:52:39+00:00",
+          "metrics": {
+            "views": 1163,
+            "reach": 1067,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 9
+          },
+          "like_count": 9,
+          "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
           "metrics": {
             "views": 1163,
             "reach": 1067,
@@ -1799,18 +1799,6 @@
       "media_product_type": "REELS",
       "samples": [
         {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 240,
-            "reach": 173,
-            "saved": 1,
-            "shares": 0,
-            "total_interactions": 6
-          },
-          "like_count": 5,
-          "comments_count": 0
-        },
-        {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
             "views": 240,
@@ -1980,6 +1968,18 @@
         },
         {
           "collected_at": "2026-10-27T16:52:39+00:00",
+          "metrics": {
+            "views": 240,
+            "reach": 173,
+            "saved": 1,
+            "shares": 0,
+            "total_interactions": 6
+          },
+          "like_count": 5,
+          "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
           "metrics": {
             "views": 240,
             "reach": 173,
@@ -1998,18 +1998,6 @@
       "media_product_type": "REELS",
       "samples": [
         {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 2606,
-            "reach": 1948,
-            "saved": 1,
-            "shares": 2,
-            "total_interactions": 31
-          },
-          "like_count": 24,
-          "comments_count": 4
-        },
-        {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
             "views": 2606,
@@ -2179,6 +2167,18 @@
         },
         {
           "collected_at": "2026-10-27T16:52:39+00:00",
+          "metrics": {
+            "views": 2606,
+            "reach": 1948,
+            "saved": 1,
+            "shares": 2,
+            "total_interactions": 31
+          },
+          "like_count": 24,
+          "comments_count": 4
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
           "metrics": {
             "views": 2606,
             "reach": 1948,
@@ -2197,18 +2197,6 @@
       "media_product_type": "REELS",
       "samples": [
         {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 511,
-            "reach": 438,
-            "saved": 2,
-            "shares": 0,
-            "total_interactions": 10
-          },
-          "like_count": 8,
-          "comments_count": 0
-        },
-        {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
             "views": 511,
@@ -2378,6 +2366,18 @@
         },
         {
           "collected_at": "2026-10-27T16:52:39+00:00",
+          "metrics": {
+            "views": 511,
+            "reach": 438,
+            "saved": 2,
+            "shares": 0,
+            "total_interactions": 10
+          },
+          "like_count": 8,
+          "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
           "metrics": {
             "views": 511,
             "reach": 438,
@@ -2396,18 +2396,6 @@
       "media_product_type": "REELS",
       "samples": [
         {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 179,
-            "reach": 148,
-            "saved": 0,
-            "shares": 0,
-            "total_interactions": 4
-          },
-          "like_count": 3,
-          "comments_count": 1
-        },
-        {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
             "views": 179,
@@ -2577,6 +2565,18 @@
         },
         {
           "collected_at": "2026-10-27T16:52:39+00:00",
+          "metrics": {
+            "views": 179,
+            "reach": 148,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 4
+          },
+          "like_count": 3,
+          "comments_count": 1
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
           "metrics": {
             "views": 179,
             "reach": 148,
@@ -2595,18 +2595,6 @@
       "media_product_type": "REELS",
       "samples": [
         {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 158,
-            "reach": 127,
-            "saved": 0,
-            "shares": 0,
-            "total_interactions": 3
-          },
-          "like_count": 3,
-          "comments_count": 0
-        },
-        {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
             "views": 158,
@@ -2776,6 +2764,18 @@
         },
         {
           "collected_at": "2026-10-27T16:52:39+00:00",
+          "metrics": {
+            "views": 158,
+            "reach": 127,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 3
+          },
+          "like_count": 3,
+          "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
           "metrics": {
             "views": 158,
             "reach": 127,
@@ -2794,18 +2794,6 @@
       "media_product_type": "REELS",
       "samples": [
         {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 4043,
-            "reach": 3027,
-            "saved": 1,
-            "shares": 1,
-            "total_interactions": 19
-          },
-          "like_count": 17,
-          "comments_count": 0
-        },
-        {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
             "views": 4043,
@@ -2975,6 +2963,18 @@
         },
         {
           "collected_at": "2026-10-27T16:52:39+00:00",
+          "metrics": {
+            "views": 4043,
+            "reach": 3027,
+            "saved": 1,
+            "shares": 1,
+            "total_interactions": 19
+          },
+          "like_count": 17,
+          "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
           "metrics": {
             "views": 4043,
             "reach": 3027,
@@ -2993,18 +2993,6 @@
       "media_product_type": "REELS",
       "samples": [
         {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 1517,
-            "reach": 1314,
-            "saved": 3,
-            "shares": 0,
-            "total_interactions": 14
-          },
-          "like_count": 11,
-          "comments_count": 0
-        },
-        {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
             "views": 1517,
@@ -3174,6 +3162,18 @@
         },
         {
           "collected_at": "2026-10-27T16:52:39+00:00",
+          "metrics": {
+            "views": 1517,
+            "reach": 1314,
+            "saved": 3,
+            "shares": 0,
+            "total_interactions": 14
+          },
+          "like_count": 11,
+          "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
           "metrics": {
             "views": 1517,
             "reach": 1314,
@@ -3192,18 +3192,6 @@
       "media_product_type": "REELS",
       "samples": [
         {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 782,
-            "reach": 668,
-            "saved": 0,
-            "shares": 0,
-            "total_interactions": 11
-          },
-          "like_count": 11,
-          "comments_count": 0
-        },
-        {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
             "views": 782,
@@ -3373,6 +3361,18 @@
         },
         {
           "collected_at": "2026-10-27T16:52:39+00:00",
+          "metrics": {
+            "views": 782,
+            "reach": 668,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 11
+          },
+          "like_count": 11,
+          "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
           "metrics": {
             "views": 782,
             "reach": 668,
@@ -3391,18 +3391,6 @@
       "media_product_type": "REELS",
       "samples": [
         {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 162,
-            "reach": 144,
-            "saved": 0,
-            "shares": 0,
-            "total_interactions": 2
-          },
-          "like_count": 2,
-          "comments_count": 0
-        },
-        {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
             "views": 162,
@@ -3572,6 +3560,18 @@
         },
         {
           "collected_at": "2026-10-27T16:52:39+00:00",
+          "metrics": {
+            "views": 162,
+            "reach": 144,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 2
+          },
+          "like_count": 2,
+          "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
           "metrics": {
             "views": 162,
             "reach": 144,
@@ -5107,18 +5107,6 @@
       "media_product_type": "REELS",
       "samples": [
         {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 36,
-            "reach": 23,
-            "saved": 0,
-            "shares": 0,
-            "total_interactions": 4
-          },
-          "like_count": 4,
-          "comments_count": 0
-        },
-        {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
             "views": 36,
@@ -5288,6 +5276,18 @@
         },
         {
           "collected_at": "2026-10-27T16:52:39+00:00",
+          "metrics": {
+            "views": 42,
+            "reach": 27,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 4
+          },
+          "like_count": 4,
+          "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
           "metrics": {
             "views": 42,
             "reach": 27,
@@ -5306,18 +5306,6 @@
       "media_product_type": "REELS",
       "samples": [
         {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 28,
-            "reach": 21,
-            "saved": 0,
-            "shares": 0,
-            "total_interactions": 2
-          },
-          "like_count": 2,
-          "comments_count": 0
-        },
-        {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
             "views": 28,
@@ -5487,6 +5475,18 @@
         },
         {
           "collected_at": "2026-10-27T16:52:39+00:00",
+          "metrics": {
+            "views": 38,
+            "reach": 27,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 2
+          },
+          "like_count": 2,
+          "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
           "metrics": {
             "views": 38,
             "reach": 27,
@@ -5505,18 +5505,6 @@
       "media_product_type": "REELS",
       "samples": [
         {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 11,
-            "reach": 10,
-            "saved": 0,
-            "shares": 0,
-            "total_interactions": 2
-          },
-          "like_count": 2,
-          "comments_count": 0
-        },
-        {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
             "views": 11,
@@ -5695,6 +5683,18 @@
           },
           "like_count": 2,
           "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
+          "metrics": {
+            "views": 19,
+            "reach": 17,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 2
+          },
+          "like_count": 2,
+          "comments_count": 0
         }
       ]
     },
@@ -5703,18 +5703,6 @@
       "permalink": "https://www.instagram.com/reel/DeuLXj9E3fL/",
       "media_product_type": "REELS",
       "samples": [
-        {
-          "collected_at": "2026-10-20T15:42:14+00:00",
-          "metrics": {
-            "views": 0,
-            "reach": 0,
-            "saved": 0,
-            "shares": 0,
-            "total_interactions": 0
-          },
-          "like_count": 0,
-          "comments_count": 0
-        },
         {
           "collected_at": "2026-10-20T15:51:12+00:00",
           "metrics": {
@@ -5885,6 +5873,18 @@
         },
         {
           "collected_at": "2026-10-27T16:52:39+00:00",
+          "metrics": {
+            "views": 43,
+            "reach": 36,
+            "saved": 1,
+            "shares": 0,
+            "total_interactions": 3
+          },
+          "like_count": 2,
+          "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
           "metrics": {
             "views": 43,
             "reach": 36,
@@ -6069,6 +6069,18 @@
           },
           "like_count": 2,
           "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
+          "metrics": {
+            "views": 23,
+            "reach": 20,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 2
+          },
+          "like_count": 2,
+          "comments_count": 0
         }
       ]
     },
@@ -6220,6 +6232,18 @@
           },
           "like_count": 4,
           "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
+          "metrics": {
+            "views": 33,
+            "reach": 24,
+            "saved": 1,
+            "shares": 0,
+            "total_interactions": 5
+          },
+          "like_count": 4,
+          "comments_count": 0
         }
       ]
     },
@@ -6347,6 +6371,18 @@
           },
           "like_count": 3,
           "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
+          "metrics": {
+            "views": 29,
+            "reach": 24,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 3
+          },
+          "like_count": 3,
+          "comments_count": 0
         }
       ]
     },
@@ -6450,6 +6486,18 @@
           },
           "like_count": 2,
           "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
+          "metrics": {
+            "views": 30,
+            "reach": 22,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 2
+          },
+          "like_count": 2,
+          "comments_count": 0
         }
       ]
     },
@@ -6529,6 +6577,18 @@
           },
           "like_count": 4,
           "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
+          "metrics": {
+            "views": 37,
+            "reach": 29,
+            "saved": 1,
+            "shares": 0,
+            "total_interactions": 5
+          },
+          "like_count": 4,
+          "comments_count": 0
         }
       ]
     },
@@ -6584,6 +6644,18 @@
           },
           "like_count": 1,
           "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
+          "metrics": {
+            "views": 41,
+            "reach": 37,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 1
+          },
+          "like_count": 1,
+          "comments_count": 0
         }
       ]
     },
@@ -6608,6 +6680,37 @@
           "collected_at": "2026-10-27T16:52:39+00:00",
           "metrics": {
             "views": 2,
+            "reach": 0,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 0
+          },
+          "like_count": 0,
+          "comments_count": 0
+        },
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
+          "metrics": {
+            "views": 27,
+            "reach": 20,
+            "saved": 0,
+            "shares": 0,
+            "total_interactions": 2
+          },
+          "like_count": 2,
+          "comments_count": 0
+        }
+      ]
+    },
+    "17896895805681930": {
+      "timestamp": "2026-10-28T17:12:56+0000",
+      "permalink": "https://www.instagram.com/reel/DfC8LQkiYAx/",
+      "media_product_type": "REELS",
+      "samples": [
+        {
+          "collected_at": "2026-10-28T17:13:27+00:00",
+          "metrics": {
+            "views": 0,
             "reach": 0,
             "saved": 0,
             "shares": 0,
