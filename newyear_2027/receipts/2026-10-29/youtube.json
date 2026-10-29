@@ -1,5 +1,5 @@
 {
-  "status": "PUBLISHING",
+  "status": "PUBLISHED",
   "publish_key": "ny2027-013-horse:youtube:운명과학TV",
   "content_id": "ny2027-013-horse",
   "platform": "youtube",
@@ -7,5 +7,9 @@
   "source_sha256": "96e58d3f065a3069daa01b48c18b46572d4d7cce68d1c1a163296102d182ac86",
   "output_sha256": "2790f9c8637f9762b0032e5696b40659d8e7688c901201bad254128354a44f88",
   "owner_token": "dfb33838275847399fb1dbc54d72f225",
-  "started_at": "2026-10-29T02:19:44+00:00"
+  "started_at": "2026-10-29T02:19:44+00:00",
+  "publish_at": "2026-10-29T15:30:00+09:00",
+  "private_canary": false,
+  "remote_id": "dZwCOWlQ02k",
+  "finished_at": "2026-10-29T02:20:03+00:00"
 }
