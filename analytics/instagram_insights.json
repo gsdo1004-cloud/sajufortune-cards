@@ -1,9 +1,26 @@
 {
-  "collected_at": "2026-10-30T13:38:44+00:00",
+  "collected_at": "2026-10-30T17:03:41+00:00",
   "account_key": "gsdo10042026",
   "expected_username": "gsdo10042026",
   "count": 30,
   "media": [
+    {
+      "id": "18109247951261414",
+      "media_type": "VIDEO",
+      "media_product_type": "REELS",
+      "timestamp": "2026-10-30T17:02:16+0000",
+      "permalink": "https://www.instagram.com/reel/DfIEi5zFCO0/",
+      "like_count": 0,
+      "comments_count": 0,
+      "caption_head": "오늘 내 띠의 흐름, 끝까지 확인해 보세요 🔮 2026년 10월 31일 토요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세",
+      "metrics": {
+        "views": 0,
+        "reach": 0,
+        "saved": 0,
+        "shares": 0,
+        "total_interactions": 0
+      }
+    },
     {
       "id": "18233512228322552",
       "media_type": "VIDEO",
@@ -14,8 +31,8 @@
       "comments_count": 0,
       "caption_head": "2026년 10월 30일 금요일 오늘 눈여겨볼 띠 한 가지 🔮 짧은 영상은 공통 신호만 보여드립니다. 내 사주 기준 흐름은 프로필 첫 링크의 무료 오늘운세에서 확인하세요.  #사주 #띠별운세 #오늘의운세 #릴스 #운",
       "metrics": {
-        "views": 0,
-        "reach": 0,
+        "views": 6,
+        "reach": 6,
         "saved": 0,
         "shares": 0,
         "total_interactions": 0
@@ -31,8 +48,8 @@
       "comments_count": 0,
       "caption_head": "재물·인연 흐름이 달라지는 띠, 내 띠도 있을까요? 🍀 2026년 10월 30일 금요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #",
       "metrics": {
-        "views": 26,
-        "reach": 23,
+        "views": 29,
+        "reach": 25,
         "saved": 1,
         "shares": 0,
         "total_interactions": 5
@@ -492,23 +509,6 @@
       "metrics": {
         "views": 23,
         "reach": 14,
-        "saved": 0,
-        "shares": 0,
-        "total_interactions": 1
-      }
-    },
-    {
-      "id": "18104694188368315",
-      "media_type": "VIDEO",
-      "media_product_type": "REELS",
-      "timestamp": "2026-10-09T13:25:48+0000",
-      "permalink": "https://www.instagram.com/reel/DeRnHUtDoRw/",
-      "like_count": 1,
-      "comments_count": 0,
-      "caption_head": "2026년 10월 9일 금요일 오늘 눈여겨볼 띠 한 가지 🔮 짧은 영상은 공통 신호만 보여드립니다. 내 사주 기준 흐름은 프로필 첫 링크의 무료 오늘운세에서 확인하세요.  #사주 #띠별운세 #오늘의운세 #릴스 #운세",
-      "metrics": {
-        "views": 217,
-        "reach": 197,
         "saved": 0,
         "shares": 0,
         "total_interactions": 1
