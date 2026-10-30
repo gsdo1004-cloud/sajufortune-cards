@@ -1,0 +1,11 @@
+{
+  "status": "PUBLISHING",
+  "publish_key": "ny2027-014-goat:youtube:운명과학TV",
+  "content_id": "ny2027-014-goat",
+  "platform": "youtube",
+  "account": "운명과학TV",
+  "source_sha256": "69ad78bc3d5758f230f248d5a87b33d976720e6ed9da63401b5ba4de6f2d71e3",
+  "output_sha256": "3f86e0cdef8e91abd686b502e8f8f62ecdbe3f6f986b58ab479f284813fbcdfb",
+  "owner_token": "ff873faa50034603b836576722165c0c",
+  "started_at": "2026-10-30T02:20:01+00:00"
+}
