@@ -1,0 +1,11 @@
+{
+  "status": "PUBLISHING",
+  "publish_key": "ny2027-016-rooster:youtube:운명과학TV",
+  "content_id": "ny2027-016-rooster",
+  "platform": "youtube",
+  "account": "운명과학TV",
+  "source_sha256": "1cb480832f060d8b98dc8e91c94a5e87a24032dc7c0d5756e728202619fecfe6",
+  "output_sha256": "330f91c651d0ba836be8e47eae5d57878572901c9359d983b84d83b088d58ada",
+  "owner_token": "569cc4191fc64f8aaaa891cffcd31ebf",
+  "started_at": "2026-11-01T02:26:29+00:00"
+}
