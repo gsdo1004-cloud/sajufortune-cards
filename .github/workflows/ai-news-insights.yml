@@ -44,18 +44,31 @@ jobs:
           fi
 
       - name: 결과 커밋
-        if: always()
+        # Never persist partial/corrupt results when the collector failed.
+        # Dry runs must not modify the repository.
+        if: ${{ success() && github.event.inputs.dry_run != 'true' }}
+        shell: bash
         run: |
-          git config user.name  "github-actions[bot]"
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # The collector may update additional learning files. Preserve all
-          # worktree changes while syncing concurrent publisher commits first.
-          git pull --rebase --autostash origin main
-          git add threads_insights.json threads_account.json reply_targets_auto.txt 2>/dev/null || true
-          # "변경 없음"을 문자열로 판정하지 않는다 — exit code 로만 본다.
+          # Stage only collector-owned output; never commit unrelated runner files.
+          for f in threads_insights.json threads_account.json reply_targets_auto.txt; do
+            if [ -e "$f" ] || git ls-files --error-unmatch "$f" >/dev/null 2>&1; then
+              git add -A -- "$f"
+            fi
+          done
           if git diff --cached --quiet; then
-            echo "변경 없음 — 커밋 생략"
-          else
-            git commit -m "chore: 쓰레드 성과 수집 $(date -u +%Y-%m-%d)"
-            bash scripts/safe_git_push.sh main
+            echo "[SKIP] 성과 수집 결과 변경 없음"
+            exit 0
           fi
+          git commit -m "chore: 쓰레드 성과 수집 $(date -u +%Y-%m-%d)"
+          # The collector can leave unrelated working-tree modifications.
+          # Rebase on a dirty tree caused the Nov 3 failure. Keep these out of
+          # the publication commit and stash them before the safe push/rebase.
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::warning::Unexpected runner changes detected (filenames only); excluding from metrics commit."
+            git status --short
+            git stash push --include-untracked -m "insights-runner-uncommitted" --quiet
+          fi
+          bash scripts/safe_git_push.sh main
