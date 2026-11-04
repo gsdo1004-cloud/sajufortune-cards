@@ -1,5 +1,5 @@
 {
-  "collected_at": "2026-11-03T18:40:19+00:00",
+  "collected_at": "2026-11-04T18:39:52+00:00",
   "account_key": "sajufortune.kr",
   "expected_username": "sajufortune.kr",
   "count": 30,
@@ -10,15 +10,15 @@
       "media_product_type": "REELS",
       "timestamp": "2026-11-03T18:30:18+0000",
       "permalink": "https://www.instagram.com/reel/DfShxEOkl4t/",
-      "like_count": 0,
+      "like_count": 3,
       "comments_count": 0,
       "caption_head": "재물·인연 흐름이 달라지는 띠, 내 띠도 있을까요? 🍀 2026년 11월 4일 수요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오",
       "metrics": {
-        "views": 1,
-        "reach": 0,
+        "views": 24,
+        "reach": 17,
         "saved": 0,
         "shares": 0,
-        "total_interactions": 0
+        "total_interactions": 3
       }
     },
     {
@@ -27,15 +27,15 @@
       "media_product_type": "REELS",
       "timestamp": "2026-11-02T20:50:41+0000",
       "permalink": "https://www.instagram.com/reel/DfQNB9hDgJv/",
-      "like_count": 1,
+      "like_count": 2,
       "comments_count": 0,
       "caption_head": "오늘 내 띠의 흐름, 끝까지 확인해 보세요 🔮 2026년 11월 3일 화요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세 ",
       "metrics": {
-        "views": 24,
-        "reach": 21,
+        "views": 32,
+        "reach": 28,
         "saved": 0,
         "shares": 0,
-        "total_interactions": 1
+        "total_interactions": 2
       }
     },
     {
@@ -48,8 +48,8 @@
       "comments_count": 0,
       "caption_head": "재물·인연 흐름이 달라지는 띠, 내 띠도 있을까요? 🍀 2026년 11월 2일 월요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오",
       "metrics": {
-        "views": 26,
-        "reach": 18,
+        "views": 27,
+        "reach": 19,
         "saved": 0,
         "shares": 0,
         "total_interactions": 2
@@ -116,8 +116,8 @@
       "comments_count": 0,
       "caption_head": "재물·인연 흐름이 달라지는 띠, 내 띠도 있을까요? 🍀 2026년 10월 29일 목요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #",
       "metrics": {
-        "views": 41,
-        "reach": 32,
+        "views": 43,
+        "reach": 34,
         "saved": 0,
         "shares": 0,
         "total_interactions": 3
@@ -354,8 +354,8 @@
       "comments_count": 0,
       "caption_head": "#오늘의운세 #띠별운세 #사주",
       "metrics": {
-        "views": 577,
-        "reach": 401,
+        "views": 578,
+        "reach": 402,
         "saved": 0,
         "shares": 0,
         "total_interactions": 6
