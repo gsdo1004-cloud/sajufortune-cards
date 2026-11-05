@@ -24,6 +24,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import zodiac_seo as zs
 import threads_conversion as conv
+from media_preflight import check_public_media
 from ganzhi_zodiac import day_context, ELEM_KO
 
 # ── 오행(일진 지지) 테마 — 2026-07-11 간지 틴트 (레이아웃·핑크 액센트는 고정) ──
@@ -236,12 +237,27 @@ def publish_carousel(image_urls, caption, date_iso):
 
     children = []
     for u in image_urls:
-        j = _post(f"{base}/threads", {
-            "media_type": "IMAGE", "image_url": u,
-            "is_carousel_item": "true", "access_token": tok})
-        cid = j.get("id")
-        if not cid:
-            raise SystemExit(f"[FAIL] item container: {j}")
+        for attempt in range(3):
+            j = _post(f"{base}/threads", {
+                "media_type": "IMAGE", "image_url": u,
+                "is_carousel_item": "true", "access_token": tok})
+            cid = j.get("id")
+            if cid:
+                break
+            err = j.get("error") if isinstance(j, dict) else None
+            # Only retry the observed Meta media-download failure, never publish.
+            media_fetch_error = (
+                isinstance(err, dict)
+                and err.get("code") == 1
+                and err.get("error_subcode") == 2207052
+            )
+            if not media_fetch_error or attempt == 2:
+                raise SystemExit(f"[FAIL] item container: {j}")
+            ok, reason = check_public_media(u, "image")
+            if not ok:
+                raise SystemExit(f"[HOLD] media source not ready: {reason}")
+            print(f"[WARN] Meta image fetch failure; retry {attempt + 1}/2")
+            time.sleep(3 * (attempt + 1))
         children.append(cid)
         time.sleep(2)
 
@@ -292,6 +308,24 @@ def do_generate():
     print(f"[OK] generated {n} cards → {outdir}  ({date_full(date_iso)})")
 
 
+def _verified_image_urls(date_iso):
+    outdir = Path(__file__).resolve().parent / "cards" / date_iso
+    files = sorted(outdir.glob("card_*.png")) or sorted(outdir.glob("card_*.jpg"))
+    if not (2 <= len(files) <= 20):
+        raise SystemExit(f"[HOLD] invalid carousel asset count: {len(files)} (expected 2..20)")
+    urls = [f"{RAW_BASE}/cards/{date_iso}/{f.name}" for f in files]
+    for index, url in enumerate(urls, 1):
+        ok, reason = check_public_media(url, "image")
+        if not ok:
+            raise SystemExit(f"[HOLD] card {index}/{len(urls)} not ready: {reason}")
+    print(f"[OK] {len(urls)} public carousel images verified ({date_iso})")
+    return urls
+
+
+def do_check():
+    _verified_image_urls(zs.target_iso())
+
+
 def do_publish():
     date_iso = zs.target_iso()
     outdir = Path(__file__).resolve().parent / "cards" / date_iso
@@ -300,11 +334,8 @@ def do_publish():
     if marker.exists():
         print(f"[스킵] {date_iso} 캐러셀 이미 발행됨(멱등 가드)")
         return
-    # 2026-08-05 전환기: png(Topview 재고) 우선, 없으면 jpg(템플릿 생성분).
-    files = sorted(outdir.glob("card_*.png")) or sorted(outdir.glob("card_*.jpg"))
-    urls = [f"{RAW_BASE}/cards/{date_iso}/{f.name}" for f in files]
-    if not urls:
-        raise SystemExit("[FAIL] 발행할 카드 PNG가 없습니다 (generate 먼저 실행)")
+    # Validate remote assets before creating any Meta media containers.
+    urls = _verified_image_urls(date_iso)
     base_caption = (f"{date_full(date_iso)} 오늘의 띠별 운세 🔮\n"
                     f"내 띠는 오늘 어떤 흐름일까요?")
     caption = conv.apply(base_caption, "carousel", date_iso)
@@ -329,5 +360,7 @@ if __name__ == "__main__":
         do_generate()
     elif mode == "publish":
         do_publish()
+    elif mode == "check":
+        do_check()
     else:
         raise SystemExit("사용법: python zodiac_cardnews.py [generate|publish]")
