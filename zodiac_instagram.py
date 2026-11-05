@@ -22,6 +22,7 @@ import time
 from pathlib import Path
 
 import requests
+from media_preflight import check_public_media
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import instagram_dual_experiment as ide
@@ -173,24 +174,9 @@ def publish_carousel(image_urls: list[str], caption: str) -> str:
 
 
 def _remote_media_ready(url: str) -> tuple[bool, str]:
-    """Verify Meta can fetch the public media before creating a container.
-
-    GitHub raw returns application/octet-stream for mp4, so status/length are
-    more reliable here than an exact Content-Type check.
-    """
-    try:
-        r = requests.get(url, stream=True, timeout=20, allow_redirects=True)
-        try:
-            if r.status_code != 200:
-                return False, f"HTTP {r.status_code}"
-            length = int(r.headers.get("content-length") or 0)
-            if length and length < 1024:
-                return False, f"too small ({length} bytes)"
-            return True, f"HTTP 200 length={length or 'unknown'}"
-        finally:
-            r.close()
-    except Exception as e:
-        return False, f"{type(e).__name__}: {str(e)[:120]}"
+    # HTTP 200 alone is insufficient. Verify MP4 signature and codec when
+    # ffprobe is available. GitHub raw legitimately uses octet-stream.
+    return check_public_media(url, "video")
 
 
 def publish_reel(video_url: str, caption: str) -> str:
@@ -198,33 +184,47 @@ def publish_reel(video_url: str, caption: str) -> str:
     if not ready:
         raise FileNotFoundError(f"IG reel source not ready: {video_url} ({why})")
     uid, tok = _env()
-    j = _post(f"{IG}/{uid}/media", {
-        "media_type": "REELS", "video_url": video_url,
-        "caption": caption, "access_token": tok,
-    })
-    cid = j.get("id")
-    if not cid:
-        raise RuntimeError(f"IG reel container failed: {j}")
-    finished = False
-    for _ in range(40):
-        time.sleep(6)
-        st = requests.get(
-            f"{IG}/{cid}", params={"fields": "status_code", "access_token": tok}, timeout=30
-        ).json()
-        sc = st.get("status_code")
-        if sc == "FINISHED":
-            finished = True
-            break
-        if sc == "ERROR":
-            raise RuntimeError(f"IG reel processing failed: {st}")
-    if not finished:
-        raise RuntimeError("IG reel processing timed out before FINISHED")
-    j = _post(f"{IG}/{uid}/media_publish", {"creation_id": cid, "access_token": tok})
-    pid = j.get("id")
-    if not pid:
-        raise RuntimeError(f"IG reel publish failed: {j}")
-    print(f"[OK] IG reel published: {pid}")
-    return str(pid)
+    # A terminal video-processing ERROR cannot have reached media_publish.
+    # Retry container processing just once for a verified source; never
+    # auto-retry an ambiguous media_publish response (duplicate post risk).
+    for attempt in range(2):
+        j = _post(f"{IG}/{uid}/media", {
+            "media_type": "REELS", "video_url": video_url,
+            "caption": caption, "access_token": tok,
+        })
+        cid = j.get("id")
+        if not cid:
+            raise RuntimeError(f"IG reel container failed: {j}")
+        finished = False
+        processing_error = None
+        for _ in range(40):
+            time.sleep(6)
+            st = requests.get(
+                f"{IG}/{cid}", params={"fields": "status_code", "access_token": tok}, timeout=30
+            ).json()
+            sc = st.get("status_code")
+            if sc == "FINISHED":
+                finished = True
+                break
+            if sc == "ERROR":
+                processing_error = st
+                break
+        if processing_error is not None:
+            if attempt == 0:
+                print("[WARN] IG media processing ERROR; retrying container creation once")
+                time.sleep(10)
+                continue
+            raise RuntimeError(f"IG reel processing failed after retry: {processing_error}")
+        if not finished:
+            raise RuntimeError("IG reel processing timed out before FINISHED")
+        # Publish is exactly once; if the response is uncertain, fail closed.
+        j = _post(f"{IG}/{uid}/media_publish", {"creation_id": cid, "access_token": tok})
+        pid = j.get("id")
+        if not pid:
+            raise RuntimeError(f"IG reel publish failed: {j}")
+        print(f"[OK] IG reel published: {pid}")
+        return str(pid)
+    raise RuntimeError("IG reel processing retries exhausted")
 
 
 def _skip_if_done(date_iso: str, kind: str) -> bool:

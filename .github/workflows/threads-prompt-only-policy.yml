@@ -6,10 +6,18 @@ on:
     paths:
       - '.github/workflows/**'
       - 'test_threads_prompt_only_policy.py'
+      - 'test_media_publish_guards.py'
+      - 'media_preflight.py'
+      - 'zodiac_cardnews.py'
+      - 'zodiac_instagram.py'
   pull_request:
     paths:
       - '.github/workflows/**'
       - 'test_threads_prompt_only_policy.py'
+      - 'test_media_publish_guards.py'
+      - 'media_preflight.py'
+      - 'zodiac_cardnews.py'
+      - 'zodiac_instagram.py'
   workflow_dispatch:
 
 permissions:
@@ -24,5 +32,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Threads 유도글 전용 정책 테스트
-        run: python -m unittest -v test_threads_prompt_only_policy.py
+      - name: Install test dependencies
+        run: python -m pip install --disable-pip-version-check -q requests
+      - name: Threads 유도글 정책·미디어 게시 안전 테스트
+        run: python -m unittest -v test_threads_prompt_only_policy.py test_media_publish_guards.py
