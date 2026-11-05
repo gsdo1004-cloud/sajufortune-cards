@@ -29,6 +29,14 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Tests need only root Python modules and workflow policy YAML;
+          # avoid checking out multi-GB media assets on every PR.
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/*/
+            /.github/workflows/
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
