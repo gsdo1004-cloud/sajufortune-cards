@@ -11264,6 +11264,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-11-06T14:09:41Z",
+     "age_h": 88.5,
+     "views": 119,
+     "likes": 3,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-11-02T21:42:32+0000",
@@ -11292,6 +11302,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-11-06T14:09:41Z",
+     "age_h": 116.2,
+     "views": 193,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-11-01T17:56:11+0000",
@@ -11314,6 +11334,16 @@
     {
      "t": "2026-11-05T14:32:23Z",
      "age_h": 117.3,
+     "views": 117,
+     "likes": 4,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-11-06T14:09:41Z",
+     "age_h": 140.9,
      "views": 117,
      "likes": 4,
      "replies": 1,
@@ -11348,6 +11378,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-11-06T14:09:41Z",
+     "age_h": 164.2,
+     "views": 190,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-10-30T18:00:15+0000",
@@ -11370,6 +11410,16 @@
     {
      "t": "2026-11-05T14:32:23Z",
      "age_h": 164.1,
+     "views": 233,
+     "likes": 7,
+     "replies": 2,
+     "reposts": 1,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-11-06T14:09:41Z",
+     "age_h": 187.7,
      "views": 233,
      "likes": 7,
      "replies": 2,
@@ -11404,6 +11454,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-11-06T14:09:41Z",
+     "age_h": 236.1,
+     "views": 424,
+     "likes": 14,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-10-27T18:01:52+0000",
@@ -11432,6 +11492,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-11-06T14:09:41Z",
+     "age_h": 259.5,
+     "views": 233,
+     "likes": 4,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-10-26T18:41:20+0000",
@@ -11454,6 +11524,16 @@
     {
      "t": "2026-11-05T14:32:23Z",
      "age_h": 243.8,
+     "views": 252,
+     "likes": 6,
+     "replies": 2,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-11-06T14:09:41Z",
+     "age_h": 267.5,
      "views": 252,
      "likes": 6,
      "replies": 2,
@@ -11672,6 +11752,24 @@
    "channel": "ghost",
    "head": "오늘 뭐부터 할지 정했나.\n10월 4일 일진 신해일로 보면 호랑이띠, 토끼띠, 양띠한테 유리한 흐름이다.\n방금 내용은 띠의 공",
    "snapshots": []
+  },
+  "18141372919730228": {
+   "channel": "carousel",
+   "head": "",
+   "snapshots": [
+    {
+     "t": "2026-11-06T14:09:41Z",
+     "age_h": 18.2,
+     "views": 234,
+     "likes": 4,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-11-05T19:56:38+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DfX1VURIMuk"
   }
  }
 }
