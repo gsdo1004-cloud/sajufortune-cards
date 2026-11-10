@@ -11304,6 +11304,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-11-10T14:48:28Z",
+     "age_h": 185.1,
+     "views": 124,
+     "likes": 4,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-11-02T21:42:32+0000",
@@ -11366,6 +11376,16 @@
     {
      "t": "2026-11-09T16:06:27Z",
      "age_h": 190.2,
+     "views": 195,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-11-10T14:48:28Z",
+     "age_h": 212.9,
      "views": 195,
      "likes": 1,
      "replies": 0,
@@ -11440,6 +11460,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-11-10T14:48:28Z",
+     "age_h": 237.6,
+     "views": 118,
+     "likes": 4,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-10-31T17:15:23+0000",
@@ -11502,6 +11532,16 @@
     {
      "t": "2026-11-09T16:06:27Z",
      "age_h": 238.1,
+     "views": 191,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-11-10T14:48:28Z",
+     "age_h": 260.8,
      "views": 191,
      "likes": 2,
      "replies": 0,
@@ -11576,6 +11616,16 @@
      "reposts": 1,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-11-10T14:48:28Z",
+     "age_h": 284.3,
+     "views": 234,
+     "likes": 7,
+     "replies": 2,
+     "reposts": 1,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-10-29T18:27:46+0000",
@@ -11638,6 +11688,16 @@
     {
      "t": "2026-11-09T16:06:27Z",
      "age_h": 310.1,
+     "views": 425,
+     "likes": 14,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-11-10T14:48:28Z",
+     "age_h": 332.8,
      "views": 425,
      "likes": 14,
      "replies": 1,
@@ -11715,7 +11775,8 @@
     }
    ],
    "timestamp": "2026-10-26T18:41:20+0000",
-   "permalink": "https://www.threads.com/@gsdo10042026/post/De98wbeGX3b"
+   "permalink": "https://www.threads.com/@gsdo10042026/post/De98wbeGX3b",
+   "closed": true
   },
   "17943212004369684": {
    "channel": "carousel",
@@ -12027,6 +12088,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-11-10T14:48:28Z",
+     "age_h": 114.9,
+     "views": 262,
+     "likes": 6,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-11-05T19:56:38+0000",
@@ -12065,6 +12136,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-11-10T14:48:28Z",
+     "age_h": 91.5,
+     "views": 152,
+     "likes": 8,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-11-06T19:20:30+0000",
@@ -12093,6 +12174,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-11-10T14:48:28Z",
+     "age_h": 69.1,
+     "views": 476,
+     "likes": 7,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-11-07T17:45:05+0000",
@@ -12111,10 +12202,38 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-11-10T14:48:28Z",
+     "age_h": 44.9,
+     "views": 289,
+     "likes": 5,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-11-08T17:56:16+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/DffV8SxFRBE"
+  },
+  "18140162812638884": {
+   "channel": "carousel",
+   "head": "",
+   "snapshots": [
+    {
+     "t": "2026-11-10T14:48:28Z",
+     "age_h": 16.5,
+     "views": 36,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-11-09T22:17:30+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DfiYofjkecZ"
   }
  }
 }
