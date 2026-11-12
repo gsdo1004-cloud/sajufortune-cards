@@ -48,6 +48,23 @@ class VisualRotationContract(unittest.TestCase):
         self.assertEqual(image.getpixel((8, 8)),
                          tuple(int(style['accent'][j:j+2], 16) for j in (1, 3, 5)))
 
+    def test_scheduled_template_has_six_cards_and_twelve_animals(self):
+        import zodiac_cardnews_tpl as templated
+        self.assertEqual(len(templated.CARD_GROUPS), 4)
+        groups=[sign for group in templated.CARD_GROUPS for sign in group]
+        self.assertEqual(groups, engine.ZODIAC12)
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory(prefix='zodiac_rot_smoke_') as temp_dir:
+            old = templated.BASE
+            try:
+                templated.BASE = Path(temp_dir)
+                imgs = templated.build('2026-11-15')
+                self.assertEqual(len(imgs),6)
+                self.assertTrue(all(path.stat().st_size > 20000 for path in imgs))
+            finally:
+                templated.BASE = old
+
     def test_reel_human_avatar_is_off_by_default(self):
         import avatar_pip
         import os
