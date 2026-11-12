@@ -38,6 +38,9 @@ FONT_DIR = BASE / "assets" / "fonts"
 
 W, H = 1080, 1920
 N_SETS = 12
+# The shared daily prompt engine groups 4 signs x 3 cards; this template
+# specifically needs 3 signs x 4 cards to match its 6-card reel narration.
+CARD_GROUPS = [zpe.ZODIAC12[i * 3:(i + 1) * 3] for i in range(4)]
 # 가독성 우선. 2026-07-25 "글자를 못 읽는다"는 시청자 피드백 이력이 있어
 # 패널은 거의 불투명하게, 본문색은 충분히 진하게 잡는다(연회색은 배경이 비치면 바로 죽는다).
 PANEL = (255, 255, 255, 243)
@@ -305,7 +308,7 @@ def build(date_iso: str, force_set: int | None = None) -> list[Path]:
 
     imgs = [("01_표지", card_cover(sn, date_iso, "01_표지", "오늘의 운세", "12띠 전체 흐름"))]
     for gi, (gname, group) in enumerate(zip(
-            ["02_띠별A", "03_띠별B", "04_띠별C", "05_띠별D"], zpe.GROUPS)):
+            ["02_띠별A", "03_띠별B", "04_띠별C", "05_띠별D"], CARD_GROUPS)):
         imgs.append((gname, card_group(sn, date_iso, gname,
                                        [(ko, rows[ko]) for ko in group])))
     imgs.append(("06_12띠요약", card_summary(sn, date_iso, rows)))
