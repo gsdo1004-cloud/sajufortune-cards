@@ -42,7 +42,11 @@ MOUTH_FILES = ["mouth_0_closed_nobg.png", "mouth_1_slight_nobg.png",
 
 
 def enabled() -> bool:
-    return os.environ.get("ZODIAC_AVATAR", "0").strip() == "1"
+    # When zodiac animals are the protagonists, human PNGTuber presenters
+    # are disabled even if a legacy GitHub workflow sets ZODIAC_AVATAR=1.
+    # A separate deliberate opt-in preserves backward compatibility.
+    return (os.environ.get("ZODIAC_AVATAR", "0").strip() == "1"
+            and os.environ.get("ZODIAC_ALLOW_HUMAN_PIP", "0").strip() == "1")
 
 
 def _is_female(voice: str | None = None) -> bool:

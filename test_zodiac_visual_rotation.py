@@ -39,6 +39,30 @@ class VisualRotationContract(unittest.TestCase):
         signs=[sign for item in pack["images"][1:5] for sign in item["signs"]]
         self.assertEqual(signs,engine.ZODIAC12)
 
+    def test_scheduled_template_uses_rotated_palette_without_paid_generation(self):
+        import zodiac_cardnews_tpl as templated
+        day = '2026-11-13'
+        style = zvr.style_for(day)
+        image = templated.bg(templated.set_no(day), '01_표지', day)
+        self.assertEqual(image.size, (1080, 1920))
+        self.assertEqual(image.getpixel((8, 8)),
+                         tuple(int(style['accent'][j:j+2], 16) for j in (1, 3, 5)))
+
+    def test_reel_human_avatar_is_off_by_default(self):
+        import avatar_pip
+        import os
+        old = (os.environ.get('ZODIAC_AVATAR'),os.environ.get('ZODIAC_ALLOW_HUMAN_PIP'))
+        try:
+            os.environ['ZODIAC_AVATAR'] = '1'
+            os.environ.pop('ZODIAC_ALLOW_HUMAN_PIP',None)
+            self.assertFalse(avatar_pip.enabled())
+            os.environ['ZODIAC_ALLOW_HUMAN_PIP'] = '1'
+            self.assertTrue(avatar_pip.enabled())
+        finally:
+            for name,value in zip(('ZODIAC_AVATAR','ZODIAC_ALLOW_HUMAN_PIP'),old):
+                if value is None:os.environ.pop(name,None)
+                else:os.environ[name]=value
+
     def test_html_and_signal_share_rotation(self):
         import zodiac_cardnews as html_card
         import zodiac_signal_card as signal_card
