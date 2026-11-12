@@ -26,10 +26,11 @@ import sys
 import datetime as dt
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 
 import zodiac_seo as zs
 import zodiac_prompt_engine as zpe
+import zodiac_visual_rotation as zvr
 
 BASE = Path(__file__).resolve().parent
 SETS_DIR = BASE / "assets" / "bg_sets"
@@ -103,18 +104,44 @@ def set_no(date_iso: str) -> int:
     return dt.date.fromisoformat(date_iso).toordinal() % N_SETS + 1
 
 
-def bg(set_n: int, name: str) -> Image.Image:
+def bg(set_n: int, name: str, date_iso: str | None = None) -> Image.Image:
     # 배경은 jpg 로 보관한다(png 는 세트 12개에 50MB — 러너가 매번 체크아웃한다).
     p = SETS_DIR / f"set{set_n:02d}" / f"{name}.jpg"
     if not p.exists():                      # 세트가 비면 1번으로 떨어진다(발행이 죽지 않게)
         p = SETS_DIR / "set01" / f"{name}.jpg"
     if not p.exists():
-        return Image.new("RGB", (W, H), (232, 240, 250))
-    im = Image.open(p).convert("RGB")
-    sc = max(W / im.width, H / im.height)
-    im = im.resize((int(im.width * sc), int(im.height * sc)), Image.LANCZOS)
-    ox, oy = (im.width - W) // 2, (im.height - H) // 2
-    return im.crop((ox, oy, ox + W, oy + H))
+        im = Image.new("RGB", (W, H), (232, 240, 250))
+    else:
+        im = Image.open(p).convert("RGB")
+        sc = max(W / im.width, H / im.height)
+        im = im.resize((int(im.width * sc), int(im.height * sc)), Image.LANCZOS)
+        ox, oy = (im.width - W) // 2, (im.height - H) // 2
+        im = im.crop((ox, oy, ox + W, oy + H))
+    # Keep the 12 already approved original animal-background sets and zero-cost
+    # renderer. Their photographic/illustrative content cannot be regenerated
+    # by color filters; this is a safe 8-family editorial color variation only.
+    if date_iso:
+        style = zvr.style_for(date_iso, channel="github_12zodiac_cards")
+        accent = tuple(int(style["accent"][j:j+2], 16) for j in (1, 3, 5))
+        tint = tuple(int(style["bg"][j:j+2], 16) for j in (1, 3, 5))
+        families = {
+            "golden_guardian": (1.07, 1.09, .10),
+            "cute_3d": (1.10, 1.02, .10),
+            "modern_life": (1.02, 1.04, .08),
+            "awakening": (1.18, 1.10, .13),
+            "nature_cinema": (1.04, 1.03, .03),
+            "cyber_future": (1.24, 1.09, .13),
+            "minhwa_ink": (.92, 1.04, .10),
+            "golden_symbols": (1.04, 1.08, .10),
+        }
+        saturation, contrast, opacity = families[style["id"]]
+        im = ImageEnhance.Color(im).enhance(saturation)
+        im = ImageEnhance.Contrast(im).enhance(contrast)
+        im = Image.blend(im, Image.new("RGB", im.size, tint), opacity)
+        frame = ImageDraw.Draw(im)
+        frame.rectangle((2, 2, W - 3, H - 3), outline=accent, width=10)
+        frame.rectangle((0, 0, W - 1, 16), fill=accent)
+    return im
 
 
 def wrap(dr, text: str, font, max_w: int) -> list[str]:
@@ -144,7 +171,7 @@ def date_full(date_iso: str) -> str:
 
 # ── 01 표지 / 06 요약 표지 ────────────────────────────────────
 def card_cover(set_n: int, date_iso: str, name: str, title: str, sub: str) -> Image.Image:
-    im = bg(set_n, name)
+    im = bg(set_n, name, date_iso)
     dr = ImageDraw.Draw(im, "RGBA")
     f_t = F("GowunBatang-Bold.ttf", 118)
     f_d = F("Pretendard-Black.ttf", 50)
@@ -192,7 +219,7 @@ assert TEXT_X - 18 > W * AVATAR_SAFE_X, (
 
 def card_group(set_n: int, date_iso: str, name: str,
                rows: list[tuple[str, dict]]) -> Image.Image:
-    im = bg(set_n, name)
+    im = bg(set_n, name, date_iso)
     dr = ImageDraw.Draw(im, "RGBA")
     f_h = F("Pretendard-Black.ttf", 46)
     f_ko = F("GowunBatang-Bold.ttf", 66)
@@ -231,7 +258,7 @@ def card_group(set_n: int, date_iso: str, name: str,
 
 # ── 06 12띠 요약 ─────────────────────────────────────────────
 def card_summary(set_n: int, date_iso: str, allrows: dict[str, dict]) -> Image.Image:
-    im = bg(set_n, "06_12띠요약")
+    im = bg(set_n, "06_12띠요약", date_iso)
     dr = ImageDraw.Draw(im, "RGBA")
     f_h = F("Pretendard-Black.ttf", 48)
     # 셀 높이가 260 인데 내용이 180 밖에 안 차 아래가 비었다 → 전부 키워 채운다(2026-08-05).
@@ -288,6 +315,14 @@ def build(date_iso: str, force_set: int | None = None) -> list[Path]:
         p = out / f"card_{i:02d}.jpg"
         im.convert("RGB").save(p, "JPEG", quality=88, optimize=True, progressive=True)
         paths.append(p)
+    import json
+    visual = zvr.style_for(date_iso, channel="github_12zodiac_cards")
+    (out / "visual_style.json").write_text(
+        json.dumps({"date": date_iso, "family_id": visual["id"],
+                    "family_name": visual["name"], "background_set": sn,
+                    "method": "existing_approved_background_plus_editorial_palette",
+                    "generative_calls": 0}, ensure_ascii=False, indent=2),
+        encoding="utf-8")
     return paths
 
 
