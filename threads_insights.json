@@ -11324,6 +11324,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-11-12T15:04:06Z",
+     "age_h": 233.4,
+     "views": 124,
+     "likes": 4,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-11-02T21:42:32+0000",
@@ -11406,6 +11416,16 @@
     {
      "t": "2026-11-11T14:03:15Z",
      "age_h": 236.1,
+     "views": 195,
+     "likes": 1,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-11-12T15:04:06Z",
+     "age_h": 261.1,
      "views": 195,
      "likes": 1,
      "replies": 0,
@@ -11500,6 +11520,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-11-12T15:04:06Z",
+     "age_h": 285.8,
+     "views": 118,
+     "likes": 4,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-10-31T17:15:23+0000",
@@ -11588,6 +11618,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-11-12T15:04:06Z",
+     "age_h": 309.1,
+     "views": 191,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-10-30T18:00:15+0000",
@@ -11670,6 +11710,16 @@
     {
      "t": "2026-11-11T14:03:15Z",
      "age_h": 307.6,
+     "views": 234,
+     "likes": 7,
+     "replies": 2,
+     "reposts": 1,
+     "quotes": 0,
+     "shares": 0
+    },
+    {
+     "t": "2026-11-12T15:04:06Z",
+     "age_h": 332.6,
      "views": 234,
      "likes": 7,
      "replies": 2,
@@ -12159,6 +12209,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-11-12T15:04:06Z",
+     "age_h": 163.1,
+     "views": 262,
+     "likes": 6,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-11-05T19:56:38+0000",
@@ -12217,6 +12277,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-11-12T15:04:06Z",
+     "age_h": 139.7,
+     "views": 153,
+     "likes": 8,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-11-06T19:20:30+0000",
@@ -12265,6 +12335,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-11-12T15:04:06Z",
+     "age_h": 117.3,
+     "views": 477,
+     "likes": 7,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-11-07T17:45:05+0000",
@@ -12303,6 +12383,16 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-11-12T15:04:06Z",
+     "age_h": 93.1,
+     "views": 291,
+     "likes": 5,
+     "replies": 1,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-11-08T17:56:16+0000",
@@ -12331,10 +12421,38 @@
      "reposts": 0,
      "quotes": 0,
      "shares": 0
+    },
+    {
+     "t": "2026-11-12T15:04:06Z",
+     "age_h": 64.8,
+     "views": 55,
+     "likes": 2,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
     }
    ],
    "timestamp": "2026-11-09T22:17:30+0000",
    "permalink": "https://www.threads.com/@gsdo10042026/post/DfiYofjkecZ"
+  },
+  "18121317656319265": {
+   "channel": "carousel",
+   "head": "",
+   "snapshots": [
+    {
+     "t": "2026-11-12T15:04:06Z",
+     "age_h": 19.5,
+     "views": 272,
+     "likes": 4,
+     "replies": 0,
+     "reposts": 0,
+     "quotes": 0,
+     "shares": 0
+    }
+   ],
+   "timestamp": "2026-11-11T19:34:13+0000",
+   "permalink": "https://www.threads.com/@gsdo10042026/post/DfnPiaNGamC"
   }
  }
 }
