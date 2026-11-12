@@ -17,6 +17,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 from zodiac_month import all_month_readings, month_label
+import zodiac_visual_rotation as zvr
 
 BASE = Path(__file__).resolve().parent
 FONT_DIR = Path(r"G:\내 드라이브\01클로드\에셋라이브러리\폰트")
@@ -58,12 +59,15 @@ def _ef(size: int):
     return None
 
 
-def _bg(w: int, h: int) -> Image.Image:
-    im = Image.new("RGB", (w, h), WINE)
+def _bg(w: int, h: int, year: int | None = None, month: int | None = None) -> Image.Image:
+    # 월간 12지신 카드도 8종 스타일의 배경색을 반영한다. 명도는 가독성 보존.
+    art = zvr.style_for(_dt.date(year, month, 1), channel="monthly_cards") if year and month else None
+    tint = tuple(int(0.70 * WINE[i] + 0.30 * int(art["bg"].lstrip("#")[i*2:i*2+2], 16)) for i in range(3)) if art else WINE
+    im = Image.new("RGB", (w, h), tint)
     d = ImageDraw.Draw(im)
     for y in range(h):
         t = y / h
-        d.line([(0, y), (w, y)], fill=tuple(int(WINE[i] + (WINE_D[i] - WINE[i]) * t) for i in range(3)))
+        d.line([(0, y), (w, y)], fill=tuple(int(tint[i] + (WINE_D[i] - tint[i]) * t) for i in range(3)))
     d.rectangle([0, 0, w - 1, h - 1], outline=GOLD, width=5)
     return im
 
@@ -126,7 +130,7 @@ def _cta(d, w, h, y=None, pw_ratio=0.74, ph=78, tsize=34):
 def make_onepage(year: int, month: int, out: Path, size=(1080, 1350)) -> Path:
     w, h = size
     rs = all_month_readings(year, month)
-    im = _bg(w, h)
+    im = _bg(w, h, year, month)
     d = ImageDraw.Draw(im)
     _header(im, d, w, f"{year}년 {month}월 띠별운세", f"{month_label(year, month)} · 12간지 종합")
 
@@ -161,7 +165,7 @@ def make_cardnews(year: int, month: int, out_dir: Path, size=(1080, 1350)) -> li
     paths: list[Path] = []
 
     # 표지
-    im = _bg(w, h); d = ImageDraw.Draw(im)
+    im = _bg(w, h, year, month); d = ImageDraw.Draw(im)
     _center(d, f"{year}년 {month}월", int(h * 0.20), 82, GOLD, w)
     _center(d, "띠별 운세", int(h * 0.31), 108, CREAM, w)
     d.line([(w * 0.25, h * 0.40), (w * 0.75, h * 0.40)], fill=GOLD, width=4)
@@ -174,7 +178,7 @@ def make_cardnews(year: int, month: int, out_dir: Path, size=(1080, 1350)) -> li
     # 3띠씩 4장
     for gi in range(4):
         group = rs[gi * 3:(gi + 1) * 3]
-        im = _bg(w, h); d = ImageDraw.Draw(im)
+        im = _bg(w, h, year, month); d = ImageDraw.Draw(im)
         _header(im, d, w, f"{month}월 띠별운세", f"{gi + 1} / 4")
         top = 250
         bh = (h - top - 150) // 3
@@ -196,7 +200,7 @@ def make_cardnews(year: int, month: int, out_dir: Path, size=(1080, 1350)) -> li
         p = out_dir / f"card_{gi + 2:02d}.png"; im.save(p, optimize=True); paths.append(p)
 
     # 마무리
-    im = _bg(w, h); d = ImageDraw.Draw(im); _cta(d, w, h)
+    im = _bg(w, h, year, month); d = ImageDraw.Draw(im); _cta(d, w, h)
     _center(d, f"{month}월, 좋은 흐름 되세요", int(h * 0.30), 62, CREAM, w)
     _center(d, "내 사주로 보는 정밀 월운은", int(h * 0.44), 40, GOLD, w)
     _center(d, "프로필 링크에서 확인하세요", int(h * 0.51), 40, GOLD, w)
@@ -215,7 +219,7 @@ def make_shorts_cards(year: int, month: int, out_dir: Path) -> dict:
     # 쇼츠 안전영역: 하단 18%는 유튜브 UI(제목·채널명·버튼)가 덮는다. 정보는 그 위까지만.
     SAFE_BOT = int(h * 0.82)
 
-    im = _bg(w, h); d = ImageDraw.Draw(im)
+    im = _bg(w, h, year, month); d = ImageDraw.Draw(im)
     _center(d, f"{year}년 {month}월", int(h * 0.26), 96, GOLD, w)
     _center(d, "띠별 운세", int(h * 0.35), 128, CREAM, w)
     d.line([(w * 0.25, h * 0.44), (w * 0.75, h * 0.44)], fill=GOLD, width=5)
@@ -224,7 +228,7 @@ def make_shorts_cards(year: int, month: int, out_dir: Path) -> dict:
     res["cover"] = out_dir / "s_cover.png"; im.save(res["cover"], optimize=True)
 
     # 12띠 한 화면 요약 (일시정지해 읽는 구간)
-    im = _bg(w, h); d = ImageDraw.Draw(im)
+    im = _bg(w, h, year, month); d = ImageDraw.Draw(im)
     _center(d, f"{month}월 띠별운세", 60, 70, CREAM, w)
     _center(d, month_label(year, month), 148, 34, GOLD, w)
     _cta(d, w, h, y=246, ph=70, tsize=31)
@@ -246,7 +250,7 @@ def make_shorts_cards(year: int, month: int, out_dir: Path) -> dict:
     # 3띠 그룹 4장
     for gi in range(4):
         group = rs[gi * 3:(gi + 1) * 3]
-        im = _bg(w, h); d = ImageDraw.Draw(im)
+        im = _bg(w, h, year, month); d = ImageDraw.Draw(im)
         _center(d, f"{month}월 띠별운세", 60, 64, CREAM, w)
         _cta(d, w, h, y=196, ph=68, tsize=30)
         top = 268; bh = (SAFE_BOT - top) // 3
@@ -265,7 +269,7 @@ def make_shorts_cards(year: int, month: int, out_dir: Path) -> dict:
 
     # 개별 12장
     for r in rs:
-        im = _bg(w, h); d = ImageDraw.Draw(im)
+        im = _bg(w, h, year, month); d = ImageDraw.Draw(im)
         _cta(d, w, h, y=96, ph=66, tsize=29)
         _emoji(im, d, EMOJI[r["sign_ko"]], w // 2 - 70, 176, 140)
         _center(d, r["sign_ko"], 366, 92, CREAM, w)
@@ -295,7 +299,7 @@ def make_outro_card(year: int, month: int, path: Path) -> Path:
     (URL·가격 글자는 AI에게 그리게 하면 깨지므로 사람이 그린 카드로 낸다)."""
     w, h = 1080, 1920
     path.parent.mkdir(parents=True, exist_ok=True)
-    im = _bg(w, h); d = ImageDraw.Draw(im)
+    im = _bg(w, h, year, month); d = ImageDraw.Draw(im)
     _center(d, f"{month}월,", int(h * 0.26), 96, CREAM, w)
     _center(d, "좋은 흐름 되세요", int(h * 0.34), 96, CREAM, w)
     _center(d, "내 사주로 보는 정밀 월운은", int(h * 0.48), 46, GOLD, w)

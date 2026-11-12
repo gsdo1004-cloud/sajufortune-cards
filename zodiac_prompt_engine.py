@@ -17,21 +17,9 @@ import datetime as dt
 # 다양성 축 — 각 축이 독립 순환하여 조합 폭발
 # ─────────────────────────────────────────────────────────────
 
-ART_STYLES = [
-    ("수채화",     "clean 2D watercolor illustration, crisp outlines, gentle warm washes"),
-    ("민화 평면",  "clean 2D Korean folk-art illustration, vivid symbolic colors, crisp decorative shapes"),
-    ("수묵 담채",  "clean 2D Korean ink-and-light-wash illustration, elegant brushstrokes, warm accents"),
-    ("동화책",     "clean 2D storybook illustration, soft hand-drawn lines, friendly rounded shapes"),
-    ("따뜻한 선화", "clean 2D line-art illustration, warm golden palette, soft flat shading"),
-    ("파스텔",     "clean 2D pastel illustration, gentle gradients, charming rounded details"),
-    ("민화 색감",  "clean 2D Korean folk-art illustration, bright obangsaek-inspired colors, neat shapes"),
-    ("파스텔 애니","clean 2D pastel animation illustration, cute expressive eyes, gentle shading"),
-    ("판타지 동화","clean 2D fantasy storybook illustration, soft glow, warm magical accents"),
-    ("색연필",     "clean 2D colored-pencil storybook illustration, cozy paper texture, crisp silhouettes"),
-    ("종이공예",   "clean 2D paper-cut illustration, clear layered shapes, soft warm shadows"),
-    ("빈티지 평면", "clean 2D vintage poster illustration, warm nostalgic palette, crisp simple forms"),
-]
+import zodiac_visual_rotation as zvr
 
+ART_STYLES = [(s["name"], s["prompt"]) for s in zvr.STYLES]
 BACKGROUNDS = [
     ("전통 산수",  "traditional Korean mountain landscape with pine trees and drifting mist"),
     ("우주 별자리","cosmic starry night sky with constellations and a softly glowing galaxy"),
@@ -57,7 +45,7 @@ BACKGROUNDS = [
 #       축을 늘리거나 줄일 때 길이가 서로 나누어떨어지지 않는지 꼭 확인할 것.
 
 CONCEPTS = [
-    ("한복 여성",  "the woman remains in elegant hanbok while every zodiac mascot stays a natural animal"),
+    ("12지신 주연", "zodiac animals alone are the focal subjects; no recurring hanbok presenter"),
     ("전통 정원",  "in a bright traditional Korean garden with flowers and soft sunlight"),
     ("산뜻한 나들이","in a cheerful outdoor Korean spring setting with clear warm light"),
     ("등불 한옥",  "with warm hanok lanterns, auspicious clouds, and a welcoming glow"),
@@ -119,21 +107,21 @@ ZODIAC_EN = {
     "원숭이띠": "monkey", "닭띠": "rooster", "개띠": "dog", "돼지띠": "pig",
 }
 
-# 공통 베이스: 한복 여성과 동물의 몸을 분리해 명시하고, 띠별 외형은 변수로 주입한다.
+# 동물 고정·인물 반복 금지. 표현 방식(3D/실사/민화/신화)은 하루 화풍에 위임.
 ZODIAC_COMMON_BASE = (
-    "A beautiful Korean woman wearing elegant hanbok stands with separate cute and friendly "
-    "zodiac animal mascots. The woman has a normal human body; every zodiac mascot has its "
-    "own complete natural animal body and unmistakable species features. Adorable mascot style, "
-    "strict flat 2D editorial illustration, crisp linework, simple flat shading, "
-    "no dimensional rendering, no glossy CGI, bright warm Korean aesthetic, "
-    "harmonious composition, charming friendly expressions, anatomically clean and visually appealing."
+    "The Korean zodiac animals are the primary focal subjects with complete recognizable "
+    "species anatomy and consistent character identity across scenes. "
+    "Each animal has a distinct appealing pose and expression; no generic Korean hanbok woman, "
+    "no female host, no human model as the main subject. "
+    "Premium original imagery with strong mobile composition, coherent lighting and clean details. "
+    "Keep room for exact Korean fortune captions and do not obscure the sign icons. "
 )
 ZODIAC_FEATURES = {
     "쥐띠": "a small nimble rat with round ears, tiny paws, whiskers, and curious bright eyes",
     "소띠": "a sturdy gentle ox with a broad build, soft muzzle, and calm kind eyes",
     "호랑이띠": "a lively tiger with clear black stripes, rounded paws, alert eyes, and a gentle expression",
     "토끼띠": "a lovable rabbit with long ears, round cheeks, fluffy tail, and soft bright eyes",
-    "용띠": "a small friendly East Asian dragon with four legs, soft scales, tiny horns, short wings, and a curling tail",
+    "용띠": "a majestic benevolent East Asian serpentine dragon with horns, whiskers and flowing mane, no wings, no Western dragon",
     "뱀띠": "a softly rounded snake with clear scales, gentle bright eyes, and no limbs",
     "말띠": "a bright healthy horse with a clear equine head, flowing mane, four legs, and lively eyes",
     "양띠": "a fluffy gentle sheep with soft wool, small curved horns, rounded face, and kind eyes",
@@ -143,10 +131,10 @@ ZODIAC_FEATURES = {
     "돼지띠": "a round plump adorable pig with pink snout, floppy ears, tiny hooves, and joyful bright eyes",
 }
 ZODIAC_NEGATIVE_PROMPT = (
-    "no anthropomorphic human-animal hybrids, no human body for zodiac animals, no humanized animals, "
-    "no humanoid form, no malformed face, no distorted limbs, no extra limbs, no creepy anatomy, "
-    "no grotesque features, no fused bodies, no animal face on a human body, no scary or horror features, "
-    "no photorealism, no 3D render, no glossy CGI"
+    "no generic hanbok woman presenter, no human-looking zodiac character faces, no malformed face, "
+    "no distorted or extra limbs, no grotesque hybrids or fused bodies, no creepy anatomy, "
+    "no scary horror features, no sewer rat, no snake fangs or attack, no Western winged dragon, "
+    "no identical repetitive character pose"
 )
 
 
@@ -173,7 +161,8 @@ def daily_theme(date: dt.date) -> dict:
     """오늘의 다양성 조합. 각 축을 다른 주기로 돌려 반복을 최대한 늦춘다."""
     o = date.toordinal()
     return {
-        "style":       _pick(date, ART_STYLES, 1),           # 매일 바뀜(기준 축)
+        "style":       (zvr.style_for(date)["name"], zvr.style_for(date)["prompt"]),
+        "visual_id":   zvr.style_for(date)["id"],
         # ⚠️2026-07-20 수정: style·bg 둘 다 period=1·길이12라 인덱스가 항상 같았음
         # (idx=o%12 동일) → "화풍과 다른 배열이라 어긋나며 순환"은 잘못된 가정이었고
         # 실제로는 화풍+배경 조합이 12일마다 그대로 반복되고 있었다. stride로 보폭을
@@ -214,7 +203,7 @@ def cover_prompt(date: dt.date, theme: dict | None = None, simple: bool = False)
         f"Vertical 9:16 Korean daily fortune COVER poster. "
         f"Large bold clean Korean title '오늘의 운세' at top center, "
         f"date '{t['date_kr']} {t['weekday']}' clearly just below. "
-        f"{ZODIAC_COMMON_BASE} All twelve cute Korean zodiac animals (rat, ox, tiger, rabbit, dragon, snake, "
+        f"{ZODIAC_COMMON_BASE} All twelve distinct Korean zodiac animals (rat, ox, tiger, rabbit, dragon, snake, "
         f"horse, sheep, monkey, rooster, dog, pig) are gently arranged in a soft "
         f"circular mandala-wheel formation around the title, each animal in its own graceful "
         f"position along the circle — not a grid, not stacked rows. Species guide: {guide}. "
@@ -240,7 +229,7 @@ def group_prompt(date: dt.date, rows: list[dict], theme: dict | None = None,
     for i, r in enumerate(rows, 1):
         en = ZODIAC_EN.get(r["ko"], "animal")
         feature = ZODIAC_FEATURES.get(r["ko"], "a cute natural animal mascot")
-        secs += (f"Vignette {i} — a cute {en} zodiac mascot ({feature}) labeled '{r['ko']}' in elegant small "
+        secs += (f"Vignette {i} — a recognizable {en} zodiac animal ({feature}) labeled '{r['ko']}' in elegant small "
                  f"Korean type, its one-line fortune '{r['line']}' and star line "
                  f"'{stars_line(r['stars'])}' gently placed beside it, not boxed or tabled. ")
     deco = (f"Background: {t['bg'][1]}. " if not simple else
@@ -250,7 +239,7 @@ def group_prompt(date: dt.date, rows: list[dict], theme: dict | None = None,
         f"Vertical 9:16 Korean zodiac fortune card, atmospheric mood illustration — "
         f"NOT an infographic, NOT a chart, NOT a table. "
         f"Top title '오늘의 띠별운세' bold clean Korean, small date '{t['date_kr']} {t['weekday']}'. "
-        f"{ZODIAC_COMMON_BASE} Four animals ({animals}, in order) {comp[1]}. "
+        f"{ZODIAC_COMMON_BASE} Four distinct zodiac animals ({animals}, in order) {comp[1]}. "
         f"Species guide: {guide}. "
         f"{secs}"
         f"Scene accents: {t['concept'][1]}. {deco}"
@@ -291,12 +280,12 @@ def summary12_prompt(date: dt.date, rows_by_ko: dict[str, dict],
         f"Vertical 9:16 Korean daily zodiac fortune SUMMARY card showing ALL TWELVE "
         f"zodiac signs at once, designed to be paused and read. "
         f"Top title '오늘의 띠별운세' bold, with date badge '{t['date_kr']} ({t['weekday']})' below it. "
-        f"Then a clean 3-column x 4-row grid of twelve rounded cells. In EACH cell: a small cute "
+        f"Then a clean 3-column x 4-row grid of twelve rounded cells. In EACH cell: a small distinctive "
         f"zodiac animal on the left; on the right its Korean name in bold color, below it the "
         f"fortune sentence in SMALL but crisp readable Korean (wrap to 2-3 short lines), and at "
         f"the cell bottom a thin divider with '행운' keywords on the left and '운세지수' stars on "
         f"the right. Exact contents:\n{rows}"
-        f"{ZODIAC_COMMON_BASE} All twelve animals are cute and friendly. Species guide: {guide}. "
+        f"{ZODIAC_COMMON_BASE} All twelve animals are recognizable, expressive and approachable. Species guide: {guide}. "
         f"Scene accents: {t['concept'][1]}. {_SNAKE_GUARD} "
         f"{deco}Bright clean editorial layout, generous padding, soft card shadows, "
         f"{t['palette'][1]}. Every Korean line must be sharp and legible on a phone. "
@@ -488,7 +477,7 @@ def pick3_prompt(date: dt.date, rows_by_ko: dict[str, dict],
             # build_rows 결과로 이미지 생성 자체가 멈추지 않게 한다.
             reading_text = r.get("advice") or r.get("line", "좋은 기운이 함께하는 날")
         feature = ZODIAC_FEATURES.get(ko, "a cute natural animal mascot")
-        cells += (f"Card {rank} — a big cute {ZODIAC_EN.get(ko, 'animal')} zodiac mascot ({feature}) on the left; "
+        cells += (f"Card {rank} — a large recognizable {ZODIAC_EN.get(ko, 'animal')} zodiac mascot ({feature}) on the left; "
                   f"on the right the name '{ko}' in LARGE bold Korean, below it "
                   f"'{reading_text}' in clearly readable Korean "
                   f"(2 short lines), then '행운 {r.get('lucky', '')}' and "

@@ -54,6 +54,11 @@ def _apply_pngtuber_pip(video_path: Path, date: dt.date,
     G드라이브 스톨·프레임 누락 등 무엇이 실패해도 쇼츠 조립 자체는 계속 진행한다
     (human_touch_pip.apply_pip과 동일한 '빌드를 멈추지 않는다' 원칙).
     voice_info가 있으면 실제 TTS 성별을 사용하고, 구형 호출만 날짜 기준으로 폴백한다."""
+    # 12지신 비주얼 로테이션: 반복적인 인간 아바타가 동물 주연 화면을 가리지 않게
+    # 기본값은 PIP 비활성. 필요 시 ZODIAC_ALLOW_HUMAN_PIP=1로만 복원한다.
+    if os.environ.get("ZODIAC_ALLOW_HUMAN_PIP", "0") != "1":
+        log("[visual-rotation] 12지신 중심 화면 유지: 사람 PNGTuber PIP 생략")
+        return
     try:
         if str(PNGTUBER_DIR) not in sys.path:
             sys.path.insert(0, str(PNGTUBER_DIR))

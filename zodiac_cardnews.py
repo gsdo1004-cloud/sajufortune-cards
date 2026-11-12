@@ -23,6 +23,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import zodiac_seo as zs
+import zodiac_visual_rotation as zvr
 import threads_conversion as conv
 from media_preflight import check_public_media
 from ganzhi_zodiac import day_context, ELEM_KO
@@ -163,9 +164,21 @@ def build_html(date_iso, theme_elem=None):
                f'<div class="cta">내 사주 흐름 자세히 보기<br>{SITE}</div>'
                f'<div class="brand">{df}</div></div></div>')
 
+    # 12지신은 보존하고 HTML 카드도 날짜별 비주얼 스타일을 공유한다.
+    art = zvr.style_for(d, channel="threads_cardnews")
+    extra_css = (
+        f".card {{background:linear-gradient(145deg,{theme['bg']},{art['bg']});}} "
+        f".sheet {{background:{art['paper']}; border:5px solid {art['accent']}; "
+        f"box-shadow:inset 0 0 0 8px {art['icon']};}} "
+        f".tag {{background:{art['accent']};}} "
+        f".sec,.cta,.stars b,.top .st b {{color:{art['accent']};}} "
+        f".icon,.luck,.day-badge {{background:{art['icon']};}} "
+        f".sheet::before {{content:'';height:14px;position:absolute;top:0;left:12%;right:12%;"
+        f"border-radius:0 0 15px 15px;background:{art['accent']};}}"
+    )
     css = (CSS.replace("__BG__", theme["bg"])
               .replace("__ICON__", theme["icon"])
-              .replace("__BADGE__", theme["badge"]))
+              .replace("__BADGE__", theme["badge"])) + extra_css
     return ('<!doctype html><html lang="ko"><head><meta charset="utf-8">'
             '<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">'
             f'<style>{css}</style></head><body>{cover}{bodies}{summary}</body></html>')
