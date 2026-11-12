@@ -22,6 +22,7 @@ from zodiac_month import all_month_readings, month_label
 
 BASE = Path(__file__).resolve().parent
 GROUP_NAMES = ["띠별A", "띠별B", "띠별C", "띠별D"]
+MONTH_GROUPS = [zpe.ZODIAC12[i * 3:(i + 1) * 3] for i in range(4)]
 
 
 def log(msg: str) -> None:
@@ -62,7 +63,7 @@ def cover_prompt(year: int, month: int, t: dict, simple: bool = False) -> str:
         f"Vertical 9:16 Korean MONTHLY fortune COVER poster. "
         f"Large bold clean Korean title '{month}월 띠별운세' at top center, "
         f"subtitle '{year}년 {month_label(year, month)}' clearly just below in smaller Korean type. "
-        f"{zpe.ZODIAC_COMMON_BASE} All twelve cute Korean zodiac animals (rat, ox, tiger, rabbit, dragon, snake, "
+        f"{zpe.ZODIAC_COMMON_BASE} All twelve recognizable Korean zodiac animals (rat, ox, tiger, rabbit, dragon, snake, "
         f"horse, sheep, monkey, rooster, dog, pig) are gently arranged in a soft "
         f"circular mandala-wheel formation around the title, each animal in its own graceful "
         f"position along the circle — not a grid, not stacked rows. Species guide: {guide}. "
@@ -79,7 +80,7 @@ def group_prompt(year: int, month: int, rows: list[dict], t: dict, simple: bool 
     for i, r in enumerate(rows, 1):
         en = zpe.ZODIAC_EN.get(r["ko"], "animal")
         feature = zpe.ZODIAC_FEATURES.get(r["ko"], "a cute natural animal mascot")
-        secs += (f"Vignette {i} — a cute {en} zodiac mascot ({feature}) labeled '{r['ko']}' in elegant small "
+        secs += (f"Vignette {i} — a distinct {en} zodiac animal ({feature}) labeled '{r['ko']}' in elegant small "
                  f"Korean type, its monthly one-line '{r['headline']}' and star line "
                  f"'{_stars(r['stars'])}' gently placed beside it, not boxed or tabled. ")
     deco = (f"Background: {t['bg'][1]}. " if not simple else
@@ -87,7 +88,7 @@ def group_prompt(year: int, month: int, rows: list[dict], t: dict, simple: bool 
     return (
         f"Vertical 9:16 Korean MONTHLY fortune card for three zodiac signs. "
         f"Small header '{month}월 띠별운세' at top center in clean Korean type. "
-        f"{zpe.ZODIAC_COMMON_BASE} Three cute Korean zodiac animals {comp[1]}. "
+        f"{zpe.ZODIAC_COMMON_BASE} Three recognizable Korean zodiac animals {comp[1]}. "
         f"Species guide: {guide}. Scene accents: {t['concept'][1]}. "
         f"{secs}{deco}{t['palette'][1]}. Art style: {t['style'][1]}. "
         f"{zpe._SNAKE_GUARD} Warm auspicious mood, generous spacing, readable Korean text. {zpe._NEG}"
@@ -106,7 +107,7 @@ def summary12_prompt(year: int, month: int, rows: list[dict], t: dict, simple: b
         f"Vertical 9:16 Korean MONTHLY fortune SUMMARY card containing ALL TWELVE zodiac signs "
         f"in a clean 3-column x 4-row grid of rounded cards. "
         f"Header at top center: '{year}년 {month}월 띠별운세' with smaller '{month_label(year, month)}' below. "
-        f"{zpe.ZODIAC_COMMON_BASE} Each of the twelve cells shows a small cute natural zodiac animal mascot icon, its Korean name, "
+        f"{zpe.ZODIAC_COMMON_BASE} Each of the twelve cells shows a small distinctive zodiac animal icon, its Korean name, "
         f"a score, a star row, one short Korean line, and a lucky-days line: {cells}"
         f"Species guide: {guide}. "
         f"{deco}Bright clean editorial layout, generous padding, soft card shadows, "
@@ -124,7 +125,7 @@ def month_set(year: int, month: int) -> dict:
         "prompt": cover_prompt(year, month, t),
         "simple_prompt": cover_prompt(year, month, t, simple=True),
     }]
-    for gi, group in enumerate(zpe.GROUPS):
+    for gi, group in enumerate(MONTH_GROUPS):
         g = [r for r in rows if r["ko"] in group]
         images.append({
             "name": GROUP_NAMES[gi], "file": f"{gi + 2:02d}_{GROUP_NAMES[gi]}",

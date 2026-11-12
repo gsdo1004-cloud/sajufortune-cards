@@ -32,6 +32,7 @@ from PIL import Image, ImageDraw, ImageFont
 import zodiac_seo as zs
 import zodiac_signal as zsig
 import zodiac_topview as zt
+import zodiac_visual_rotation as zvr
 
 BASE = Path(__file__).resolve().parent
 BG_DIR = BASE / "assets" / "bg"
@@ -215,6 +216,10 @@ def build_pil_fallback(date_iso: str, slug: str | None = None) -> list[Path]:
     # 러너 체크아웃도 느려진다. 사진형 일러스트라 JPEG 손실이 눈에 띄지 않는다.
     paths = []
     for i, im in enumerate(imgs, 1):
+        art = zvr.style_for(date_iso, channel="zodiac_signal", slot=i - 1)
+        accent = tuple(int(art["accent"].lstrip("#")[n:n+2], 16) for n in (0, 2, 4))
+        draw = ImageDraw.Draw(im)
+        draw.rectangle((8, 8, W - 9, H - 9), outline=accent, width=10)
         p = out_dir / f"signal_{i:02d}.jpg"
         im.convert("RGB").save(p, "JPEG", quality=88, optimize=True, progressive=True)
         paths.append(p)
@@ -283,7 +288,7 @@ def _signal_texts(date_iso: str, slug: str) -> tuple[str, str, list[str]]:
     return story["sign_ko"], story["focus_label"], story["card_texts"]
 
 
-def _prompt(sign_ko: str, angle: str, text: str, index: int, *, simple: bool) -> str:
+def _prompt(sign_ko: str, angle: str, text: str, index: int, *, simple: bool, date_iso: str | None = None) -> str:
     """한글 깨짐을 줄이기 위해 글자·줄바꿈·금지사항을 반복해 명시한다."""
     layout = (
         "Use one centered translucent ivory text panel, high contrast black Hangul, "
@@ -294,6 +299,7 @@ def _prompt(sign_ko: str, angle: str, text: str, index: int, *, simple: bool) ->
     )
     return f"""Create one vertical 9:16 social card for a Korean zodiac fortune channel.
 Card {index}/2, subject: {sign_ko}, theme: {angle}. {layout}
+{zvr.art_direction(date_iso, channel="zodiac_signal", slot=index - 1)}
 
 CRITICAL TEXT REQUIREMENT: Render the following Korean Hangul text EXACTLY as written.
 Preserve every character, spacing, punctuation, quotation mark, and line break. The text must
@@ -370,14 +376,14 @@ def _is_fatal(exc: BaseException) -> bool:
 
 
 def _generate_one(client: SignalTopviewClient, out: Path, sign_ko: str, angle: str,
-                  text: str, index: int):
+                  text: str, index: int, date_iso: str | None = None):
     """정상×2 → 단순화×2. 치명 오류는 호출자에게 즉시 올린다."""
     ladder = [(False, "정상"), (False, "정상"), (True, "단순화"), (True, "단순화")]
     failures: list[str] = []
     for attempt, (simple, label) in enumerate(ladder, 1):
         try:
             print(f"[Topview] signal_{index:02d} 시도 {attempt}/4 — {label} 프롬프트")
-            _generate_rest(client, _prompt(sign_ko, angle, text, index, simple=simple), out)
+            _generate_rest(client, _prompt(sign_ko, angle, text, index, simple=simple, date_iso=date_iso), out)
             _normalize_jpeg(out)
             err = zt.validate_image(out)  # 파일·60KB·PIL 열림·9:16 검증을 정본 그대로 재사용
             if err is None:
@@ -428,7 +434,7 @@ def build(date_iso: str, slug: str | None = None) -> list[Path]:
         _check_credit(client)
         print(f"[Topview] 띠 지목 AI 생성 시작: {date_iso}, 2장, 예상 약 {AI_CREDIT_PER_CARD * 2:.1f} 크레딧")
         for index, (out, text) in enumerate(zip(paths, texts), 1):
-            _generate_one(client, out, sign_ko, angle, text, index)
+            _generate_one(client, out, sign_ko, angle, text, index, date_iso)
     except BaseException as exc:
         reason = f"{type(exc).__name__}: {str(exc)[:300]}"
         _alert(f"{date_iso} 띠 지목 Topview 생성 중단 — {reason}. 기존 PIL 카드로 폴백합니다.")
