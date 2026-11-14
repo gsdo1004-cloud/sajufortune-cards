@@ -1,0 +1,10 @@
+{
+  "date": "2026-11-14",
+  "generator": "pil_fallback",
+  "reason": "SignalTopviewError: [4100] 잔액 부족 0.15 < 3.0",
+  "review_required": false,
+  "cards": [
+    "signal_01.jpg",
+    "signal_02.jpg"
+  ]
+}
