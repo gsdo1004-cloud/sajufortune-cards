@@ -418,10 +418,95 @@ def generate_mcp(prompt: str, out: Path, quality: str = "medium") -> None:
     raise TimeoutError(f"MCP task {task_id} 시간초과({POLL_TIMEOUT}s)")
 
 
+# ── 0차 경로: 로컬 무료 생성(ComfyUI FLUX.2 klein) + 한글 코드 합성 — 0원 (2026-11-17 한밝님 "구현 진행") ──
+# API 크레딧이 바닥나(0.15, 4100) 11/16·11/17 저녁 7시 파이프라인이 0/5로 실패했다. 이 경로는 크레딧을 쓰지 않는다.
+# 그림(마스코트 12종 고정 + 매일 다른 배경)은 로컬 AI, 한글·별점·행운은 PIL 합성 → 오타 0.
+# 일일 카드 문맥(spec["_ctx"], ensure_daily_images 가 주입)이 있을 때만 작동 — 월간 카드 등은 건드리지 않는다.
+# 실패하면 LocalSkip 으로 경로를 접고 아래 구독→REST→MCP 사다리로 그대로 넘어간다(기존 무실패 설계 무손상).
+# 정본: D:\automation_control\shared\local_img\{comfy_local,zodiac_hybrid}.py · 끄기: 환경변수 ZODIAC_LOCAL=0
+LOCAL_DIR = r"D:\automation_control\shared\local_img"
+
+
+class LocalSkip(Exception):
+    """로컬 경로를 쓸 수 없음. alert=True 면 '로컬 엔진 고장'이라 경보 대상, False 면 의도된 건너뜀."""
+
+    def __init__(self, msg: str, alert: bool = False):
+        super().__init__(msg)
+        self.alert = alert
+
+
+def generate_local(spec: dict, out: Path) -> None:
+    if os.environ.get("ZODIAC_LOCAL", "1") == "0":
+        raise LocalSkip("ZODIAC_LOCAL=0")
+    ctx = spec.get("_ctx")
+    if not ctx:
+        raise LocalSkip("일일 카드 문맥 없음(월간·기타 호출)")
+    # import 시점 크래시가 폴백 그물 밖에서 죽는 사고(8/16)를 피하려고 반드시 지연 import + 전부 포장
+    try:
+        if LOCAL_DIR not in sys.path:
+            sys.path.append(LOCAL_DIR)
+        import zodiac_hybrid as zh
+        from comfy_local import LocalUnavailable
+    except Exception as e:
+        raise LocalSkip(f"로컬 모듈 import 불가: {type(e).__name__}: {e}", alert=True)
+    try:
+        zh.render_card(spec, ctx, out)
+    except LocalUnavailable as e:
+        raise LocalSkip(str(e)[:200], alert=True)
+
+
+def _local_shutdown() -> None:
+    """우리가 띄운 ComfyUI 를 끄고 GPU 를 돌려준다(남이 띄운 서버는 건드리지 않음)."""
+    m = sys.modules.get("comfy_local")
+    if m is not None:
+        try:
+            m.shutdown()
+        except Exception as e:
+            log(f"[WARN] 로컬 엔진 종료 중 오류(무시): {e}")
+
+
+# ── 1차 경로: 구독(OAuth MCP 세션) — API 크레딧을 쓰지 않는다 (2026-11-17 한밝님 지시) ──
+# API 키(REST/MCP 헤더키)는 API 크레딧을 소모하고 요금제 무제한이 적용되지 않는다. OAuth 로그인한
+# MCP 세션만 요금제 무제한/무료할당을 쓴다. 견적이 0크레딧일 때만 생성하고(fail-closed),
+# 아니면 SubUnavailable 로 이 경로를 접고 기존 REST→MCP 사다리로 넘어간다 → 기존 무실패 설계 무손상.
+# 정본 클라이언트: D:\automation_control\shared\topview_sub\topview_sub_client.py (login 1회 필요)
+# 끄기: 환경변수 ZODIAC_TOPVIEW_SUB=0
+SUB_DIR = r"D:\automation_control\shared\topview_sub"
+
+
+class SubUnavailable(Exception):
+    """구독 경로를 쓸 수 없음(미로그인·무료할당 소진·모듈없음). 경보 대상 아님 — 정상 폴백."""
+
+
+def generate_sub(prompt: str, out: Path, quality: str = "medium") -> None:
+    if os.environ.get("ZODIAC_TOPVIEW_SUB", "1") == "0":
+        raise SubUnavailable("ZODIAC_TOPVIEW_SUB=0")
+    # import 시점 크래시가 폴백 그물 밖에서 죽는 사고(8/16)를 피하려고 반드시 지연 import + 전부 포장
+    try:
+        if SUB_DIR not in sys.path:
+            sys.path.append(SUB_DIR)
+        import topview_sub_client as tsc
+    except Exception as e:
+        raise SubUnavailable(f"구독 클라이언트 import 불가: {type(e).__name__}: {e}")
+    try:
+        # 무료할당은 1K·medium·GPT Image 2.5 계열만 → 모델/품질은 클라이언트 기본값(견적 0일 때만 진행)
+        tsc.generate_image(prompt, out, aspect=ASPECT, resolution=RESOLUTION,
+                           quality="medium", require_free=True, timeout=POLL_TIMEOUT)
+    except (tsc.NotLoggedIn, tsc.SubscriptionNotFree) as e:
+        raise SubUnavailable(str(e)[:200])
+    except tsc.TopviewSubError as e:
+        if e.code == "CANNOT_SUBMIT":
+            raise SubUnavailable(str(e)[:200])
+        raise
+
+
 FATAL_CODES = {"401", "4100"}   # 인증만료 / 크레딧부족 → 그 경로 재시도 무의미
 
-# 사다리: REST↔MCP 번갈아 + 후반은 단순화 프롬프트 (경로별 치명오류 시 그 경로 제외)
+# 사다리: 로컬(0원·무제한) → 구독(무료할당) → REST↔MCP 번갈아 + 후반은 단순화 프롬프트
+#        (경로별 치명오류 시 그 경로 제외)
 LADDER = [
+    ("local", "prompt", "medium"),    # 0원·무제한 경로: 일일 카드 문맥이 없거나 실패하면 자동 스킵
+    ("sub",  "prompt", "medium"),     # 0원 경로: 견적 0이 아니면 자동 스킵
     ("rest", "prompt", "medium"),
     ("mcp",  "prompt", "medium"),
     ("rest", "simple_prompt", "medium"),
@@ -445,7 +530,11 @@ def ensure_one(client: TopviewClient, spec: dict, out: Path,
         try:
             log(f"  [{spec['file']}] 시도 {tried} — {path.upper()}"
                 f"(quality={quality}{', 단순화' if simple else ''})")
-            if path == "rest":
+            if path == "local":
+                generate_local(spec, out)
+            elif path == "sub":
+                generate_sub(spec[pkey], out, quality)
+            elif path == "rest":
                 generate_rest(client, spec[pkey], out, quality)
             else:
                 generate_mcp(spec[pkey], out, quality)
@@ -454,6 +543,20 @@ def ensure_one(client: TopviewClient, spec: dict, out: Path,
                 log(f"  [{spec['file']}] ✅ 성공 ({path.upper()}, 시도 {tried})")
                 return True
             log(f"  [{spec['file']}] 검증 실패: {err}")
+        except LocalSkip as e:
+            # 로컬 경로 접기: 이 호출 동안 더 안 쓴다. 의도된 건너뜀은 경보 없이, 엔진 고장은 경보 1회.
+            dead_paths.add(path)
+            tried -= 1
+            log(f"  [{spec['file']}] 로컬 경로 사용 불가 → 다음 경로로 폴백: {str(e)[:160]}")
+            if e.alert:
+                alerts.append(f"로컬 이미지 경로 불가: {str(e)[:120]}")
+            continue
+        except SubUnavailable as e:
+            # 정상 폴백: 경보 없음, 이 경로는 오늘 더 안 쓴다(무료할당 소진/미로그인). 대기 없이 다음 경로로.
+            dead_paths.add(path)
+            tried -= 1
+            log(f"  [{spec['file']}] 구독 경로 사용 불가 → 기존 경로로 폴백: {str(e)[:140]}")
+            continue
         except TopviewError as e:
             log(f"  [{spec['file']}] {path.upper()} API 오류 [{e.code}] {e.message[:180]}")
             if str(e.code) in FATAL_CODES:
@@ -499,32 +602,48 @@ def ensure_daily_images(date_iso: str | None = None) -> dict:
 
     log(f"=== 띠별운세 이미지 {N_CARDS}장 보장 생성: {date_iso} ===")
     alerts: list[str] = []
-    client = make_client()
-    check_balance(client, alerts)
+    # API 키가 죽어도(만료·크레딧 소진) 로컬 경로는 키가 필요 없다 → 여기서 함수 전체가 죽으면 안 된다.
+    try:
+        client = make_client()
+    except Exception as e:
+        client = None
+        log(f"[WARN] Topview API 클라이언트 생성 실패(로컬·구독 경로로 계속): {type(e).__name__}: {str(e)[:160]}")
+    if client is not None:
+        check_balance(client, alerts)
 
     rows = build_rows(date_iso)
     ds = zpe.daily_set(d, rows)
     t = ds["theme"]
     log(f"오늘 조합: [{t['style'][0]}] 배경={t['bg'][0]} 컨셉={t['concept'][0]} "
         f"색={t['palette'][0]} 구도={t['composition'][0]}")
+    # 로컬 하이브리드 렌더러가 쓰는 일일 문맥(날짜·12띠 데이터·테마·지목 정보)을 각 카드 사양에 싣는다.
+    for spec in ds["images"]:
+        spec["_ctx"] = {"date": d, "rows": rows, "theme": t,
+                        "pick_theme": ds.get("pick_theme"), "picks": ds.get("picks", [])}
 
     files, failed, skipped = [], [], []
     dead_paths: set[str] = set()
-    for i, spec in enumerate(ds["images"], 1):
-        out = out_dir / f"card_{i:02d}.png"
-        if ensure_one(client, spec, out, alerts, dead_paths):
-            files.append(str(out))
-        elif spec.get("optional"):
-            # 선택 카드 실패는 발행을 막지 않는다 — 경보만 남기고 폴백에 맡긴다.
-            skipped.append(spec["file"])
-            alerts.append(f"선택 카드 실패(발행엔 지장 없음): {spec['file']} — "
-                          f"20초판은 12띠 요약 카드로 폴백합니다")
-        else:
-            failed.append(spec["file"])
-        if failed and dead_paths >= {"rest", "mcp"}:
-            break   # 두 경로 다 죽음(401/4100) → 나머지도 무의미
+    try:
+        for i, spec in enumerate(ds["images"], 1):
+            out = out_dir / f"card_{i:02d}.png"
+            if ensure_one(client, spec, out, alerts, dead_paths):
+                files.append(str(out))
+            elif spec.get("optional"):
+                # 선택 카드 실패는 발행을 막지 않는다 — 경보만 남기고 폴백에 맡긴다.
+                skipped.append(spec["file"])
+                alerts.append(f"선택 카드 실패(발행엔 지장 없음): {spec['file']} — "
+                              f"20초판은 12띠 요약 카드로 폴백합니다")
+            else:
+                failed.append(spec["file"])
+            if failed and dead_paths >= {"rest", "mcp"}:
+                break   # 두 경로 다 죽음(401/4100) → 나머지도 무의미
+    finally:
+        _local_shutdown()   # 어떤 경우에도 GPU 를 돌려준다(이후 TTS·영상 조립 단계 보호)
 
     ok = not failed
+    if ok and "local" not in dead_paths:
+        # 로컬로 전부 만들었다면 API 크레딧 잔액은 더 이상 발행의 병목이 아니다 → 매일 오는 낡은 경보 제거
+        alerts[:] = [a for a in alerts if "크레딧 부족 임박" not in a]
     log(f"=== 결과: {len(files)}/{N_CARDS + N_CARDS_OPT} 성공"
         f"{' | 실패: ' + ', '.join(failed) if failed else ''}"
         f"{' | 선택 미생성: ' + ', '.join(skipped) if skipped else ''} ===")
