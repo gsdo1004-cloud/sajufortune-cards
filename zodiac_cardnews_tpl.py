@@ -90,14 +90,62 @@ def EF(size: int):
     return font
 
 
-def draw_emoji(dr, xy, ch: str, size: int) -> int:
-    """이모지를 그리고 차지한 폭을 돌려준다. 폰트가 없으면 0(=아무것도 안 그림)."""
-    f = EF(size)
-    if not f or not ch:
+_EMOJI_NATIVE = 109          # NotoColorEmoji 비트맵 스트라이크 크기(고정)
+_EMOJI_GAP = 12              # 이모지와 이름 사이 간격(px)
+_emoji_native: dict = {}
+
+
+def _emoji_native_font():
+    """이모지 폰트를 '네이티브 크기(109)'로 연다. 없으면 None."""
+    if "f" in _emoji_native:
+        return _emoji_native["f"]
+    font = None
+    for path, fixed in _EMOJI_PATHS:
+        if not Path(path).exists():
+            continue
+        try:
+            font = ImageFont.truetype(path, fixed or _EMOJI_NATIVE)
+            break
+        except OSError:
+            continue
+    _emoji_native["f"] = font
+    return font
+
+
+def draw_emoji(dr, xy, ch: str, size: int, im: Image.Image | None = None) -> int:
+    """이모지를 높이≈size 로 그려 넣고, 실제로 차지한 폭(+간격)을 돌려준다.
+    폰트가 없으면 0(=아무것도 안 그림).
+
+    2026-11-19 수정 — 띠 이름·다음 줄 위로 이모지가 겹치던 문제.
+    Noto 는 비트맵 폰트(109 고정)라 Pillow 가 알아서 축소해 주지 않는다. 예전 코드는
+    109 크기 그대로(≈136×128px) 찍으면서 폭은 size+12(66→78, 54→66)로 계산해서,
+    이름 글자가 이모지 위에 얹히고 높이도 다음 줄까지 내려왔다.
+    → 네이티브 크기로 타일에 그린 뒤 size/109 비율로 직접 축소해 붙이고,
+      축소된 '실제' 폭을 돌려준다. (Segoe 같은 벡터 폰트도 같은 경로를 탄다)
+    im: 그림이 그려지는 대상 이미지. 생략하면 dr 에서 꺼낸다.
+    """
+    f = _emoji_native_font()
+    if im is None:
+        im = getattr(dr, "_image", None)
+    if not f or not ch or im is None:
         return 0
     try:
-        dr.text(xy, ch, font=f, embedded_color=True)
-        return size + 12
+        probe = ImageDraw.Draw(Image.new("RGBA", (8, 8)))
+        l, t, r, b = probe.textbbox((0, 0), ch, font=f, embedded_color=True)
+        cw, chh = r - l, b - t
+        pad = 16
+        tile = Image.new("RGBA", (cw + 2 * pad, chh + 2 * pad), (0, 0, 0, 0))
+        ImageDraw.Draw(tile).text((pad - l, pad - t), ch, font=f, embedded_color=True)
+        tile = tile.crop((pad, pad, pad + cw, pad + chh))
+        k = size / _EMOJI_NATIVE
+        w, h = max(1, round(cw * k)), max(1, round(chh * k))
+        tile = tile.resize((w, h), Image.LANCZOS)
+        x, y = int(xy[0]), int(xy[1])
+        if im.mode == "RGBA":
+            im.alpha_composite(tile, (x, y))
+        else:
+            im.paste(tile, (x, y), tile)
+        return w + _EMOJI_GAP
     except Exception:
         return 0
 
@@ -245,7 +293,7 @@ def card_group(set_n: int, date_iso: str, name: str,
         dr.rounded_rectangle([TEXT_X - 18, top, W - 34, top + blk],
                              radius=34, fill=PANEL)
         y = top + 18
-        ew = draw_emoji(dr, (TEXT_X + 14, y + 2), r.get("emoji", ""), 66)
+        ew = draw_emoji(dr, (TEXT_X + 14, y + 2), r.get("emoji", ""), 66, im=im)
         dr.text((TEXT_X + 14 + ew, y), ko, font=f_ko, fill=INK)
         y += 80
         for ln in line_ls:
@@ -287,7 +335,7 @@ def card_summary(set_n: int, date_iso: str, allrows: dict[str, dict]) -> Image.I
         cy = top + (i // 2) * (ch + gap_y)
         dr.rounded_rectangle([cx, cy, cx + cw, cy + ch], radius=26, fill=PANEL)
         st = allrows[ko]["stars"]
-        ew = draw_emoji(dr, (cx + 20, cy + 18), allrows[ko].get("emoji", ""), 54)
+        ew = draw_emoji(dr, (cx + 20, cy + 18), allrows[ko].get("emoji", ""), 54, im=im)
         dr.text((cx + 20 + ew, cy + 16), ko, font=f_ko, fill=INK)
         dr.text((cx + 22, cy + 84), f"전체 {stars(st['전체'])}", font=f_st, fill=ACCENT)
         # 한 줄 운세까지 넣어야 셀이 채워지고 저장할 이유가 생긴다.
