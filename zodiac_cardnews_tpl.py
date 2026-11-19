@@ -287,15 +287,18 @@ def card_group(set_n: int, date_iso: str, name: str,
     for (ko, r), yr in zip(rows, BLOCK_Y):
         cy = int(H * yr)
         line_ls = wrap(dr, r["line"], f_line, TEXT_W - 60)
-        # 패널 높이 = 상여백18 + 띠이름80 + 리드(52×n) + 별점 2줄(42×2) + 하여백22
-        blk = 18 + 80 + len(line_ls) * 52 + 84 + 22
+        # 패널 높이 = 상여백18 + 띠이름(NAME_ROW) + 리드(52×n) + 별점 2줄(42×2) + 하여백22
+        # 2026-11-19: 띠이름 줄 높이 80→92. 66px 명조에 받침이 있는 이름(원숭이띠 등)은
+        # 받침 끝이 다음 줄 리드문 윗부분에 0~2px 거리로 붙어 글자가 겹쳐 보였다.
+        NAME_ROW = 92
+        blk = 18 + NAME_ROW + len(line_ls) * 52 + 84 + 22
         top = cy - blk // 2
         dr.rounded_rectangle([TEXT_X - 18, top, W - 34, top + blk],
                              radius=34, fill=PANEL)
         y = top + 18
         ew = draw_emoji(dr, (TEXT_X + 14, y + 2), r.get("emoji", ""), 66, im=im)
         dr.text((TEXT_X + 14 + ew, y), ko, font=f_ko, fill=INK)
-        y += 80
+        y += NAME_ROW
         for ln in line_ls:
             dr.text((TEXT_X + 16, y), ln, font=f_line, fill=SUB)
             y += 52
