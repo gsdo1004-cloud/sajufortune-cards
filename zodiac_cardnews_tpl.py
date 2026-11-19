@@ -292,7 +292,8 @@ def card_group(set_n: int, date_iso: str, name: str,
         # 받침 끝이 다음 줄 리드문 윗부분에 0~2px 거리로 붙어 글자가 겹쳐 보였다.
         NAME_ROW = 92
         blk = 18 + NAME_ROW + len(line_ls) * 52 + 84 + 22
-        top = cy - blk // 2
+        # 첫 블록 리드가 2줄이면 패널이 위로 자라 상단 헤더 알약(하단 y=130)에 닿는다 → 20px 띄운다.
+        top = max(cy - blk // 2, 150)
         dr.rounded_rectangle([TEXT_X - 18, top, W - 34, top + blk],
                              radius=34, fill=PANEL)
         y = top + 18
