@@ -15,19 +15,40 @@ jobs:
     env:
       INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
       INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+      INSTAGRAM_LEGACY_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_LEGACY_ACCESS_TOKEN }}
+      INSTAGRAM_LEGACY_USER_ID: ${{ secrets.INSTAGRAM_LEGACY_USER_ID }}
       THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
       THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
       FREE_SAJU_SHADOW_HASH_SALT: ${{ secrets.FREE_SAJU_SHADOW_HASH_SALT }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - run: pip install requests
       - name: Shadow collector unit test
-        run: python -m unittest -v test_free_saju_shadow_collect.py
+        run: python -m unittest -v test_free_saju_shadow_collect.py test_free_saju_shadow_recovery.py
       - name: Read-only collect
         run: python free_saju_shadow_collect.py --channel all
+      - name: Report per-channel health
+        run: |
+          python - <<'PYCODE'
+          import json, os
+          a=json.load(open('free_saju_shadow_artifact.json',encoding='utf-8'))
+          lines=['### Shadow read-only collection', '',
+                 f"Status: {a['status']}",
+                 f"Anonymized records: {len(a['records'])}"]
+          for channel, result in a['channels'].items():
+              description=result['status']
+              if result['status']=='error':
+                  description += ' ('+result['reason']+')'
+                  print('::warning::'+channel+' shadow collection degraded: '+result['reason'])
+              lines.append(channel+': '+description)
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as f:
+              f.write('\n'.join(lines)+'\n')
+          PYCODE
       - name: Reject raw identifiers or text fields
         run: |
           python - <<'PY'
