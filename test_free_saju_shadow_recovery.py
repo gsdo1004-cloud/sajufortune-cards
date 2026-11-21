@@ -36,6 +36,9 @@ class RecoveryTests(unittest.TestCase):
             self.assertEqual(os.environ["INSTAGRAM_USER_ID"],"primary-id")
         self.assertEqual(c.IG_SOURCE,"legacy")
         self.assertEqual(calls,["primary-id","legacy-id"])
+        self.assertEqual(c.IG_AUTH_ATTEMPTS,
+                         [{"source":"primary","status":"auth_expired"},
+                          {"source":"legacy","status":"ok"}])
         self.assertEqual(len(r),1)
 
 if __name__=="__main__":unittest.main()

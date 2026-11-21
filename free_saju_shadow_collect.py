@@ -8,6 +8,7 @@ BASE = Path(__file__).resolve().parent
 OUT = BASE / "free_saju_shadow_artifact.json"
 KEYWORDS = ("사주","재물","재물운","직장","직장운","연애","연애운","운세")
 IG_SOURCE = None
+IG_AUTH_ATTEMPTS = []
 
 def anon(channel: str, source_id: str) -> str:
     salt = os.environ.get("FREE_SAJU_SHADOW_HASH_SALT", "local-shadow-v1")
@@ -45,8 +46,9 @@ class ChannelError(Exception):
 
 def collect_instagram() -> list[dict]:
     """Read-only profile verification before any legacy-token fallback."""
-    global IG_SOURCE
+    global IG_SOURCE, IG_AUTH_ATTEMPTS
     IG_SOURCE = None
+    IG_AUTH_ATTEMPTS = []
     import instagram_comments as ig
     expected = str(ig.cfg().get("account_username", "")).casefold()
     candidates = (("primary","INSTAGRAM_ACCESS_TOKEN","INSTAGRAM_USER_ID"),
@@ -56,11 +58,13 @@ def collect_instagram() -> list[dict]:
         token,uid = os.getenv(tkey,"").strip(),os.getenv(ikey,"").strip()
         if not token or not uid:
             failures.append("missing_credentials")
+            IG_AUTH_ATTEMPTS.append({"source":name,"status":"missing_credentials"})
             continue
         try:
             profile = ig.api_get(uid, {"fields":"id,username","access_token":token})
             if str(profile.get("username") or "").casefold() != expected:
                 failures.append("identity_mismatch")
+                IG_AUTH_ATTEMPTS.append({"source":name,"status":"identity_mismatch"})
                 continue
             original = {k:os.environ.get(k) for k in ("INSTAGRAM_ACCESS_TOKEN","INSTAGRAM_USER_ID")}
             try:
@@ -72,11 +76,14 @@ def collect_instagram() -> list[dict]:
                     if value is None: os.environ.pop(key,None)
                     else: os.environ[key] = value
             IG_SOURCE = name
+            IG_AUTH_ATTEMPTS.append({"source":name,"status":"ok"})
             return [record("instagram",str(x.get("comment_id") or ""),
                            str(x.get("text") or ""),x.get("timestamp"))
                     for x in found if x.get("comment_id") and keyword(str(x.get("text") or ""))]
         except Exception as exc:
-            failures.append(safe_reason(exc))
+            reason=safe_reason(exc)
+            failures.append(reason)
+            IG_AUTH_ATTEMPTS.append({"source":name,"status":reason})
     raise ChannelError(next((r for r in failures if r != "missing_credentials"),"missing_credentials"))
 
 def collect_threads() -> list[dict]:
@@ -99,9 +106,12 @@ def main() -> int:
             channels[name] = {"status":"ok","records":len(result)}
             if name == "instagram" and IG_SOURCE:
                 channels[name]["auth_source"] = IG_SOURCE
+                channels[name]["auth_attempts"] = IG_AUTH_ATTEMPTS
         except Exception as exc:
             reason = exc.reason if isinstance(exc,ChannelError) else safe_reason(exc)
             channels[name] = {"status":"error","reason":reason}
+            if name == "instagram" and IG_AUTH_ATTEMPTS:
+                channels[name]["auth_attempts"] = IG_AUTH_ATTEMPTS
             errors[name] = reason
     successful = any(x["status"]=="ok" for x in channels.values())
     status = "HEALTHY" if not errors else ("DEGRADED" if successful else "FAILED")
