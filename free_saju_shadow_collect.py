@@ -50,7 +50,7 @@ def collect_instagram() -> list[dict]:
     IG_SOURCE = None
     IG_AUTH_ATTEMPTS = []
     import instagram_comments as ig
-    expected = str(ig.cfg().get("account_username", "")).casefold()
+    expected = str(os.getenv("FREE_SAJU_SHADOW_INSTAGRAM_USERNAME") or ig.cfg().get("account_username", "")).casefold()
     candidates = (("primary","INSTAGRAM_ACCESS_TOKEN","INSTAGRAM_USER_ID"),
                   ("legacy","INSTAGRAM_LEGACY_ACCESS_TOKEN","INSTAGRAM_LEGACY_USER_ID"))
     failures = []
