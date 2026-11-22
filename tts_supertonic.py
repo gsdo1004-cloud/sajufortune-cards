@@ -28,6 +28,8 @@ VOICE = os.environ.get("SUPERTONIC_VOICE", "").strip() or "M2"
 
 _ENGINE = None
 _FAILED = False  # 한 번 실패하면 매 컷마다 재시도하지 않는다
+from threading import RLock
+_QA_RNG_LOCK = RLock()
 
 
 def available() -> bool:
@@ -58,8 +60,24 @@ def synth(text: str, out_mp3: Path, speed: float = 1.2) -> bool:
         eng = _engine()
         style = eng.get_voice_style(voice_name=VOICE)
         wav_path = Path(out_mp3).with_suffix(".st.wav")
-        wav, _ = eng.synthesize(text=text, voice_style=style, lang="ko",
-                                total_steps=8, speed=speed)
+        if os.environ.get("SUPERTONIC_DETERMINISTIC_QA", "0") == "1":
+            # Offline QA only. Supertonic samples a random diffusion latent.
+            # Stable identity seeds deterministic replay; restore RNG afterward.
+            import hashlib
+            import numpy as np
+            with _QA_RNG_LOCK:
+                old_rng = np.random.get_state()
+                identity = chr(31).join(("supertonic-3", VOICE, f"{speed:.6f}", text))
+                seed = int.from_bytes(hashlib.sha256(identity.encode("utf-8")).digest()[:4], "big")
+                try:
+                    np.random.seed(seed)
+                    wav, _ = eng.synthesize(text=text, voice_style=style, lang="ko",
+                                            total_steps=8, speed=speed)
+                finally:
+                    np.random.set_state(old_rng)
+        else:
+            wav, _ = eng.synthesize(text=text, voice_style=style, lang="ko",
+                                    total_steps=8, speed=speed)
         eng.save_audio(wav, str(wav_path))
         subprocess.run(
             ["ffmpeg", "-y", "-i", str(wav_path), "-c:a", "libmp3lame",

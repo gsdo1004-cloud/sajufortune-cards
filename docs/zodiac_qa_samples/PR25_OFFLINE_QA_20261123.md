@@ -27,3 +27,12 @@
 4. Investigate differing TTS/video hashes in positive canary reruns.
 5. Render/review all six remaining styles and regenerate/review 21 previews, complete cards/videos.
 6. Keep Draft; forbid merge/deploy/SNS publication and paid image fallbacks.
+
+## 2026-11-23 offline deterministic TTS continuation
+- Supertonic-3 stochastic sampling confirmed in core.py: NumPy random diffusion latent. Without a fixed seed two complete prior canary MP4 and decoded audio SHA differed, not because inputs were corrupted.
+- New opt-in SUPERTONIC_DETERMINISTIC_QA=1 derives a stable SHA-256 seed from model, voice, speed, and text; holds a lock and restores original NumPy RNG state. Legacy default is unchanged.
+- Four new unit tests and 53 full local regression checks PASS.
+- Two separate completed full 80.831-second 1080x1920 H264/AAC TTS MP4 videos for unpublished 2026-11-28, with opt-in deterministic mode, were byte-for-byte identical: SHA-256 96a5ac8e4b6e6a59f243b028bf2cecd2f39404cab63dd5b6eb172f81e8e1cc8c.
+- Inputs and audit proof hashes unchanged; observed external social calls 0, paid image API calls 0.
+- This resolves bitwise-replay HOLD only for opt-in offline QA; default production audio remains stochastic.
+- STYLE_07 initial local FLUX-only source generation is independent of this code commit, remains PENDING_QA, and never authorizes publishing.
