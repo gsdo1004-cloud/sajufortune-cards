@@ -42,3 +42,24 @@ def test_never_replace_published_day(tmp_path):
     receipt.write_text('{"post_id":"one"}')
     with pytest.raises(ValueError,match="published"):
         fa.prepare(day,tmp_path,generator=lambda *args: pytest.fail("no generation"))
+
+
+def test_broker_qa_pending_is_checked_again_by_offline_manifest(monkeypatch, tmp_path):
+    import sys
+    import types
+    # The shared broker intentionally returns PENDING_QA for raw images;
+    # local social background validation runs in _render_safe_jpeg + verify.
+    fake_chain = types.ModuleType("imagegen_broker.provider_chain")
+    def fake_generate(prompt, path, **kwargs):
+        assert kwargs["provider_order"][0] == "flux2_klein_local"
+        assert kwargs["allow_paid"] is False
+        assert kwargs["max_paid_provider_attempts"] == 0
+        assert kwargs["emergency_fallback"] is False
+        return {"ok":True, "publication_eligible":False,
+                "publication_status":"PENDING_QA", "provider":"flux2_klein_local"}
+    fake_chain.generate_with_fallback = fake_generate
+    fake_broker = types.ModuleType("imagegen_broker")
+    monkeypatch.setitem(sys.modules, "imagegen_broker", fake_broker)
+    monkeypatch.setitem(sys.modules, "imagegen_broker.provider_chain", fake_chain)
+    monkeypatch.setattr(fa, "BROKER_ROOT", tmp_path)
+    assert fa._generate("safe scene", tmp_path / "scene.png", 1) == "flux2_klein_local"

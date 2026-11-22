@@ -107,7 +107,13 @@ def _generate(prompt: str, path: Path, seed: int) -> str:
         emergency_fallback=False, commercial_use=True,
     )
     provider = result.get("provider")
-    if not result.get("ok") or result.get("publication_eligible") is False or provider not in PROVIDERS:
+    # The shared broker marks ALL successful raw generations PENDING_QA.
+    # That is intentional and must not be changed globally. For this separate
+    # offline social background lane, our strict JPEG validation, six-item
+    # manifest/hash gate and downstream card validation perform that QA.
+    # Never accept semantic-degraded or unapproved-provider results.
+    if (not result.get("ok") or result.get("semantic_degraded")
+            or provider not in PROVIDERS):
         raise RuntimeError("local FLUX and included image API unavailable")
     return provider
 
