@@ -175,6 +175,12 @@ def _dur(path):
     return float(json.loads(r.stdout)["format"]["duration"])
 
 
+def _flux_zoom_cap(index: int, total_scenes: int) -> float:
+    # The summary's twelve verified portraits sit near the foot of the
+    # frame. 1.08x zoom cropped them in a real 80.8s TTS render.
+    return 1.03 if index == total_scenes - 1 else 1.08
+
+
 def make_reel_tts(date_iso, card_stem: str = "card_", narrs: list[str] | None = None,
                   out_name: str | None = None):
     """카드 + 나레이션 → 9:16 릴스.
@@ -233,8 +239,9 @@ def make_reel_tts(date_iso, card_stem: str = "card_", narrs: list[str] | None = 
         if card_stem == "card_" and _flux_active(date_iso):
             # New 9:16 artwork must keep its native aspect ratio. The legacy
             # 1080x1350 stretch is intentionally preserved for older dates.
+            zoom_cap = _flux_zoom_cap(i, n)
             vf = (f"scale=960:1706,"
-                  f"zoompan=z='min(zoom+0.0008,1.08)':d={int(L * FPS)}:s=960x1706:fps={FPS},"
+                  f"zoompan=z='min(zoom+0.0008,{zoom_cap:.2f})':d={int(L * FPS)}:s=960x1706:fps={FPS},"
                   f"pad={W}:{H}:60:107:color={BG},format=yuv420p")
         else:
             vf = (f"scale=1080:1350,"

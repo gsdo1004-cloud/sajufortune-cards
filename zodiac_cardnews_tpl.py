@@ -379,7 +379,9 @@ def card_summary(set_n: int, date_iso: str, allrows: dict[str, dict]) -> Image.I
     # 12띠를 2열 6행. 큰 패널 하나로 덮으면 배경 동물이 뿌옇게 비쳐 지저분하고
     # 가운데가 텅 빈다(2026-08-05 실측) → 셀마다 작은 패널을 두고 배경은 살린다.
     order = [ko for g in zpe.GROUPS for ko in g]
-    top, bot = 176, H - (300 if _flux_active(date_iso) else 120)
+    # Reserve two larger thumbnail rows for the reviewed FLUX atlas.
+    # Legacy summary layouts keep their existing geometry.
+    top, bot = 176, H - (390 if _flux_active(date_iso) else 120)
     gap_x, gap_y = 16, 12
     cw = (W - 88 - gap_x) // 2
     ch = (bot - top - gap_y * 5) // 6

@@ -25,9 +25,9 @@ def verify_semantic(day: str, root: Path, manifest: dict) -> dict:
         # original FLUX portraits eliminates multi-animal diffusion duplicates.
         from scripts.zodiac_mascot_atlas import verify_atlas, atlas_dir
         from scripts.visual_quality_gate import sha256
-        verified=verify_atlas(day,root)
         if sha256(atlas_dir(day,root)/"manifest.json")!=manifest["verified_atlas_manifest_sha256"]:
             raise SemanticHold("ATLAS_MANIFEST_SHA_CHANGED")
+        verified=verify_atlas(day,root)
         if any(entry.get("verified_atlas_manifest_sha256")!=manifest["verified_atlas_manifest_sha256"]
                for entry in manifest.get("files",[])):
             raise SemanticHold("CARD_ATLAS_PROVENANCE_MISMATCH")

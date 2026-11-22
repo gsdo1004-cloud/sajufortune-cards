@@ -1,6 +1,6 @@
 """Offline deterministic 12-sign local FLUX portrait atlas without social publishing."""
-import datetime as dt
 import json
+import datetime as dt
 from pathlib import Path
 import pytest
 from PIL import Image, ImageDraw
@@ -32,10 +32,19 @@ def atlas_fixture(root,day="2026-11-24"):
                         "text_artifacts":False,
                         "eastern_dragon_verified":True if name=="dragon" else None,
                         "friendly_non_scary":True if name in ("rat","snake") else None})
+    # These are synthetic test fixtures, never production-independent artwork QA.
+    evidence={"schema":"zodiac-independent-review-v1","status":"PASS",
+              "style_id":"STYLE_02","verification_method":"independent_visual_review",
+              "reviewer":"synthetic pytest fixture only","reviewed_at":"2026-11-23T05:00:00+09:00",
+              "paid_api_calls":0,"files":[{**rec,"status":"PASS",
+                  "review_notes":"SYNTHETIC_FIXTURE_ONLY_NOT_REAL_QA"} for rec in records]}
+    evidence_file=folder/"review_evidence.json"
+    evidence_file.write_text(json.dumps(evidence,ensure_ascii=False),encoding="utf-8")
     m={"schema":"zodiac-verified-flux-atlas-v1","style_id":"STYLE_02",
        "status":"PASS","paid_api_calls":0,
        "verification_method":"independent_visual_review",
-       "reviewer_reference":"SYNTHETIC_TEST_FIXTURE_NOT_A_REAL_REVIEW","files":records}
+       "reviewer_reference":"review_evidence.json#sha256="+sha256(evidence_file),
+       "files":records}
     (folder/"manifest.json").write_text(json.dumps(m,ensure_ascii=False),encoding="utf-8")
     return folder,m
 
@@ -141,3 +150,55 @@ def test_western_dragon_or_scary_rat_cannot_be_certified(tmp_path):
     (folder/"manifest.json").write_text(json.dumps(m),encoding="utf-8")
     with pytest.raises(AtlasHold,match="ATLAS_SINGLE_SPECIES_QA"):
         verify_atlas("2026-11-24",tmp_path)
+
+
+def test_reviewer_reference_cannot_be_arbitrary_string(tmp_path):
+    folder, m = atlas_fixture(tmp_path)
+    m["reviewer_reference"] = "NONEXISTENT://no-audit-record"
+    (folder / "manifest.json").write_text(json.dumps(m),encoding="utf-8")
+    with pytest.raises(AtlasHold, match="ATLAS_REVIEW_REFERENCE_INVALID"):
+        verify_atlas("2026-11-24",tmp_path)
+
+
+def test_evidence_file_tampering_blocks_approval(tmp_path):
+    folder, m = atlas_fixture(tmp_path)
+    path = folder / "review_evidence.json"
+    info = json.loads(path.read_text())
+    info["reviewer"] = "changed after signing"
+    path.write_text(json.dumps(info),encoding="utf-8")
+    with pytest.raises(AtlasHold, match="ATLAS_REVIEW_EVIDENCE_SHA_MISMATCH"):
+        verify_atlas("2026-11-24",tmp_path)
+
+
+def test_per_portrait_review_sha_and_species_mismatch_blocks(tmp_path):
+    folder, m = atlas_fixture(tmp_path)
+    path = folder / "review_evidence.json"
+    data = json.loads(path.read_text())
+    data["files"][0]["sha256"] = "0" * 64
+    path.write_text(json.dumps(data),encoding="utf-8")
+    m["reviewer_reference"] = "review_evidence.json#sha256=" + sha256(path)
+    (folder / "manifest.json").write_text(json.dumps(m),encoding="utf-8")
+    with pytest.raises(AtlasHold, match="ATLAS_REVIEW_FILE_MISMATCH_rat"):
+        verify_atlas("2026-11-24",tmp_path)
+
+
+def test_missing_evidence_refuses_approval(tmp_path):
+    folder, m = atlas_fixture(tmp_path)
+    (folder / "review_evidence.json").unlink()
+    with pytest.raises(AtlasHold, match="ATLAS_REVIEW_EVIDENCE_MISSING"):
+        verify_atlas("2026-11-24",tmp_path)
+
+
+def test_summary_portraits_are_phone_readable_and_zoom_safe():
+    from scripts.zodiac_mascot_atlas import layout_regions
+    from zodiac_reels import _flux_zoom_cap
+    regions = layout_regions("06_12띠요약")
+    assert [r["sign"] for r in regions] == list(NAMES)
+    for region in regions:
+        x1,y1,x2,y2 = region["bbox"]
+        assert x2-x1 >= 140 and y2-y1 >= 140
+        assert 25 <= x1 < x2 <= 1055
+        assert 1500 <= y1 < y2 <= 1880
+    assert len({tuple(region["bbox"]) for region in regions}) == 12
+    assert _flux_zoom_cap(0,6) == 1.08
+    assert _flux_zoom_cap(5,6) <= 1.03

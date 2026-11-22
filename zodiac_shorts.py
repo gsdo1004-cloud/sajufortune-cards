@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import json
 import os
 import shutil
@@ -50,15 +51,19 @@ PNGTUBER_MOUTH_FILES = ["mouth_0_closed_nobg.png", "mouth_1_slight_nobg.png",
 
 def _apply_pngtuber_pip(video_path: Path, date: dt.date,
                          voice_info: dict | None = None) -> None:
-    """쇼츠에 PNGTuber 반응형 아바타 PIP를 얹는다. 절대 예외를 던지지 않음 —
-    G드라이브 스톨·프레임 누락 등 무엇이 실패해도 쇼츠 조립 자체는 계속 진행한다
+    """쇼츠에 PNGTuber 반응형 아바타 PIP를 얹는다. 일반 경로는 오류를 삼키지만
+    ZODIAC_REQUIRE_HANBOK_AVATAR=1 이면 누락·실패를 명확히 차단한다.
     (human_touch_pip.apply_pip과 동일한 '빌드를 멈추지 않는다' 원칙).
     voice_info가 있으면 실제 TTS 성별을 사용하고, 구형 호출만 날짜 기준으로 폴백한다."""
-    # 12지신 비주얼 로테이션: 반복적인 인간 아바타가 동물 주연 화면을 가리지 않게
-    # 기본값은 PIP 비활성. 필요 시 ZODIAC_ALLOW_HUMAN_PIP=1로만 복원한다.
+    # Preserve the legacy optional PIP behavior, but do not silently certify
+    # a Shorts deliverable that explicitly requires the original Hanbok host.
+    # This quality-gate flag is used only when the workflow requires avatars.
+    required = os.environ.get("ZODIAC_REQUIRE_HANBOK_AVATAR", "0") == "1"
     if os.environ.get("ZODIAC_ALLOW_HUMAN_PIP", "0") != "1":
+        if required:
+            raise RuntimeError("HANBOK_AVATAR_REQUIRED_BUT_DISABLED")
         log("[visual-rotation] 12지신 중심 화면 유지: 사람 PNGTuber PIP 생략")
-        return
+        return {"status": "SKIPPED", "reason": "PIP_DISABLED"}
     try:
         if str(PNGTUBER_DIR) not in sys.path:
             sys.path.insert(0, str(PNGTUBER_DIR))
@@ -75,13 +80,25 @@ def _apply_pngtuber_pip(video_path: Path, date: dt.date,
         frames = [frame_dir / f for f in PNGTUBER_MOUTH_FILES]
         missing = [f for f in frames if not f.exists()]
         if missing:
+            if required:
+                raise RuntimeError(f"HANBOK_AVATAR_FRAMES_MISSING_{persona}")
             log(f"[WARN] PNGTuber 프레임 없음({persona}) — PIP 생략: {missing[0]}")
-            return
+            return {"status": "SKIPPED", "reason": "FRAMES_MISSING"}
+        before_sha = hashlib.sha256(video_path.read_bytes()).hexdigest() if required else None
         info = pnt_pip.compose(str(video_path), [str(f) for f in frames])
+        if required and (
+            not video_path.is_file()
+            or hashlib.sha256(video_path.read_bytes()).hexdigest() == before_sha
+        ):
+            raise RuntimeError("HANBOK_AVATAR_NOT_COMPOSITED")
         log(f"PNGTuber PIP 완료: {persona}({gender}, {gender_source}), "
             f"{info['위치']} 위치, {info['길이']}초")
+        return {"status": "APPLIED", "persona": persona, "gender": gender}
     except Exception as e:
         log(f"[WARN] PNGTuber PIP 실패(쇼츠는 그대로 진행): {type(e).__name__}: {e}")
+        if required:
+            raise
+        return {"status": "SKIPPED", "reason": type(e).__name__}
 
 # 네이버 클립 = 1분 30초 이내만 업로드 가능 (한밝님 2026-07-17). 초과하면 채널 하나를
 # 통째로 못 쓴다. 88초를 목표로 잡아 인코딩 오차·패딩 여유를 둔다.

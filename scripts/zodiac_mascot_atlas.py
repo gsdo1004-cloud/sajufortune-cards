@@ -62,6 +62,13 @@ def verify_atlas(day: str,root: Path) -> dict:
         if not image.is_file() or sha256(image)!=record.get("sha256"):
             raise AtlasHold("ATLAS_SHA_MISMATCH_"+name)
         image_check(image,size=(512,512),min_bytes=8000)
+    # Presence of an arbitrary reviewer_reference string was previously enough.
+    # Bind actual independent evidence to each source image and the style.
+    from scripts.zodiac_review_evidence import verify_review_evidence, ReviewEvidenceHold
+    try:
+        verify_review_evidence(manifest, folder)
+    except ReviewEvidenceHold as exc:
+        raise AtlasHold(str(exc)) from exc
     return manifest
 
 def _gradient(w,h,top,bottom):
@@ -97,7 +104,12 @@ def layout_regions(stem: str) -> list[dict]:
                                       65+(i%4)*240+220,450+(i//4)*365+315]}
                 for i,name in enumerate(NAMES)]
     if stem=="06_12띠요약":
-        return [{"sign":name,"bbox":[25+i*86,1748,25+i*86+70,1830]}
+        # Two rows of six thumbnails. Each source portrait retains >=120 px
+        # image content (~40 px at phone width 360), and stays inside the
+        # summary scene's 1.03x zoom-safe frame; avoid the former 70px tiles.
+        return [{"sign":name,
+                 "bbox":[42+(i%6)*170,1548+(i//6)*162,
+                         42+(i%6)*170+148,1548+(i//6)*162+148]}
                 for i,name in enumerate(NAMES)]
     idx=STEMS.index(stem)
     return [{"sign":name,"bbox":[28,220+j*490,296,220+j*490+395]}
