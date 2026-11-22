@@ -191,6 +191,12 @@ def make_reel_tts(date_iso, card_stem: str = "card_", narrs: list[str] | None = 
              or sorted(_d.glob(f"{card_stem}*.jpg")))
     if not cards:
         raise SystemExit(f"[FAIL] 카드 없음: {date_iso} ({card_stem}*) — generate 먼저")
+    if card_stem == "card_":
+        # New local-FLUX carousel cannot be converted to video without PASS.
+        from zodiac_cardnews_tpl import _flux_active
+        if _flux_active(date_iso):
+            from scripts.zodiac_card_assets import verify as verify_cards
+            verify_cards(date_iso)
     if narrs is None:
         narrs = narration_lines(date_iso)
     n = min(len(cards), len(narrs))
@@ -223,9 +229,17 @@ def make_reel_tts(date_iso, card_stem: str = "card_", narrs: list[str] | None = 
         mp3 = mp3s[i]
         L = round(_dur(mp3) + PAD, 2)
         clip = tmp / f"c{i:02d}.mp4"
-        vf = (f"scale=1080:1350,"
-              f"zoompan=z='min(zoom+0.0008,1.10)':d={int(L * FPS)}:s=1080x1350:fps={FPS},"
-              f"pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color={BG},format=yuv420p")
+        from zodiac_cardnews_tpl import _flux_active
+        if card_stem == "card_" and _flux_active(date_iso):
+            # New 9:16 artwork must keep its native aspect ratio. The legacy
+            # 1080x1350 stretch is intentionally preserved for older dates.
+            vf = (f"scale=960:1706,"
+                  f"zoompan=z='min(zoom+0.0008,1.08)':d={int(L * FPS)}:s=960x1706:fps={FPS},"
+                  f"pad={W}:{H}:60:107:color={BG},format=yuv420p")
+        else:
+            vf = (f"scale=1080:1350,"
+                  f"zoompan=z='min(zoom+0.0008,1.10)':d={int(L * FPS)}:s=1080x1350:fps={FPS},"
+                  f"pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color={BG},format=yuv420p")
         subprocess.run(
             ["ffmpeg", "-y", "-loop", "1", "-i", str(cards[i]), "-i", str(mp3),
              "-t", str(L), "-vf", vf, "-r", str(FPS), "-af", "apad",
@@ -253,11 +267,21 @@ def make_reel_tts(date_iso, card_stem: str = "card_", narrs: list[str] | None = 
     # 조용히 건너뛴다 — 아바타 때문에 발행을 멈출 이유가 없다.
     try:
         import avatar_pip
-        if avatar_pip.enabled():
+        from zodiac_cardnews_tpl import _flux_active
+        if avatar_pip.enabled() and card_stem == "card_" and _flux_active(date_iso):
+            # PIP normally covers the lower-left animal protagonists; hold
+            # the avatar overlay for newly protected FLUX card compositions.
+            print("[SAFE] avatar PIP skipped: protected zodiac subjects occupy left-side frame")
+        elif avatar_pip.enabled():
             avatar_pip.apply(out)
     except ImportError:
         pass
 
+    if card_stem == "card_":
+        from zodiac_cardnews_tpl import _flux_active
+        if _flux_active(date_iso):
+            from scripts.visual_quality_gate import video_check
+            video_check(out)
     print(f"[OK] reel+TTS → {out} ({n}컷, 약 {round(_dur(out), 1)}초, {W}x{H})")
     return out
 
@@ -357,6 +381,14 @@ def do_publish(date_iso):
     if marker.exists():
         print(f"[스킵] {date_iso} 릴스 이미 발행됨(멱등 가드)")
         return
+    from zodiac_cardnews_tpl import _flux_active
+    if _flux_active(date_iso):
+        # Receipt check runs first; do not create a Threads API container if
+        # local source video or text geometry has not passed.
+        from scripts.zodiac_card_assets import verify as verify_cards
+        from scripts.visual_quality_gate import video_check
+        verify_cards(date_iso)
+        video_check(BASE / "reels" / f"{date_iso}_tts.mp4")
     url = f"{RAW_BASE}/reels/{date_iso}_tts.mp4"
     caption = (f"{date_full(date_iso)} 오늘의 띠별 운세 🔮\n"
                f"영상으로 보는 12띠 오늘의 흐름\n\n"

@@ -323,6 +323,12 @@ def do_generate():
 
 def _verified_image_urls(date_iso):
     outdir = Path(__file__).resolve().parent / "cards" / date_iso
+    # Strict quality and independent species audit for NEW styled FLUX only.
+    # Existing published/legacy dates retain their original validation path.
+    from zodiac_cardnews_tpl import _flux_active
+    if _flux_active(date_iso):
+        from scripts.zodiac_card_assets import verify as verify_cards
+        verify_cards(date_iso)
     files = sorted(outdir.glob("card_*.png")) or sorted(outdir.glob("card_*.jpg"))
     if not (2 <= len(files) <= 20):
         raise SystemExit(f"[HOLD] invalid carousel asset count: {len(files)} (expected 2..20)")

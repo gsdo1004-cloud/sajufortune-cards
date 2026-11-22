@@ -14,6 +14,11 @@ import tempfile
 
 from PIL import Image, ImageStat
 
+# Script entrypoint also works when launched by the existing local asset farm.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from scripts.zodiac_style_rotation import style_for_day
+from scripts.zodiac_character_prompts import prompt_for, protected_boxes, SUBJECTS
+
 ROOT = Path(__file__).resolve().parents[1]
 STEMS = ("01_표지", "02_띠별A", "03_띠별B", "04_띠별C", "05_띠별D", "06_12띠요약")
 SIZE = (1080, 1920)
@@ -54,7 +59,17 @@ def verify(day: str, root: Path = ROOT) -> dict:
     expected = {"manifest.json"} | {s + ".jpg" for s in STEMS}
     if {p.name for p in target.iterdir() if p.is_file()} != expected:
         raise ValueError("FLUX inventory unexpected or missing file")
-    for entry in entries:
+    style = style_for_day(day)
+    if m.get("style_id") and m["style_id"] != style["id"]:
+        raise ValueError("daily STYLE rotation mismatch")
+    if m.get("paid_api_calls") != 0:
+        raise ValueError("paid API usage not permitted")
+    for i, entry in enumerate(entries):
+        if m.get("style_id"):
+            if entry.get("style_id") != style["id"] or entry.get("seed") is None:
+                raise ValueError("style/seed missing")
+            if entry.get("protected_regions") != [list(b) for b in protected_boxes(STEMS[i], *SIZE)]:
+                raise ValueError("protected region contract mismatch")
         path = target / entry["name"]
         if not path.is_file() or path.is_symlink() or path.stat().st_size < 50_000:
             raise ValueError("FLUX image missing/undersized")
@@ -122,26 +137,39 @@ def prepare(day: str, root: Path = ROOT, generator=None) -> dict:
     target = folder(day, root)
     if target.exists():
         return verify(day, root)
-    if (root / "cards" / day / "threads_pub_carousel.json").exists():
+    receipts = ("threads_pub_*.json", "instagram_pub_*.json",
+                "youtube_pub*.json", "uploaded.json")
+    card_folder = root / "cards" / day
+    if any(any(card_folder.glob(pat)) for pat in receipts):
         raise ValueError("published day cannot be rewritten")
     target.parent.mkdir(parents=True, exist_ok=True)
     temp = Path(tempfile.mkdtemp(prefix=".flux-staging-", dir=target.parent))
     gen = generator or _generate
     try:
         entries = []
-        for i, (stem, subject) in enumerate(zip(STEMS, PROMPTS), 1):
+        style = style_for_day(day)
+        for i, stem in enumerate(STEMS, 1):
             raw = temp / f".raw_{i}.png"
             jpg = temp / (stem + ".jpg")
-            prompt = (f"Premium cinematic illustration for Korean zodiac fortune {day}. "
-                      f"{subject}. 9:16 tall background, rich textures, "
-                      "calm center for overlaid Korean captions, no text.")
-            provider = gen(prompt, raw, int(day.replace("-", "")) * 10 + i)
+            prompt = prompt_for(day, stem, "card")
+            seed = int(day.replace("-", "")) * 10 + i
+            provider = gen(prompt, raw, seed)
             if provider not in PROVIDERS:
                 raise ValueError("unapproved image provider")
             _render_safe_jpeg(raw, jpg)
             raw.unlink(missing_ok=True)
-            entries.append({"name": jpg.name, "sha256": sha256(jpg), "provider": provider})
+            entries.append({"name": jpg.name, "sha256": sha256(jpg), "provider": provider,
+                            "style_id":style["id"], "style_name":style["name"],
+                            "subject":"east_asian_zodiac",
+                            "main_zodiac":list(SUBJECTS[i-1]),
+                            "protected_regions":[list(b) for b in protected_boxes(stem,*SIZE)],
+                            "prompt":prompt, "seed":seed,
+                            "safe_top_ratio":0.22, "safe_bottom_ratio":0.14,
+                            "image_provider":provider, "model":provider})
         m = {"schema": SCHEMA, "date": day, "mode": "FLUX_LOCAL_THEN_INCLUDED_API",
+             "style_id":style["id"], "style_name":style["name"],
+             "subject":"east_asian_zodiac", "layout_protection_source":"composition_contract",
+             "allow_paid":False, "max_paid_provider_attempts":0,
              "paid_api_calls": 0, "files": entries}
         (temp / "manifest.json").write_text(json.dumps(m, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         if target.exists():

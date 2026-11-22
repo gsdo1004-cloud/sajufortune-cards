@@ -39,6 +39,23 @@ def verify(day: str, root: Path | None = None) -> list[Path]:
         with Image.open(p) as im:
             if im.size != SIZE or im.format != "JPEG":
                 raise ValueError(f"wrong card format or dimensions: {p.name} {im.format} {im.size}")
+    manifest = root / "assets" / "flux_daily" / day / "manifest.json"
+    if manifest.is_file():
+        info = json.loads(manifest.read_text(encoding="utf-8"))
+        if info.get("style_id"):
+            from scripts.zodiac_semantic_qa_gate import verify_semantic
+            verify_semantic(day, root, info)
+            layout = folder / "layout_manifest.json"
+            if not layout.is_file():
+                raise ValueError("FLUX layout report missing: HOLD")
+            report = json.loads(layout.read_text(encoding="utf-8"))
+            if (report.get("date") != day or report.get("status") != "PASS" or
+                len(report.get("layout_reports", [])) != 6 or
+                any(x.get("status") != "PASS" for x in report["layout_reports"])):
+                raise ValueError("FLUX text safe layout not PASS: HOLD")
+            from scripts.visual_quality_gate import image_check
+            for image in paths:
+                image_check(image, min_bytes=MIN_BYTES)
     print(f"[PASS] {day}: six JPEG cards verified (1080x1920, >=60KB)")
     return paths
 
@@ -60,7 +77,11 @@ def _promote_unpublished_flux_cards(day: str, folder: Path, manifest_hash: str) 
         backup = Path(temp)
         for image in old_cards:
             shutil.copyfile(image, backup / image.name)
-        old_marker = marker.read_bytes() if marker.exists() else None
+        backup_meta = {}
+        for meta_name in ("flux_backgrounds_applied.json", "visual_style.json",
+                          "layout_manifest.json"):
+            meta = folder / meta_name
+            backup_meta[meta_name] = meta.read_bytes() if meta.exists() else None
         try:
             from zodiac_cardnews_tpl import build
             build(day)
@@ -77,10 +98,12 @@ def _promote_unpublished_flux_cards(day: str, folder: Path, manifest_hash: str) 
                 image.unlink()
             for image in old_cards:
                 shutil.copyfile(backup / image.name, image)
-            if old_marker is None:
-                marker.unlink(missing_ok=True)
-            else:
-                marker.write_bytes(old_marker)
+            for name, content in backup_meta.items():
+                original = folder / name
+                if content is None:
+                    original.unlink(missing_ok=True)
+                else:
+                    original.write_bytes(content)
             raise
 
 
@@ -92,7 +115,10 @@ def ensure(day: str) -> list[Path]:
     flux_manifest = ROOT / "assets" / "flux_daily" / day / "manifest.json"
     if flux_manifest.is_file():
         from scripts.flux_first_card_assets import verify as verify_flux
-        verify_flux(day, ROOT)  # complete six files + SHA256 + format + nonblank
+        verified_manifest = verify_flux(day, ROOT)  # complete six files + SHA256 + format + nonblank
+        if verified_manifest.get("style_id"):
+            from scripts.zodiac_semantic_qa_gate import verify_semantic
+            verify_semantic(day, ROOT, verified_manifest)
         manifest_sha = hashlib.sha256(flux_manifest.read_bytes()).hexdigest()
         marker = folder / "flux_backgrounds_applied.json"
         try:
