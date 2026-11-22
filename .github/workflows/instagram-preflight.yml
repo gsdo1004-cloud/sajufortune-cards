@@ -19,6 +19,8 @@ jobs:
       INSTAGRAM_AUTO_COMMENT: "0"
     steps:
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
