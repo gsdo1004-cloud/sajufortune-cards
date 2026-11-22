@@ -108,7 +108,7 @@ def _render_safe_jpeg(raw: Path, out: Path) -> None:
         raise ValueError("JPEG too small")
 
 
-def _generate(prompt: str, path: Path, seed: int) -> str:
+def _generate(prompt: str, path: Path, seed: int, *, width: int = 768, height: int = 1344) -> str:
     if not BROKER_ROOT.is_dir():
         raise RuntimeError("local FLUX broker not found")
     sys.path.insert(0, str(BROKER_ROOT))
@@ -116,7 +116,7 @@ def _generate(prompt: str, path: Path, seed: int) -> str:
     result = generate_with_fallback(
         prompt, path,
         negative="text, watermark, cropped animals, horror, scary snakes, frightening rats",
-        width=768, height=1344, steps=4, seed=seed, timeout_seconds=390,
+        width=width, height=height, steps=4, seed=seed, timeout_seconds=390,
         provider_order=["flux2_klein_local", "gemini_subscription_included_if_available"],
         allow_paid=False, max_paid_provider_attempts=0,
         emergency_fallback=False, commercial_use=True,
@@ -142,6 +142,12 @@ def prepare(day: str, root: Path = ROOT, generator=None) -> dict:
     card_folder = root / "cards" / day
     if any(any(card_folder.glob(pat)) for pat in receipts):
         raise ValueError("published day cannot be rewritten")
+    if generator is None:
+        from scripts.zodiac_mascot_atlas import atlas_available, compose_verified_day
+        if atlas_available(day, root):
+            # One-time audited local FLUX avatars guarantee unique sign count,
+            # whereas multi-animal image prompts visibly duplicate species.
+            return compose_verified_day(day, root)
     target.parent.mkdir(parents=True, exist_ok=True)
     temp = Path(tempfile.mkdtemp(prefix=".flux-staging-", dir=target.parent))
     gen = generator or _generate

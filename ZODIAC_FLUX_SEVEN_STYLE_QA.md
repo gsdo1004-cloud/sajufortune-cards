@@ -43,3 +43,28 @@ Synthetic test fixtures bypass this audit only inside pytest using monkeypatch;
 **the actual publishing pipeline has no such bypass.**
 The new gate currently produces HOLD for real output if no independent audit
 is available, because prompt compliance is not proof of twelve correct signs.
+
+## Verified one-animal atlas (structural fix for duplicated species)
+The first actual FLUX cover samples contain duplicated/misidentified animals.
+Do not approve those covers. New optional, non-destructive atlas route:
+scripts/zodiac_mascot_atlas.py
+
+1. For each weekday style, run stage_atlas_sources(day,root,max_new=1..12).
+   Only one independent single-species portrait is generated at a time from
+   the same local FLUX broker with explicit square dimensions and paid OFF.
+   Crash/resume uses SHA-256 and a PENDING_QA manifest.
+2. Twelve unique files rat.jpg, ox.jpg, ... pig.jpg must be independently
+   visually audited. No generated file is self-approved. Record one identified
+   species per file, no cropped face, no malformed anatomy, no text artifacts,
+   verification method/reference and exact SHA in
+   assets/zodiac_mascot_atlas/STYLE_XX/manifest.json.
+3. With a verified atlas manifest present, existing FLUX preparation prefers
+   deterministic PIL composition over multi-animal text-to-image generation.
+   Six 9:16 backgrounds are atomically produced and identified by atlas SHA.
+4. Existing card ensure/verify accepts audited atlas provenance as semantic
+   evidence and still checks all six rendered text layouts.
+5. Without a verified atlas, direct free FLUX images remain under a strict
+   independent per-day semantic QA gate; otherwise publication HOLD.
+
+The atlas route has synthetic unit/integration tests only; actual 84 portraits
+(12 species x 7 styles) are NOT yet generated and independently approved.

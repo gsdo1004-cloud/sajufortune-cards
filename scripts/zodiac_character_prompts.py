@@ -18,7 +18,7 @@ STEMS=("01_표지","02_띠별A","03_띠별B","04_띠별C","05_띠별D","06_12띠
 NAMES=tuple(TRAITS)
 SUBJECTS=(NAMES,NAMES[:3],NAMES[3:6],NAMES[6:9],NAMES[9:12],NAMES)
 # These zones are an authored scene composition contract, NOT actual face detection.
-PROTECTED=(((.09,.27,.91,.77),),((.02,.12,.30,.84),),((.02,.12,.30,.84),),
+PROTECTED=(((.04,.23,.97,.79),),((.02,.12,.30,.84),),((.02,.12,.30,.84),),
            ((.02,.12,.30,.84),),((.02,.12,.30,.84),),())
 PLACEMENT=(
 "show all twelve complete friendly animals in center-middle, keep top 22% and bottom 14% free",

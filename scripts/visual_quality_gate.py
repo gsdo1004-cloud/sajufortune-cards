@@ -2,7 +2,7 @@
 from __future__ import annotations
 import hashlib,json,subprocess,shutil,io
 from pathlib import Path
-from PIL import Image,ImageStat
+from PIL import Image,ImageStat,ImageFilter
 class VisualHold(ValueError):pass
 def sha256(path):
     h=hashlib.sha256()
@@ -59,3 +59,23 @@ def video_check(path, max_duration=None, min_bytes=90000, *, sample_frames=True)
                 raise VisualHold("VIDEO_FRAME_DECODE_FAILED") from e
     return {"status":"PASS","duration_seconds":dur,"codec":video.get("codec_name"),
             "size_bytes":p.stat().st_size,"sha256":sha256(p),"sample_frames":samples}
+
+def underlay_detail_check(image, boxes, threshold=.049):
+    """Heuristic: flag dense illustration *beneath* intended text panels.
+
+    Edge density cannot identify actual faces or species. It is a conservative
+    supplement to geometry + independently verified semantic identity.
+    """
+    rgb=image.convert("RGB")
+    findings=[]
+    for box in boxes:
+        if not (0<=box[0]<box[2]<=rgb.width and 0<=box[1]<box[3]<=rgb.height):
+            raise VisualHold("UNDERLAY_BOX_OUTSIDE")
+        crop=rgb.crop(box).convert("L").filter(ImageFilter.FIND_EDGES)
+        hist=crop.histogram()
+        density=sum(hist[35:])/max(1,sum(hist))
+        findings.append({"box":list(box),"edge_density":round(density,4),
+                         "status":"HOLD" if density>threshold else "PASS"})
+    return {"status":"PASS" if all(x["status"]=="PASS" for x in findings) else "HOLD",
+            "method":"heuristic_edge_density_not_face_detection",
+            "threshold":threshold,"regions":findings}

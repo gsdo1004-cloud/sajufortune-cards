@@ -174,7 +174,9 @@ def _flux_active(day: str | None) -> bool:
 
 def _safe_draw(im: Image.Image, day: str, stem: str):
     if _flux_active(day):
-        return TrackedDraw(im, protected_boxes(stem, W, H), auto_shift=True)
+        from scripts.zodiac_semantic_qa_gate import face_boxes_for
+        audited = face_boxes_for(day, stem, BASE)
+        return TrackedDraw(im, protected_boxes(stem, W, H) + audited, auto_shift=True)
     return ImageDraw.Draw(im, "RGBA")
 
 

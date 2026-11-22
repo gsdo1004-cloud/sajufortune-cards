@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from PIL import Image,ImageDraw,ImageFont
 from scripts.zodiac_style_rotation import style_for_day
 from scripts.text_safe_layout_gate import TrackedDraw
-from scripts.visual_quality_gate import image_check,video_check,VisualHold
+from scripts.visual_quality_gate import image_check,video_check,VisualHold,underlay_detail_check
 
 CHANNELS=("cardnews","shorts","threads")
 TITLES={"cardnews":"오늘의 12지신 운세","shorts":"3초 만에 보는 오늘의 운세","threads":"당신의 띠에 찾아올 변화"}
@@ -39,6 +39,7 @@ def _cover(source:Path,output:Path,title:str,sub:str,project_root:Path):
     ft=_font(project_root,70);fs=_font(project_root,42)
     top_panel=(52,155,1028,400)
     bottom_panel=(62,1510,1018,1644)
+    underlay=underlay_detail_check(bg,[top_panel,bottom_panel])
     dr.panel(top_panel,radius=48,fill=(255,255,255,246))
     dr.panel(bottom_panel,radius=38,fill=(255,255,255,246))
     title_width=dr.textlength(title,font=ft)
@@ -46,6 +47,10 @@ def _cover(source:Path,output:Path,title:str,sub:str,project_root:Path):
     dr.text(((1080-title_width)/2,195),title,font=ft,fill=(25,28,43))
     dr.text(((1080-sub_width)/2,1548),sub,font=fs,fill=(36,40,50))
     report=dr.verify()
+    report["underlay_details"]=underlay
+    if underlay["status"]=="HOLD":
+        report["status"]="HOLD"
+        report["reason_codes"]=["TEXT_PANEL_UNDERLAY_DETAIL_HIGH"]
     output.parent.mkdir(parents=True,exist_ok=True)
     bg.save(output,"JPEG",quality=91,optimize=True)
     image_check(output,min_bytes=50000)
@@ -74,7 +79,10 @@ def render(source_root:Path,output_root:Path,project_root:Path,video=False):
             target=output_root/f"{style_id}_{channel}.jpg"
             report=_cover(src,target,TITLES[channel],SUBS[channel],project_root)
             item={"style_id":style_id,"channel":channel,"image":str(target),
-                  "layout_status":report["status"],"auto_fixes":report["auto_fixes"],
+                  "layout_status":report["status"],
+                  "reason_codes":report["reason_codes"],
+                  "underlay_heuristic":report["underlay_details"],
+                  "auto_fixes":report["auto_fixes"],
                   "provider":provenance["provider"],"sha256":hashlib.sha256(target.read_bytes()).hexdigest(),
                   "paid_api_calls":0}
             if channel=="shorts" and video:
@@ -91,6 +99,7 @@ def render(source_root:Path,output_root:Path,project_root:Path,video=False):
     result={"schema":"zodiac-7x3-preview-v1","status":"REVIEW_REQUIRED" if len(entries)==21 and not missing else "HOLD",
             "count":len(entries),"expected":21,"missing_real_flux_styles":missing,"samples":entries,
             "semantic_qa":"NOT_AUTOMATICALLY_VERIFIED",
+            "layout_hold_count":sum(item["layout_status"]!="PASS" for item in entries),
             "paid_api_calls":0,"publication_attempts":0}
     (output_root/"preview_report.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     if len(entries)==21:

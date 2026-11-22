@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from PIL import Image, ImageFont
 from scripts.zodiac_style_rotation import style_for_day, week_ids
-from scripts.zodiac_character_prompts import TRAITS, STEMS, prompt_for, protected_boxes
+from scripts.zodiac_character_prompts import TRAITS, STEMS, SUBJECTS, prompt_for, protected_boxes
 from scripts.text_safe_layout_gate import TrackedDraw, check_layout, intersects, LayoutHold
 from scripts.visual_quality_gate import image_check, video_check, VisualHold
 from scripts import flux_first_card_assets as fa
@@ -203,11 +203,66 @@ def test_false_species_count_receipt_fails(tmp_path):
     reviews=[{"name":i["name"],"sha256":i["sha256"],"status":"PASS",
               "species":["rat"],"duplicate_species_count":0,
               "cropped_faces":False,"malformed_anatomy":False,
-              "text_artifacts":False} for i in manifest["files"]]
+              "text_artifacts":False,
+              "faces":[{"sign":name,"bbox":[30+j*60,450,80+j*60,525]}
+                       for j,name in enumerate(SUBJECTS[index])]}
+             for index,i in enumerate(manifest["files"])]
     receipt={"schema":"zodiac-semantic-qa-v1","date":day,
              "style_id":"STYLE_02","verification_method":"independent_visual_review",
              "reviewer_reference":"test-fixture-no-real-review","status":"PASS","images":reviews}
     path=audit_path(day,tmp_path);path.parent.mkdir(parents=True)
     path.write_text(json.dumps(receipt),encoding="utf-8")
     with pytest.raises(SemanticHold,match="SEMANTIC_QA_IMAGE_FAIL"):
+        verify_semantic(day,tmp_path,manifest)
+
+
+def test_visual_underlay_heuristic_rejects_busy_image_beneath_text():
+    from scripts.visual_quality_gate import underlay_detail_check
+    image=Image.new("RGB",(1080,1920),(249,243,238))
+    image.paste(Image.effect_noise((540,260),70).convert("RGB"),(270,160))
+    bad=underlay_detail_check(image,[(270,160,810,420)],threshold=.049)
+    assert bad["status"]=="HOLD"
+    good=underlay_detail_check(image,[(270,1430,810,1550)],threshold=.049)
+    assert good["status"]=="PASS"
+    assert good["method"]=="heuristic_edge_density_not_face_detection"
+
+
+def test_review_only_21_preview_sheet_never_claims_semantic_approval(tmp_path):
+    from scripts.zodiac_preview_suite import render
+    from scripts.zodiac_style_rotation import STYLES
+    import hashlib
+    sources=tmp_path/"sources";sources.mkdir()
+    for ident,_,_ in STYLES:
+        image=sources/(ident+"_cover.png")
+        synthetic=Image.effect_noise((768,1344),72).convert("RGB")
+        synthetic.save(image,"PNG")
+        receipt={"style_id":ident,"provider":"flux2_klein_local",
+                 "sha256":hashlib.sha256(image.read_bytes()).hexdigest(),
+                 "paid_api_calls":0}
+        (sources/(ident+"_receipt.json")).write_text(json.dumps(receipt))
+    result=render(sources,tmp_path/"review",Path(__file__).resolve().parent,video=False)
+    assert result["count"]==21
+    assert result["status"]=="REVIEW_REQUIRED"
+    assert result["semantic_qa"]=="NOT_AUTOMATICALLY_VERIFIED"
+    assert (tmp_path/"review"/"zodiac_21_previews.jpg").is_file()
+    assert all(Path(x["image"]).exists() for x in result["samples"])
+    assert result["paid_api_calls"]==0 and result["publication_attempts"]==0
+
+def test_missing_independent_face_boxes_holds(tmp_path):
+    from scripts.zodiac_semantic_qa_gate import verify_semantic, audit_path, SemanticHold
+    day="2026-11-24"
+    def fake_image(prompt,path,seed):
+        Image.effect_noise((512,896),70).convert("RGB").save(path)
+        return "flux2_klein_local"
+    manifest=fa.prepare(day,tmp_path,generator=fake_image)
+    reviews=[{"name":i["name"],"sha256":i["sha256"],"status":"PASS",
+              "species":list(SUBJECTS[index]),"duplicate_species_count":0,
+              "cropped_faces":False,"malformed_anatomy":False,
+              "text_artifacts":False,"faces":[]}
+             for index,i in enumerate(manifest["files"])]
+    receipt={"schema":"zodiac-semantic-qa-v1","date":day,"style_id":"STYLE_02",
+             "verification_method":"independent_visual_review",
+             "reviewer_reference":"SYNTHETIC_TEST_ONLY","status":"PASS","images":reviews}
+    p=audit_path(day,tmp_path);p.parent.mkdir(parents=True);p.write_text(json.dumps(receipt))
+    with pytest.raises(SemanticHold,match="SEMANTIC_FACE_BOXES_MISSING"):
         verify_semantic(day,tmp_path,manifest)
