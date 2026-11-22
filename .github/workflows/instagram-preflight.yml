@@ -11,11 +11,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
-      INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+      INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_UNIFIED_ACCESS_TOKEN }}
+      INSTAGRAM_USER_ID: "17841448828636115"
+      INSTAGRAM_EXPECTED_USERNAME: "gsdo10042026"
+      INSTAGRAM_API_MODE: "unified"
+      INSTAGRAM_API_VERSION: "v27.0"
       INSTAGRAM_AUTO_COMMENT: "0"
     steps:
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"

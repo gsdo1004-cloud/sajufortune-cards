@@ -36,8 +36,16 @@ PROFILE_LANDING = (
     "https://sajufortune.kr/links?utm_source=instagram&utm_medium=profile&"
     "utm_campaign=instagram_reels_revenue"
 )
-IG_API_VERSION = os.environ.get("INSTAGRAM_API_VERSION", "v21.0").strip() or "v21.0"
-IG = f"https://graph.instagram.com/{IG_API_VERSION}"
+# The primary account may use Meta Unified Login (Facebook Graph SUAT).
+# The old Instagram Login path remains the default for the legacy account.
+IG_API_MODE = os.environ.get("INSTAGRAM_API_MODE", "instagram_login").strip()
+if IG_API_MODE not in ("instagram_login", "unified"):
+    raise RuntimeError("Unsupported Instagram API auth mode")
+IG_API_VERSION = os.environ.get(
+    "INSTAGRAM_API_VERSION", "v27.0" if IG_API_MODE == "unified" else "v21.0"
+).strip()
+IG_GRAPH_HOST = "graph.facebook.com" if IG_API_MODE == "unified" else "graph.instagram.com"
+IG = f"https://{IG_GRAPH_HOST}/{IG_API_VERSION}"
 N_CARDS = 4
 IG_RESUME_DATE = dt.date(2026, 8, 15)
 CTA_COMMENT = "내 오늘운세는 프로필 첫 링크에서 무료로 확인하실 수 있어요 🔮"
@@ -114,13 +122,26 @@ def preflight() -> bool:
     uid, tok = _env()
     r = requests.get(
         f"{IG}/{uid}",
-        params={"fields": "id,username,account_type,media_count", "access_token": tok},
+        params={
+            "fields": (
+                "id,username,media_count" if IG_API_MODE == "unified"
+                else "id,username,account_type,media_count"
+            ),
+            "access_token": tok,
+        },
         timeout=30,
     )
     data = r.json() if r.content else {}
     if r.status_code >= 400 or not data.get("id"):
+        # Unified token may be a system-user credential; don't log raw API
+        # response bodies or error text, which could contain private details.
+        if IG_API_MODE == "unified":
+            code = (data.get("error") or {}).get("code")
+            raise RuntimeError(f"Instagram unified token preflight failed HTTP={r.status_code} code={code}")
         msg = str((data.get("error") or {}).get("message") or f"HTTP {r.status_code}")
         raise RuntimeError(f"Instagram token preflight failed: {msg[:300]}")
+    if IG_API_MODE == "unified" and str(data["id"]) != uid:
+        raise RuntimeError("Instagram unified account ID mismatch")
     username = str(data.get("username") or "").strip()
     expected = _expected_username()
     if expected and username.casefold() != expected.casefold():
