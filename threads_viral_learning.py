@@ -173,7 +173,8 @@ def guidance() -> str:
     return (
         f"내 계정 실측 학습({m.get('sample_count', 0)}건): 성과가 상대적으로 좋은 훅={h}; "
         f"주제={t}; 길이={l}. 이 구조만 참고하고 과거 문장을 복사하지 마라. "
-        "첫 문장은 자기관련성/호기심을 만들고 마지막은 구체적인 양자택일 질문으로 끝내라."
+        "첫 문장은 자기관련성/호기심을 만들고 마지막은 구체적인 양자택일 질문으로 끝내라. "
+        "연속글은 2~3편 이내로 각 편마다 독립적으로 유용한 정보를 담고, 같은 링크나 답글 요구를 반복하지 마라."
     )
 
 
@@ -220,6 +221,132 @@ def similarity_guard(candidate: str, threshold: float = 0.78) -> tuple[bool, flo
     return worst < threshold, round(worst, 3)
 
 
+
+# Read-only selective adoption: never changes posting times, link placement, or permissions.
+def _aware_timestamp(value):
+    try:
+        parsed = dt.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return parsed if parsed.tzinfo is not None else None
+    except (ValueError, TypeError, OverflowError):
+        return None
+
+
+def publication_window(timestamp):
+    """Publication-time observation bins in Korea Standard Time, not proven peak hours."""
+    published = _aware_timestamp(timestamp)
+    if published is None:
+        return "unknown"
+    h = published.astimezone(dt.timezone(dt.timedelta(hours=9))).hour
+    if 6 <= h < 9:
+        return "morning_06_09"
+    if 12 <= h < 14:
+        return "lunch_12_14"
+    if 21 <= h < 24:
+        return "evening_21_24"
+    return "other"
+
+
+def slot_evidence(insights, now=None, lookback_days=14, min_per_slot=5):
+    """Compare age-matched 12-36h snapshots only. No schedule mutation or winner selection."""
+    now = now or dt.datetime.now(dt.timezone.utc)
+    if now.tzinfo is None:
+        raise ValueError("now must be timezone-aware")
+    posts = (insights or {}).get("posts") or {}
+    snapshots = [ts for rec in posts.values() for snap in (rec.get("snapshots") or [])
+                 if (ts := _aware_timestamp(snap.get("t"))) is not None]
+    latest = max(snapshots, default=None)
+    if latest is None:
+        return {"status": "HOLD_NO_INSIGHTS", "slots": {}}
+    if latest > now + dt.timedelta(hours=1):
+        return {"status": "HOLD_FUTURE_DATA", "slots": {}}
+    if now - latest > dt.timedelta(days=3):
+        return {"status": "HOLD_STALE", "latest_snapshot": latest.isoformat(), "slots": {}}
+    buckets = defaultdict(list)
+    for rec in posts.values():
+        published = _aware_timestamp(rec.get("timestamp"))
+        if published is None or published > now or published < now - dt.timedelta(days=lookback_days):
+            continue
+        snap = _near24(rec.get("snapshots") or [])
+        if snap is None:
+            continue
+        try:
+            age = float(snap.get("age_h"))
+            views = float(snap.get("views") or 0)
+            replies = float(snap.get("replies") or 0)
+        except (TypeError, ValueError):
+            continue
+        if not (12 <= age <= 36) or views <= 0:
+            continue
+        key = (str(rec.get("channel") or "unknown"), publication_window(rec.get("timestamp")))
+        buckets[key].append((views, replies))
+    summary = {f"{channel}/{slot}": {
+        "n": len(rows),
+        "avg_views_24h": round(sum(v for v, _ in rows) / len(rows), 2),
+        "replies_per_1k_views": round(1000 * sum(r for _, r in rows) / sum(v for v, _ in rows), 2)}
+        for (channel, slot), rows in sorted(buckets.items())}
+    # Comparisons require two time windows WITHIN the same channel.
+    channel_slots = defaultdict(int)
+    for (channel, _), rows in buckets.items():
+        if len(rows) >= min_per_slot:
+            channel_slots[channel] += 1
+    enough = any(count >= 2 for count in channel_slots.values())
+    return {"status": "OBSERVE_ONLY" if enough else "HOLD_LOW_SAMPLE",
+            "latest_snapshot": latest.isoformat(), "slots": summary}
+
+
+def link_placement_evidence(insights, conversion_events, min_per_arm=5):
+    """Only independently tagged, first-party verified arm outcomes may be compared."""
+    posts = (insights or {}).get("posts") or {}
+    by_post = {}
+    duplicate = set()
+    for event in conversion_events or []:
+        pid = str(event.get("post_id") or "")
+        if not pid or event.get("source_verified") is not True:
+            continue
+        if pid in by_post:
+            duplicate.add(pid)
+        else:
+            by_post[pid] = event
+    stats = {"body": {"n": 0, "site_sessions": 0, "orders": 0},
+             "comment": {"n": 0, "site_sessions": 0, "orders": 0}}
+    for pid, rec in posts.items():
+        arm = rec.get("link_placement")
+        if arm not in stats or rec.get("placement_verified") is not True:
+            continue
+        event = by_post.get(str(pid))
+        if event is None or str(pid) in duplicate:
+            continue
+        try:
+            sessions = int(event.get("site_sessions"))
+            orders = int(event.get("orders"))
+        except (TypeError, ValueError):
+            continue
+        if sessions < 0 or orders < 0:
+            continue
+        stats[arm]["n"] += 1
+        stats[arm]["site_sessions"] += sessions
+        stats[arm]["orders"] += orders
+    enough = all(x["n"] >= min_per_arm for x in stats.values())
+    return {"status": "OBSERVE_ONLY" if enough else "HOLD_UNVERIFIED_ARMS",
+            "arms": stats}
+
+
+def selective_evidence_report(insights=None, conversion_events=None, now=None):
+    insights = _load(INSIGHTS, {"posts": {}}) if insights is None else insights
+    if conversion_events is None:
+        conversion_events = []
+        p = BASE / "threads_conversions.jsonl"
+        if p.exists():
+            for line in p.read_text(encoding="utf-8").splitlines():
+                try:
+                    conversion_events.append(json.loads(line))
+                except (ValueError, TypeError):
+                    continue
+    slots = slot_evidence(insights, now=now)
+    links = link_placement_evidence(insights, conversion_events)
+    return f"Selective experiments: publication_slots={slots['status']}, link_placement={links['status']} (shadow/read-only)"
+
+
 def report(m: dict | None = None) -> str:
     m = m or load_model()
     lines = [f"Threads viral model: {m.get('sample_count', 0)} samples", f"updated: {m.get('updated_at', '-')}"]
@@ -227,6 +354,7 @@ def report(m: dict | None = None) -> str:
         arr = _rank_items(m.get(key), 1)[:8]
         lines.append(label + ": " + ", ".join(f"{k}={a:.1f}(n{n})" for k, a, n in arr))
     lines.append("guidance: " + guidance())
+    lines.append(selective_evidence_report())
     return "\n".join(lines)
 
 
