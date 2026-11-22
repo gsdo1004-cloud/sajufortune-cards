@@ -109,8 +109,10 @@ jobs:
       - name: Validate Primary Instagram authorization
         if: github.event_name == 'schedule' || github.event.inputs.account == 'primary' || github.event.inputs.account == 'both'
         env:
-          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
-          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_UNIFIED_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: "17841448828636115"
+          INSTAGRAM_API_MODE: unified
+          INSTAGRAM_API_VERSION: v27.0
           INSTAGRAM_ACCOUNT_KEY: gsdo10042026
           INSTAGRAM_EXPECTED_USERNAME: gsdo10042026
           INSTAGRAM_EXPERIMENT_VARIANT: ${{ steps.variants.outputs.primary_variant }}
@@ -129,8 +131,10 @@ jobs:
       - name: Show Primary safe status
         if: github.event_name == 'schedule' || github.event.inputs.account == 'primary' || github.event.inputs.account == 'both'
         env:
-          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
-          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_UNIFIED_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: "17841448828636115"
+          INSTAGRAM_API_MODE: unified
+          INSTAGRAM_API_VERSION: v27.0
           INSTAGRAM_ACCOUNT_KEY: gsdo10042026
           INSTAGRAM_EXPECTED_USERNAME: gsdo10042026
           INSTAGRAM_EXPERIMENT_VARIANT: ${{ steps.variants.outputs.primary_variant }}
@@ -149,8 +153,10 @@ jobs:
       - name: Publish scheduled Primary Instagram content
         if: github.event_name == 'schedule' && steps.target.outputs.mode != 'skip'
         env:
-          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
-          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_UNIFIED_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: "17841448828636115"
+          INSTAGRAM_API_MODE: unified
+          INSTAGRAM_API_VERSION: v27.0
           INSTAGRAM_ACCOUNT_KEY: gsdo10042026
           INSTAGRAM_EXPECTED_USERNAME: gsdo10042026
           INSTAGRAM_EXPERIMENT_VARIANT: ${{ steps.variants.outputs.primary_variant }}
@@ -169,8 +175,10 @@ jobs:
       - name: Publish intentional manual Primary content
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.publish == 'true' && github.event.inputs.mode != 'status' && (github.event.inputs.account == 'primary' || github.event.inputs.account == 'both')
         env:
-          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
-          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_UNIFIED_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: "17841448828636115"
+          INSTAGRAM_API_MODE: unified
+          INSTAGRAM_API_VERSION: v27.0
           INSTAGRAM_ACCOUNT_KEY: gsdo10042026
           INSTAGRAM_EXPECTED_USERNAME: gsdo10042026
           INSTAGRAM_EXPERIMENT_VARIANT: ${{ steps.variants.outputs.primary_variant }}
@@ -190,8 +198,10 @@ jobs:
         if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.publish == 'true' && (github.event.inputs.account == 'primary' || github.event.inputs.account == 'both'))
         continue-on-error: true
         env:
-          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
-          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_UNIFIED_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: "17841448828636115"
+          INSTAGRAM_API_MODE: unified
+          INSTAGRAM_API_VERSION: v27.0
           INSTAGRAM_ACCOUNT_KEY: gsdo10042026
           INSTAGRAM_EXPECTED_USERNAME: gsdo10042026
         run: python instagram_insights.py

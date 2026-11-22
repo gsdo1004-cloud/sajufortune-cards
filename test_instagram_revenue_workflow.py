@@ -36,3 +36,12 @@ def test_checkout_is_shallow_partial_sparse_and_keeps_only_instagram_state():
     assert "sparse-checkout-cone-mode: false" in s
     assert "/*\n            !/*/\n            /scripts/\n            /analytics/\n            /cards/*/instagram_pub_*.json" in s
     assert "fetch-depth: 0" not in s
+
+
+def test_primary_uses_verified_unified_token_and_preserves_legacy():
+    s = text()
+    assert s.count("secrets.INSTAGRAM_UNIFIED_ACCESS_TOKEN") == 5
+    assert s.count("INSTAGRAM_API_MODE: unified") == 5
+    assert s.count("INSTAGRAM_API_VERSION: v27.0") == 5
+    assert s.count("secrets.INSTAGRAM_LEGACY_ACCESS_TOKEN") == 5
+    assert "secrets.INSTAGRAM_ACCESS_TOKEN" not in s
