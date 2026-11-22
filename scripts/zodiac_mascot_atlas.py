@@ -231,4 +231,3 @@ def stage_atlas_sources(day: str,root:Path,max_new:int=12) -> dict:
     return {"status":"PENDING_QA","style_id":style_for_day(day)["id"],
             "generated_this_run":new_count,"total_staged":len(original),
             "remaining":12-len(original),"paid_api_calls":0}
-
