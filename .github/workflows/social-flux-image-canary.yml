@@ -11,11 +11,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           sparse-checkout-cone-mode: false
+          # Read-only fixture for scheduled-publication policy tests; do NOT
+          # run the publishing workflow or change its scheduler.
           sparse-checkout: |
             /*
             !/*/
             /scripts/
             /assets/fonts/
+            /.github/workflows/zodiac-cards.yml
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
