@@ -47,6 +47,7 @@ jobs:
             !/*/
             /scripts/
             /assets/bg_sets/
+            /assets/flux_daily/
             /assets/fonts/
             /cards/${{ steps.target.outputs.date }}/
 

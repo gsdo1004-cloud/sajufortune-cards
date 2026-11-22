@@ -1,0 +1,27 @@
+name: Social FLUX-first Asset Safety Tests
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -q Pillow pytest
+      - name: Verify FLUX-first local inventory and no paid API fallback
+        run: |
+          python -m pytest -q test_flux_first_card_assets.py
+          python - <<'PY'
+          from pathlib import Path
+          t=Path("scripts/flux_first_card_assets.py").read_text()
+          assert 'provider_order=["flux2_klein_local", "gemini_subscription_included_if_available"]' in t
+          assert "allow_paid=False, max_paid_provider_attempts=0" in t
+          assert "emergency_fallback=False" in t
+          PY
