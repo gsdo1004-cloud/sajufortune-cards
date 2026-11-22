@@ -21,7 +21,7 @@ jobs:
       - run: python -m pip install -q Pillow pytest
       - name: Verify FLUX-first local inventory and no paid API fallback
         run: |
-          python -m pytest -q test_flux_first_card_assets.py
+          python -m pytest -q test_flux_first_card_assets.py test_card_flux_promotion.py
           python - <<'PY'
           from pathlib import Path
           t=Path("scripts/flux_first_card_assets.py").read_text()
