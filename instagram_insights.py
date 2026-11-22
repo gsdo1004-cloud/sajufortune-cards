@@ -12,8 +12,16 @@ import requests
 import instagram_dual_experiment as ide
 
 BASE = Path(__file__).resolve().parent
-API_VERSION = os.environ.get("INSTAGRAM_API_VERSION", "v21.0").strip() or "v21.0"
-IG = f"https://graph.instagram.com/{API_VERSION}"
+# New primary account uses Unified Login on Facebook Graph; legacy stays
+# on graph.instagram.com with its own unmodified token.
+API_MODE = os.environ.get("INSTAGRAM_API_MODE", "instagram_login").strip()
+if API_MODE not in ("instagram_login", "unified"):
+    raise RuntimeError("Unsupported Instagram API auth mode")
+API_VERSION = os.environ.get(
+    "INSTAGRAM_API_VERSION", "v27.0" if API_MODE == "unified" else "v21.0"
+).strip()
+IG_HOST = "graph.facebook.com" if API_MODE == "unified" else "graph.instagram.com"
+IG = f"https://{IG_HOST}/{API_VERSION}"
 
 
 def account_key() -> str:
