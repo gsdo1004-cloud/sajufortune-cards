@@ -69,7 +69,7 @@ def resolve(voice: str | None = None) -> tuple[Path, Path, Path] | None:
     return None
 
 
-def apply(video_path: Path, voice: str | None = None) -> bool:
+def apply(video_path: Path, voice: str | None = None, *, left_rail: bool = False) -> bool:
     """완성된 mp4 에 아바타를 합성한다(in-place)."""
     got = resolve(voice)
     if not got:
@@ -91,6 +91,7 @@ def apply(video_path: Path, voice: str | None = None) -> bool:
              "--pool", str(pool)],
             capture_output=True, text=True, encoding="utf-8", errors="replace",
             timeout=1800,
+            env=({**os.environ, "ZODIAC_PIP_LEFT_RAIL": "1"} if left_rail else None),
         )
         if r.returncode == 0:
             kind = "번들" if str(script).startswith(str(BUNDLE)) else "외부"

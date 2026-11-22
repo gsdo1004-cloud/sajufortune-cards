@@ -23,7 +23,7 @@ def image_check(path, size=(1080,1920), min_bytes=50000):
             if sum(stat.mean)/3<12:raise VisualHold("BLACK_IMAGE")
     except (OSError,SyntaxError) as e:raise VisualHold("CORRUPTED_IMAGE") from e
     return {"status":"PASS","size_bytes":p.stat().st_size,"sha256":sha256(p)}
-def video_check(path, max_duration=None, min_bytes=90000, *, sample_frames=True):
+def video_check(path, max_duration=None, min_bytes=90000, *, sample_frames=True, require_audio=False):
     p=Path(path)
     if not p.is_file() or p.stat().st_size<min_bytes:raise VisualHold("VIDEO_MISSING_OR_SMALL")
     if not shutil.which("ffprobe"):raise VisualHold("FFPROBE_UNAVAILABLE")
@@ -34,6 +34,9 @@ def video_check(path, max_duration=None, min_bytes=90000, *, sample_frames=True)
     except (ValueError,OSError,subprocess.TimeoutExpired,subprocess.CalledProcessError) as e:
         raise VisualHold("VIDEO_PROBE_FAILED") from e
     video=next((s for s in obj.get("streams",[]) if s.get("codec_type")=="video"),None)
+    audio=next((s for s in obj.get("streams",[]) if s.get("codec_type")=="audio"),None)
+    if require_audio and (audio is None or audio.get("codec_name")!="aac"):
+        raise VisualHold("VIDEO_AUDIO_TRACK_MISSING_OR_NOT_AAC")
     dur=float(obj.get("format",{}).get("duration") or 0)
     if not video or video.get("codec_name") not in ("h264","hevc","av1") or dur<=0:
         raise VisualHold("VIDEO_CODEC_OR_DURATION")

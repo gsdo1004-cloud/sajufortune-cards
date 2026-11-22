@@ -142,18 +142,40 @@ def compose(video_path, frames, blink_img=None, pool_dir=None, tmp_dir=None):
 
         state = htp._load_state(pool)
         pos_i = state.get("pos_index", 0)
-        pos_name, xe, ye = SHORTS_POSITIONS[pos_i % len(SHORTS_POSITIONS)]
-        pw = int(W * htp.PIP_WIDTH_RATIO) // 2 * 2
+        # Default legacy placement is intentionally unchanged. Only the
+        # explicitly QA-gated FLUX reels opt in to an independent left rail,
+        # so neither 12 zodiac face tiles nor summary paragraphs are covered.
+        left_rail = os.environ.get("ZODIAC_PIP_LEFT_RAIL", "0") == "1"
+        if left_rail:
+            rail = max(2, (int(W * 0.20) // 2) * 2)
+            body_w = W - rail
+            body_h = max(2, (int(H * body_w / W) // 2) * 2)
+            body_y = (H - body_h) // 2
+            pw = max(2, (int(rail * 0.88) // 2) * 2)
+            pos_name, xe, ye = (
+                "좌측 독립레일(본문 비가림)", str((rail - pw) // 2),
+                "H*0.45-h/2")
+            background_filter = (
+                f"[0:v]scale={body_w}:{body_h}:flags=lanczos,"
+                f"pad={W}:{H}:{rail}:{body_y}:color=0xf7f6f5,format=yuv420p[base];"
+            )
+            main_stream = "[base]"
+        else:
+            pos_name, xe, ye = SHORTS_POSITIONS[pos_i % len(SHORTS_POSITIONS)]
+            pw = int(W * htp.PIP_WIDTH_RATIO) // 2 * 2
+            background_filter = ""
+            main_stream = "[0:v]"
 
-        # 은은한 idle sway: 완전 정지 이미지처럼 안 보이게 좌표를 sine으로 미세하게
-        # 흔든다(진폭 1.5~2px, 주기 3~4초대). 시니어 타겟 콘텐츠라 진폭은 최소로 유지.
+        # Minimal idle sway remains inside the rail (only a few pixels).
         sway_x = f"({xe}+2*sin(2*PI*t/3.7))"
         sway_y = f"({ye}+1.5*sin(2*PI*t/4.3+1))"
         filt = (
-            f"[1:v]scale={pw}:-2,format=yuva420p,"
+            background_filter
+            + f"[1:v]scale={pw}:-2,format=yuva420p,"
             f"fade=t=in:st=0:d={htp.FADE_SEC}:alpha=1,"
             f"fade=t=out:st={dur - htp.FADE_SEC:.2f}:d={htp.FADE_SEC}:alpha=1"
-            f"[p0];[0:v][p0]overlay=x='{sway_x}':y='{sway_y}':eof_action=pass[vout]"
+            + f"[p0];{main_stream}[p0]overlay=x='{sway_x}':"
+              f"y='{sway_y}':eof_action=pass[vout]"
         )
 
         tmp_out = video_path.parent / "_pngtuber_pip_tmp.mp4"

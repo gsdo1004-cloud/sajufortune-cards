@@ -16,6 +16,7 @@ import sys
 import time
 import json
 import asyncio
+import hashlib
 import subprocess
 import datetime as dt
 from pathlib import Path
@@ -157,6 +158,10 @@ def _tts(text, out_mp3, rate_pct: int = BASE_RATE_PCT):
             return
     except ImportError:
         pass
+    # Strict FLUX/Hanbok QA must never silently switch from configured
+    # Supertonic gender to SunHi (female) while keeping a male avatar.
+    if os.environ.get("ZODIAC_REQUIRE_HANBOK_AVATAR", "0") == "1":
+        raise RuntimeError("HANBOK_VOICE_GENDER_UNVERIFIED_LOCAL_TTS_FAILED")
     if edge_tts is None:
         raise SystemExit(
             "[FAIL] Supertonic 도 edge-tts 도 없어 TTS 를 만들 수 없습니다"
@@ -181,7 +186,85 @@ def _flux_zoom_cap(index: int, total_scenes: int) -> float:
     return 1.03 if index == total_scenes - 1 else 1.08
 
 
+def _apply_reel_avatar(video: Path, date_iso: str, card_stem: str,
+                       flux_active: bool) -> str:
+    """Fail-closed in opt-in QA; legacy route stays opt-out as before.
+
+    This function does not attest independent visual QA and never uploads.
+    """
+    required = os.environ.get("ZODIAC_REQUIRE_HANBOK_AVATAR", "0") == "1"
+    try:
+        import avatar_pip
+    except ImportError as exc:
+        if required:
+            raise RuntimeError("HANBOK_AVATAR_MODULE_MISSING") from exc
+        return "SKIPPED_MISSING_MODULE"
+    enabled = avatar_pip.enabled()
+    if required and card_stem == "card_" and flux_active:
+        if not enabled:
+            raise RuntimeError("HANBOK_AVATAR_REQUIRED_BUT_DISABLED")
+        voice = os.environ.get("SUPERTONIC_VOICE", "").strip().upper()
+        if not voice.startswith(("M", "F")):
+            raise RuntimeError("HANBOK_AVATAR_TTS_VOICE_NOT_DECLARED")
+        pre_sha = hashlib.sha256(Path(video).read_bytes()).hexdigest()
+        if not avatar_pip.apply(video, voice=voice, left_rail=True):
+            raise RuntimeError("HANBOK_AVATAR_COMPOSITING_FAILED")
+        post_sha = hashlib.sha256(Path(video).read_bytes()).hexdigest()
+        if pre_sha == post_sha:
+            raise RuntimeError("HANBOK_AVATAR_COMPOSITING_NOOP")
+        return "APPLIED_QA_PENDING_VISUAL"
+    if enabled and card_stem == "card_" and flux_active:
+        print("[SAFE] avatar PIP skipped: protected zodiac subjects occupy left-side frame")
+        return "SKIPPED_LEGACY_FLUX"
+    if enabled:
+        return "APPLIED_LEGACY" if avatar_pip.apply(video) else "SKIPPED_APPLY_FAILED"
+    return "SKIPPED_DISABLED"
+
+
 def make_reel_tts(date_iso, card_stem: str = "card_", narrs: list[str] | None = None,
+                  out_name: str | None = None):
+    """Opt-in FLUX QA: atomic same-day lock + protect existing publication.
+
+    Deliberately does not alter the legacy default route. A stale lock is
+    a HOLD requiring manual investigation; never auto-delete stale state.
+    """
+    if not (card_stem == "card_" and
+            os.environ.get("ZODIAC_REQUIRE_HANBOK_AVATAR", "0") == "1"):
+        return _make_reel_tts_impl(date_iso, card_stem, narrs, out_name)
+
+    import secrets
+    from scripts.zodiac_card_assets import _publication_receipt_exists
+    folder = BASE / "cards" / date_iso
+    if not folder.is_dir():
+        raise RuntimeError("STRICT_ZODIAC_CARDS_FOLDER_MISSING")
+    if _publication_receipt_exists(folder):
+        raise RuntimeError("STRICT_ZODIAC_PUBLISHED_RECEIPT_PROTECTED")
+    lock_path = folder / ".pr25_hanbok_render.lock"
+    token = secrets.token_hex(16)
+    try:
+        descriptor = os.open(str(lock_path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError as exc:
+        raise RuntimeError("STRICT_ZODIAC_CONCURRENT_RENDER_BLOCKED") from exc
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"date": date_iso, "pid": os.getpid(),
+                                "token": token}, ensure_ascii=False) + "\n")
+        # Re-check after taking the lock, so another publisher's receipt
+        # appearing during lock acquisition cannot be overwritten.
+        if _publication_receipt_exists(folder):
+            raise RuntimeError("STRICT_ZODIAC_PUBLISHED_RECEIPT_PROTECTED")
+        return _make_reel_tts_impl(date_iso, card_stem, narrs, out_name)
+    finally:
+        try:
+            state = json.loads(lock_path.read_text(encoding="utf-8"))
+            if state.get("token") == token:
+                lock_path.unlink()
+        except (OSError, ValueError):
+            # Never unlink another process's or tampered lock.
+            pass
+
+
+def _make_reel_tts_impl(date_iso, card_stem: str = "card_", narrs: list[str] | None = None,
                   out_name: str | None = None):
     """카드 + 나레이션 → 9:16 릴스.
 
@@ -269,26 +352,19 @@ def make_reel_tts(date_iso, card_stem: str = "card_", narrs: list[str] | None = 
     tmp.rmdir()
     _mix_bgm(out, date_iso)  # 2026-07-11 일진 오행 BGM (은은하게 11%)
 
-    # PNGTuber 아바타 PIP (2026-08-05) — ZODIAC_AVATAR=1 일 때만.
-    # BGM까지 끝난 최종본에 얹는다. 아바타 자산이 없는 환경(Actions 러너)에서는
-    # 조용히 건너뛴다 — 아바타 때문에 발행을 멈출 이유가 없다.
-    try:
-        import avatar_pip
-        from zodiac_cardnews_tpl import _flux_active
-        if avatar_pip.enabled() and card_stem == "card_" and _flux_active(date_iso):
-            # PIP normally covers the lower-left animal protagonists; hold
-            # the avatar overlay for newly protected FLUX card compositions.
-            print("[SAFE] avatar PIP skipped: protected zodiac subjects occupy left-side frame")
-        elif avatar_pip.enabled():
-            avatar_pip.apply(out)
-    except ImportError:
-        pass
+    # This optional strict QA branch is deliberately OFF by default and
+    # does not change legacy publishing. When release gate opts in, an actual
+    # full-length bundled Hanbok PIP must be composited and SHA-changed.
+    # Bundled PIP uses a dedicated left rail so twelve zodiac subjects are
+    # not obscured. Production workflows must independently require/verify
+    # the flag and avatar receipt before publication.
+    _apply_reel_avatar(out, date_iso, card_stem, _flux_active(date_iso))
 
     if card_stem == "card_":
         from zodiac_cardnews_tpl import _flux_active
         if _flux_active(date_iso):
             from scripts.visual_quality_gate import video_check
-            video_check(out)
+            video_check(out, require_audio=True)
     print(f"[OK] reel+TTS → {out} ({n}컷, 약 {round(_dur(out), 1)}초, {W}x{H})")
     return out
 
@@ -395,7 +471,7 @@ def do_publish(date_iso):
         from scripts.zodiac_card_assets import verify as verify_cards
         from scripts.visual_quality_gate import video_check
         verify_cards(date_iso)
-        video_check(BASE / "reels" / f"{date_iso}_tts.mp4")
+        video_check(BASE / "reels" / f"{date_iso}_tts.mp4", require_audio=True)
     url = f"{RAW_BASE}/reels/{date_iso}_tts.mp4"
     caption = (f"{date_full(date_iso)} 오늘의 띠별 운세 🔮\n"
                f"영상으로 보는 12띠 오늘의 흐름\n\n"
