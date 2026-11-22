@@ -1,0 +1,38 @@
+{
+  "schema": "social-flux-backgrounds-v1",
+  "date": "2026-11-23",
+  "mode": "FLUX_LOCAL_THEN_INCLUDED_API",
+  "paid_api_calls": 0,
+  "files": [
+    {
+      "name": "01_표지.jpg",
+      "sha256": "3823f86b22cbaad2b2cee64074cf5fb44fb04ac04f47693cb4b0fe77344e2c4b",
+      "provider": "flux2_klein_local"
+    },
+    {
+      "name": "02_띠별A.jpg",
+      "sha256": "8015f97a8ad667bfc40eff7d5fd5db81d7ca4b4b035eeda51c5432d98e2149e4",
+      "provider": "flux2_klein_local"
+    },
+    {
+      "name": "03_띠별B.jpg",
+      "sha256": "50c569ac0f82a7fb51c04c89e51d46906389e56bfb1c00fdcc2debea2cd99e56",
+      "provider": "flux2_klein_local"
+    },
+    {
+      "name": "04_띠별C.jpg",
+      "sha256": "8655294a5d92d21d34acd83ae873fbe37de6ebd385f540e24892d58e527caf7e",
+      "provider": "flux2_klein_local"
+    },
+    {
+      "name": "05_띠별D.jpg",
+      "sha256": "757c0184e493b5ca7e1a1a39763b60b9b2aed4906aa614f16f118fc66c0d6a3a",
+      "provider": "flux2_klein_local"
+    },
+    {
+      "name": "06_12띠요약.jpg",
+      "sha256": "b94b7fa2c6a85918c342ee94d5cd26cd7057a8e6b062f658610a65c4efa44837",
+      "provider": "flux2_klein_local"
+    }
+  ]
+}
