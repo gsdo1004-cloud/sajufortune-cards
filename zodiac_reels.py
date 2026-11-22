@@ -271,6 +271,10 @@ def _post(url, data):
 def publish_video(video_url, caption):
     import requests
     from zodiac_cardnews import _threads_uid
+    from media_preflight import check_public_media
+    ok, detail = check_public_media(video_url, "video")
+    if not ok:
+        raise RuntimeError(f"[HOLD] Threads video media invalid: {detail}")
     tok = os.environ["THREADS_ACCESS_TOKEN"]
     uid = _threads_uid(tok)
     base = f"https://graph.threads.net/v1.0/{uid}"
@@ -282,7 +286,8 @@ def publish_video(video_url, caption):
     if not cid:
         raise SystemExit(f"[FAIL] video container: {j}")
 
-    # 비디오 처리 대기 (status 폴링 — VIDEO는 트랜스코딩 시간 필요)
+    # Never publish until transcoding reaches FINISHED.
+    processed = False
     for _ in range(30):
         time.sleep(6)
         st = requests.get(f"{base}/{cid}",
@@ -290,10 +295,12 @@ def publish_video(video_url, caption):
                           timeout=30).json()
         s = st.get("status")
         if s == "FINISHED":
+            processed = True
             break
         if s == "ERROR":
-            raise SystemExit(f"[FAIL] video processing: {st}")
-
+            raise RuntimeError("[HOLD] Threads video processing ERROR")
+    if not processed:
+        raise RuntimeError("[HOLD] Threads video not FINISHED before deadline")
     j = _post(f"{base}/threads_publish", {"creation_id": cid, "access_token": tok})
     pid = j.get("id")
     if not pid:
@@ -356,11 +363,14 @@ def do_publish(date_iso):
                f"👉 무료 '오늘의 운세'는 프로필 링크에서 확인하세요\n"
                f"#오늘의운세 #띠별운세 #사주 #운세 #릴스")
     pid = publish_video(url, caption)
-    # [2026-07-16] 첫댓글=일진 풀이·사주 상식 훅 (링크 없음). 사주포춘 링크는 캐러셀 주 1회로 일원화.
-    from comment_hooks import build_first_comment
-    publish_reply(pid, build_first_comment(date_iso, "reels"))
+    # Persist receipt before optional reply so reply failure cannot duplicate post.
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.write_text(json.dumps({"post_id": pid}, ensure_ascii=False), encoding="utf-8")
+    try:
+        from comment_hooks import build_first_comment
+        publish_reply(pid, build_first_comment(date_iso, "reels"))
+    except Exception as exc:
+        print(f"[WARN] reel receipt saved, optional comment skipped: {type(exc).__name__}")
 
 
 if __name__ == "__main__":
