@@ -157,7 +157,17 @@ def set_no(date_iso: str) -> int:
 
 def bg(set_n: int, name: str, date_iso: str | None = None) -> Image.Image:
     # 배경은 jpg 로 보관한다(png 는 세트 12개에 50MB — 러너가 매번 체크아웃한다).
-    p = SETS_DIR / f"set{set_n:02d}" / f"{name}.jpg"
+    # Pre-produced HomeCode FLUX images take priority when a COMPLETE, hash-
+    # checked six-background set exists. A missing set uses the approved
+    # preexisting photo bank (no paid API or realtime GPU dependency).
+    # An incomplete/corrupted FLUX set fails closed instead of silently
+    # mixing sources in one published carousel/reel.
+    p = None
+    if date_iso:
+        from scripts.flux_first_card_assets import background_path_for
+        p = background_path_for(date_iso, name, BASE)
+    if p is None:
+        p = SETS_DIR / f"set{set_n:02d}" / f"{name}.jpg"
     if not p.exists():                      # 세트가 비면 1번으로 떨어진다(발행이 죽지 않게)
         p = SETS_DIR / "set01" / f"{name}.jpg"
     if not p.exists():
