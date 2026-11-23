@@ -284,14 +284,38 @@ def _optional_m2_dog_clarity_pilot(date_iso: str, card_stem: str,
     if len(narrs) != 6:
         raise RuntimeError("DOG_CLARITY_PILOT_REQUIRES_SIX_SCENES")
     marker = "개띠, "
-    occurrences = sum(x.count(marker) for x in narrs)
-    if occurrences != 1:
+    if narrs[4].count(marker) != 1:
         raise RuntimeError("DOG_CLARITY_PILOT_SIGN_COUNT_MISMATCH")
-    out = [line.replace(marker, "이어서 개띠 운세입니다. ", 1)
-           for line in narrs]
-    if out[0] != narrs[0] or out[-1] != narrs[-1]:
+    out = list(narrs)
+    out[4] = narrs[4].replace(marker, "이어서 개띠 운세입니다. ", 1)
+    if out[0] != narrs[0] or out[5] != narrs[5]:
         raise RuntimeError("DOG_CLARITY_PILOT_UNEXPECTED_SCENE")
     return out
+
+
+def _validate_twelve_zodiac_narration(date_iso: str, narrs: list[str]) -> None:
+    """A spoken zodiac label must appear once in its proper scene.
+
+    This is a script-level safety check; independent ASR and human approval
+    of the actual MP4 remain mandatory for signed release.
+    """
+    import re
+    if len(narrs) != 6:
+        raise RuntimeError("TTS_TWELVE_ZODIAC_SCENES_REQUIRED")
+    reading = {s: zs.make_reading(s, date_iso).sign_ko for s in ORDER}
+    for group in range(4):
+        line = narrs[group + 1]
+        labels = [reading[s] for s in ORDER[group * 3: group * 3 + 3]]
+        seen = []
+        for label in labels:
+            # Exact announced label, never count an incidental mention.
+            token = re.escape(label) + r"(?:,| 운세입니다\.)"
+            matches = list(re.finditer(token, line))
+            if len(matches) != 1:
+                raise RuntimeError("TTS_TWELVE_ZODIAC_NAME_MISSING_OR_DUPLICATED")
+            seen.append(matches[0].start())
+        if seen != sorted(seen):
+            raise RuntimeError("TTS_TWELVE_ZODIAC_ORDER_MISMATCH")
 
 
 def _optional_m2_readable_pace_pilot(date_iso: str, card_stem: str,
@@ -367,6 +391,10 @@ def _make_reel_tts_impl(date_iso, card_stem: str = "card_", narrs: list[str] | N
     # phrasing pilot; never rewrite original source readings or legacy dates.
     narrs = _optional_m2_dog_clarity_pilot(date_iso, card_stem, narrs)
     narrs = _optional_m2_readable_pace_pilot(date_iso, card_stem, narrs)
+    if card_stem == "card_" and os.environ.get("ZODIAC_REQUIRE_HANBOK_AVATAR") == "1":
+        _validate_twelve_zodiac_narration(date_iso, narrs)
+        if len(cards) != 6:
+            raise RuntimeError("TTS_STRICT_SIX_CARD_SCENES_REQUIRED")
     n = min(len(cards), len(narrs))
 
     tmp = BASE / "cards" / date_iso / f"_reel_{card_stem.strip('_')}"
@@ -421,33 +449,35 @@ def _make_reel_tts_impl(date_iso, card_stem: str = "card_", narrs: list[str] | N
 
     lst = tmp / "list.txt"
     lst.write_text("".join(f"file '{c.as_posix()}'\n" for c in clips), encoding="utf-8")
-    out = BASE / "reels" / (out_name or f"{date_iso}_tts.mp4")
-    out.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run(
-        ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst),
-         "-c", "copy", str(out)],
-        check=True, capture_output=True)
-
-    for f in tmp.glob("*"):
-        f.unlink()
-    tmp.rmdir()
-    _mix_bgm(out, date_iso)  # 2026-07-11 일진 오행 BGM (은은하게 11%)
-
-    # This optional strict QA branch is deliberately OFF by default and
-    # does not change legacy publishing. When release gate opts in, an actual
-    # full-length bundled Hanbok PIP must be composited and SHA-changed.
-    # Bundled PIP uses a dedicated left rail so twelve zodiac subjects are
-    # not obscured. Production workflows must independently require/verify
-    # the flag and avatar receipt before publication.
-    _apply_reel_avatar(out, date_iso, card_stem, _flux_active(date_iso))
-
-    if card_stem == "card_":
-        from zodiac_cardnews_tpl import _flux_active
-        if _flux_active(date_iso):
+    final = BASE / "reels" / (out_name or f"{date_iso}_tts.mp4")
+    final.parent.mkdir(parents=True, exist_ok=True)
+    strict = card_stem == "card_" and os.environ.get("ZODIAC_REQUIRE_HANBOK_AVATAR") == "1"
+    # Only validated complete Hanbok media receives the public file name.
+    out = final.with_name(final.stem + ".pr25-building.mp4") if strict else final
+    try:
+        subprocess.run(
+            ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst),
+             "-c", "copy", str(out)], check=True, capture_output=True)
+        for f in tmp.glob("*"):
+            f.unlink()
+        tmp.rmdir()
+        _mix_bgm(out, date_iso)
+        _apply_reel_avatar(out, date_iso, card_stem, _flux_active(date_iso))
+        if card_stem == "card_" and _flux_active(date_iso):
             from scripts.visual_quality_gate import video_check
-            video_check(out, require_audio=True)
-    print(f"[OK] reel+TTS → {out} ({n}컷, 약 {round(_dur(out), 1)}초, {W}x{H})")
-    return out
+            result = video_check(out, require_audio=True)
+            if result.get("status") != "PASS":
+                raise RuntimeError("TTS_REEL_FULL_VIDEO_QA_HOLD")
+            if result.get("duration_seconds", 0) > CLIP_LIMIT:
+                raise RuntimeError("TTS_REEL_FINAL_MP4_EXCEEDS_85_SECONDS")
+        if strict:
+            out.replace(final)
+    except Exception:
+        if strict:
+            out.unlink(missing_ok=True)
+        raise
+    print(f"[OK] reel+TTS → {final} ({n}컷, 약 {round(_dur(final), 1)}초, {W}x{H})")
+    return final
 
 
 # ── 스레드 VIDEO 발행 ──
@@ -550,7 +580,9 @@ def do_publish(date_iso):
     release = check(date_iso, root=BASE, mode="video")
     url = f"{RAW_BASE}/reels/{date_iso}_tts.mp4"
     if release["status"] == "VERIFIED_SIGNED_RELEASE":
-        verify_remote_sha(url, release["video_sha256"])
+        from scripts.zodiac_publish_guard import immutable_raw_url
+        url = immutable_raw_url(url)
+        verify_remote_sha(url, release["video_sha256"], require_immutable=True)
     caption = (f"{date_full(date_iso)} 오늘의 띠별 운세 🔮\n"
                f"영상으로 보는 12띠 오늘의 흐름\n\n"
                f"👉 무료 '오늘의 운세'는 프로필 링크에서 확인하세요\n"

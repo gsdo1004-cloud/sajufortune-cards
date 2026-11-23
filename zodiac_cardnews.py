@@ -343,9 +343,12 @@ def _verified_image_urls(date_iso):
     from scripts.zodiac_publish_guard import verify_remote_sha
     approved = release_check(date_iso, mode="cards")
     urls = [f"{RAW_BASE}/cards/{date_iso}/{f.name}" for f in files]
+    if approved["status"] == "VERIFIED_SIGNED_RELEASE":
+        from scripts.zodiac_publish_guard import immutable_raw_url
+        urls = [immutable_raw_url(url) for url in urls]
     for index, (file, url) in enumerate(zip(files, urls), 1):
         if approved["status"] == "VERIFIED_SIGNED_RELEASE":
-            verify_remote_sha(url, release_sha256(file))
+            verify_remote_sha(url, release_sha256(file), require_immutable=True)
         ok, reason = check_public_media(url, "image")
         if not ok:
             raise SystemExit(f"[HOLD] card {index}/{len(urls)} not ready: {reason}")

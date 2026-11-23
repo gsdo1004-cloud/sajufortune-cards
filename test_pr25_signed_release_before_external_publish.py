@@ -9,6 +9,7 @@ from types import SimpleNamespace
 import pytest
 from scripts import zodiac_publish_guard as gate
 from scripts import zodiac_card_assets
+from scripts import flux_first_card_assets
 from scripts import zodiac_mascot_atlas
 from scripts import visual_quality_gate
 
@@ -34,6 +35,9 @@ def fake_styled(tmp_path, monkeypatch):
                          {"style_id": "STYLE_01", "date": DAY, "schema": "test-fixture-only"})
     atlas = _write_json(root / "assets" / "zodiac_mascot_atlas" / "STYLE_01" / "manifest.json",
                         {"style_id": "STYLE_01", "status": "PASS", "test_only": True})
+    layout = _write_json(root / "cards" / DAY / "layout_manifest.json",
+                         {"style_id":"STYLE_01","date":DAY,"status":"PASS","layout_reports":[
+                          {"status":"PASS"} for _ in range(6)]})
     cards = []
     for i in range(1, 7):
         p = root / "cards" / DAY / f"card_{i:02d}.jpg"
@@ -43,6 +47,8 @@ def fake_styled(tmp_path, monkeypatch):
     video = root / "reels" / (DAY + "_tts.mp4")
     video.parent.mkdir(parents=True, exist_ok=True)
     video.write_bytes(b"fake-aac-tts-real-decoding-is-tested-elsewhere")
+    monkeypatch.setattr(flux_first_card_assets, "verify",
+                        lambda day, root: {"style_id":"STYLE_01"})
     monkeypatch.setattr(zodiac_card_assets, "verify", lambda day, root: cards)
     monkeypatch.setattr(zodiac_mascot_atlas, "atlas_dir",
                         lambda day, root: root / "assets" / "zodiac_mascot_atlas" / "STYLE_01")
@@ -61,10 +67,12 @@ def fake_styled(tmp_path, monkeypatch):
         "reviewer_id": "qa-synthetic-reviewer-only",
         "approved_at": "2026-11-23T10:00:00+09:00",
         "source_manifest_sha256": gate.sha256(source),
+        "layout_manifest_sha256": gate.sha256(layout),
         "atlas_manifest_sha256": gate.sha256(atlas),
         "cards_sha256": {p.name: gate.sha256(p) for p in cards},
         "videos_sha256": {video.name: gate.sha256(video)},
         "avatar_and_voice_qa_status": "PASS",
+        "twelve_signs_narration_qa_status": "PASS",
     }
     record[gate.SIGNATURE_FIELD] = _sign(record)
     proof = _write_json(root / "assets" / "zodiac_release_approvals" / (DAY + ".json"), record)
@@ -224,3 +232,71 @@ def test_draft_workflows_have_guard_before_any_push_or_upload():
     # No cron changes are introduced by this test.
     threads=(root/".github/workflows/threads-zodiac-evening.yml").read_text()
     assert threads.index('python scripts/zodiac_publish_guard.py cards "$DI"') < threads.index('git add -A -- "cards/$DI"')
+
+def test_source_and_layout_both_removed_but_jpeg_and_mp4_fail_closed(tmp_path):
+    cards = tmp_path / "cards" / DAY
+    cards.mkdir(parents=True)
+    (cards / "card_01.jpg").write_bytes(b"styled synthetic jpeg")
+    video = tmp_path / "reels" / f"{DAY}_tts.mp4"
+    video.parent.mkdir()
+    video.write_bytes(b"styled synthetic mp4")
+    from scripts.zodiac_workflow_avatar_env import mode, WorkflowHold
+    for channel in ("cards", "video"):
+        with pytest.raises(gate.ReleaseHold, match="RELEASE_STYLED_ASSETS_WITHOUT_MANIFEST"):
+            gate.check(DAY, root=tmp_path, mode=channel)
+    with pytest.raises(WorkflowHold, match="RELEASE_STYLED_ASSETS_WITHOUT_MANIFEST"):
+        mode(DAY, root=tmp_path)
+
+
+def test_real_generated_layout_has_protection_marker(tmp_path):
+    _write_json(tmp_path / "cards" / DAY / "layout_manifest.json",
+                {"schema": "zodiac-text-safe-v1", "date": DAY,
+                 "protection_source": "composition_contract_not_animal_detection"})
+    with pytest.raises(gate.ReleaseHold, match="RELEASE_STYLED_ASSETS_WITHOUT_MANIFEST"):
+        gate.check(DAY, root=tmp_path)
+
+
+def test_legacy_png_historical_and_new_date_keep_route(tmp_path):
+    from scripts.zodiac_workflow_avatar_env import mode
+    for day in ("2026-10-30", DAY):
+        f = tmp_path / "cards" / day
+        f.mkdir(parents=True)
+        (f / "card_01.png").write_bytes(b"legacy synthetic PNG")
+        assert gate.check(day, root=tmp_path, mode="cards")["status"] == "LEGACY_UNCHANGED"
+        assert mode(day, root=tmp_path) == "LEGACY"
+
+
+def test_new_dated_mp4_without_provenance_also_holds(tmp_path):
+    f = tmp_path / "reels" / f"{DAY}_tts.mp4"
+    f.parent.mkdir()
+    f.write_bytes(b"unattributed media")
+    with pytest.raises(gate.ReleaseHold, match="RELEASE_STYLED_ASSETS_WITHOUT_MANIFEST"):
+        gate.check(DAY, root=tmp_path)
+
+
+def test_scopes_string_cannot_authorize_signed_release(fake_styled):
+    d = json.loads(fake_styled.proof.read_text())
+    d["scopes"] = "video cards"
+    d["hmac_sha256"] = _sign({k:v for k,v in d.items() if k != "hmac_sha256"})
+    _write_json(fake_styled.proof, d)
+    with pytest.raises(gate.ReleaseHold, match="RELEASE_APPROVAL_PROVENANCE_MISMATCH"):
+        gate.check(DAY, root=fake_styled.root, approval_key=KEY)
+
+
+def test_video_over_85_seconds_holds_even_if_signed(fake_styled, monkeypatch):
+    d = json.loads(fake_styled.proof.read_text())
+    from scripts import visual_quality_gate
+    monkeypatch.setattr(visual_quality_gate, "video_check",
+                        lambda *a, **k: {"status": "PASS", "duration_seconds": 86.0,
+                                         "sha256": gate.sha256(fake_styled.video)})
+    with pytest.raises(gate.ReleaseHold, match="RELEASE_FULL_TTS_VIDEO_UNAPPROVED"):
+        gate.check(DAY, root=fake_styled.root, approval_key=KEY)
+
+
+def test_missing_twelve_signs_human_review_holds(fake_styled):
+    d = json.loads(fake_styled.proof.read_text())
+    d.pop("twelve_signs_narration_qa_status", None)
+    d["hmac_sha256"] = _sign({k:v for k,v in d.items() if k != "hmac_sha256"})
+    _write_json(fake_styled.proof, d)
+    with pytest.raises(gate.ReleaseHold, match="RELEASE_HANBOK_AND_TTS_QA_UNAPPROVED"):
+        gate.check(DAY, root=fake_styled.root, approval_key=KEY)

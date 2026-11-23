@@ -73,6 +73,8 @@ def _apply_pngtuber_pip(video_path: Path, date: dt.date,
         gender = (voice_info or {}).get("gender")
         gender_source = "실제 TTS"
         if gender not in PNGTUBER_PERSONA:
+            if required:
+                raise RuntimeError("HANBOK_TTS_VOICE_GENDER_NOT_VERIFIED")
             gender = typecast_tts.pick_voice(date)["gender"]
             gender_source = "날짜 폴백"
         persona = PNGTUBER_PERSONA[gender]
@@ -395,7 +397,8 @@ def make_shorts(date_iso: str | None = None) -> Path:
 
     # 메타 저장 (유튜브 업로드·기록용)
     meta = {"date": date_iso, "voice": voice_used, "bgm": bgm.name if bgm else None,
-            "duration": round(_dur(out), 1), "narration": narrs}
+            "duration": round(_dur(out), 1), "narration": narrs,
+            "video_sha256": hashlib.sha256(out.read_bytes()).hexdigest()}
     (BASE / "cards" / date_iso / "shorts_meta.json").write_text(
         json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
 
@@ -723,7 +726,8 @@ def _still_shorts(date_iso: str, card: Path, text: str, fmt: str,
 
     meta = {"date": date_iso, "variant": "A_10s", "format": fmt,
             "voice": info, "bgm": bgm.name if bgm else None,
-            "duration": round(_dur(out), 1), "narration": text}
+            "duration": round(_dur(out), 1), "narration": text,
+            "video_sha256": hashlib.sha256(out.read_bytes()).hexdigest()}
     meta.update(extra or {})
     (cdir / "shorts10_meta.json").write_text(
         json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -854,7 +858,8 @@ def make_shorts_10s(date_iso: str | None = None) -> Path:
 
     (cdir / "shorts10_meta.json").write_text(json.dumps(
         {"date": date_iso, "variant": "A_10s", "voice": info,
-         "bgm": bgm.name if bgm else None, "duration": round(_dur(out), 1)},
+         "bgm": bgm.name if bgm else None, "duration": round(_dur(out), 1),
+         "video_sha256": hashlib.sha256(out.read_bytes()).hexdigest()},
         ensure_ascii=False, indent=1), encoding="utf-8")
     for f in tmp.glob("*"):
         f.unlink()

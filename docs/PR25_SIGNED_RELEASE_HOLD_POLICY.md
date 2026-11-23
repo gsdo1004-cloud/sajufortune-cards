@@ -125,3 +125,42 @@ crops recognized the missing ones. This does not establish an independently
 certified full 12/12 transcript or human voice signoff. Original atlas
 manifests stay PENDING_QA. No HMAC review key, external reviewer credentials
 or official release approval were created by the experiment.
+
+## Security repairs after GPT-6.2 Sol review — 2026-11-23 (Draft only)
+
+This proposal adds no real independent review signature or release key.
+Keep original source atlases PENDING_QA and PR Draft until signed authorized
+evidence is available. New metadata downgrade paths must fail closed.
+
+- The signed cards/video gate and scheduled avatar selector share one
+  classifier. On or after 2026-11-22, new dated JPEG/MP4 missing styled
+  provenance HOLDs. FLUX asset folders and real layout protection markers
+  also HOLD even if both manifests disappear. Historical PNG-only dates
+  keep the legacy path. Legitimate new unsigned JPEG dates may require
+  separate verified provenance before they can resume auto-publication.
+- The safe staging script stages only named per-date image and individually
+  approved MP4 files. It never stages an entire cards/reels directory,
+  unapproved A/B, temporary QA or other-date files for public raw hosting.
+- Signed new-style remote URLs use an immutable git commit from
+  ZODIAC_RAW_COMMIT_SHA populated only after successful safe push.
+  Missing commit identity blocks media container creation.
+- Scheduled card, reel and evening Threads workflows share a concurrency
+  group. Live Threads queue and local YouTube upload/push also invoke
+  signed-media guard, instead of only trusting existing filenames.
+- Approved new-style video must bind real FLUX source verification, dated
+  layout manifest SHA, valid scopes list, atlas QA, card SHA and actual
+  15 to 85 seconds AAC video SHA to independent signed release evidence.
+  The independent reviewer also must sign twelve_signs_narration_qa_status
+  and avatar_and_voice_qa_status as PASS. Do not fabricate these values.
+- Supertonic MP3 conversion now uses atomic staging and a checked FFmpeg
+  exit status, with stale audio removed on failure. Strict original Hanbok
+  video uses an intermediate MP4 until all final checks succeed, protects
+  twelve labeled zodiac groups in the intended order and refuses unclear
+  TTS gender when human avatar is required.
+- Local YouTube receipts are bound to the current expected title and
+  newly written actual upload log. Old unrelated success logs are rejected.
+
+No signed independent reviewer/key or source atlas approvals have been
+provisioned by these repairs. Production BGM, human audio intelligibility,
+senior phone-size readability and external reviewer identity still require
+authorization before release. Keep Draft and do not deploy automatically.

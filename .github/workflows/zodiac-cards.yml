@@ -25,6 +25,11 @@ on:
         required: false
         default: ''
 
+# Serialize regular, backup and manual runs sharing one public account.
+concurrency:
+  group: zodiac-publication-${{ github.repository }}
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -138,13 +143,17 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add cards/ reels/
+          # Preserve approval boundaries: never push a whole cards/reels tree.
+          # Variants are staged only if each MP4 has its OWN approved SHA.
+          TARGET=$(TZ=Asia/Seoul date -d "+${ZODIAC_PUBLISH_OFFSET_DAYS:-0} days" +%F)
+          python scripts/zodiac_safe_public_stage.py "$TARGET" --stage
           if git diff --cached --quiet; then
             echo "[SKIP] 카드+릴스 변경 없음 — push 생략"
           else
             git commit -m "cards+reel $(TZ=Asia/Seoul date +%F)"
             bash scripts/safe_git_push.sh main
           fi
+          echo "ZODIAC_RAW_COMMIT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - name: raw URL 전파 대기
         run: sleep 30

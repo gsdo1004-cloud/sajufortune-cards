@@ -11,6 +11,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 VALID_STYLES = frozenset(f"STYLE_{i:02d}" for i in range(1, 8))
 
 class WorkflowHold(ValueError):
@@ -32,20 +34,16 @@ def mode(day: str, root: Path = ROOT) -> str:
     except (ValueError, TypeError) as exc:
         raise WorkflowHold("INVALID_ISO_DATE") from exc
     root = Path(root)
-    manifest_path = root / "assets" / "flux_daily" / day / "manifest.json"
-    layout_path = root / "cards" / day / "layout_manifest.json"
-    manifest = _json(manifest_path) if manifest_path.exists() else None
-    layout = _json(layout_path) if layout_path.exists() else None
-    mstyle = manifest.get("style_id") if manifest else None
-    lstyle = layout.get("style_id") if layout else None
-    if mstyle is None or mstyle == "":
-        if lstyle:
-            raise WorkflowHold("STYLED_LAYOUT_WITHOUT_ATLAS_MANIFEST")
+    from scripts.zodiac_publish_guard import styled_manifest, ReleaseHold
+    try:
+        manifest = styled_manifest(day, root)
+    except ReleaseHold as exc:
+        raise WorkflowHold(str(exc)) from exc
+    if manifest is None:
         return "LEGACY"
+    mstyle = manifest.get("style_id")
     if not isinstance(mstyle, str) or mstyle not in VALID_STYLES:
         raise WorkflowHold("UNRECOGNIZED_STYLE_ID")
-    if lstyle and lstyle != mstyle:
-        raise WorkflowHold("STYLED_LAYOUT_STYLE_MISMATCH")
     return "STYLED"
 
 def main() -> int:

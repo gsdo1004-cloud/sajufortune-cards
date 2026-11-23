@@ -10,6 +10,9 @@ def isolate(tmp_path, monkeypatch):
     monkeypatch.setattr(a.zc, "__file__", str(tmp_path / "zodiac_cardnews.py"))
     monkeypatch.setattr(a.zc, "RAW_BASE", "https://example.invalid/main")
     monkeypatch.setattr(a.zc, "date_full", lambda d: d)
+    monkeypatch.setattr(a.zc, "_verified_image_urls", lambda date: [
+        f"https://example.invalid/main/cards/{date}/card_01.png",
+        f"https://example.invalid/main/cards/{date}/card_02.png"])
 
 
 def make_cards(tmp_path):
@@ -70,3 +73,17 @@ def test_adapter_refuses_when_receipt_exists(tmp_path, monkeypatch):
         assert "receipt already exists" in str(e)
     else:
         raise AssertionError("existing receipt was not blocked")
+
+def test_worker_live_holds_on_failed_release_guard_without_post(tmp_path, monkeypatch):
+    isolate(tmp_path, monkeypatch)
+    make_cards(tmp_path)
+    monkeypatch.setenv("THREADS_QUEUE_LIVE", "1")
+    monkeypatch.setattr(a.zc, "_verified_image_urls", lambda *args:
+                        (_ for _ in ()).throw(RuntimeError("RELEASE_SIGNATURE_MISSING")))
+    calls = []
+    monkeypatch.setattr(a.zc, "publish_carousel", lambda *args: calls.append(args))
+    q.enqueue("zodiac:2026-09-22", "2026-09-21T00:00:00+00:00",
+              "zodiac_carousel", "2026-09-22")
+    result=q.run_worker_once(a.publish_job, "2026-09-21T01:00:00+00:00", live=True)
+    assert result["ok"] is False
+    assert calls == []

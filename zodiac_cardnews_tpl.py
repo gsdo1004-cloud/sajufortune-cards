@@ -438,6 +438,7 @@ def build(date_iso: str, force_set: int | None = None) -> list[Path]:
             image_check(card,min_bytes=60000)
         (out / "layout_manifest.json").write_text(json.dumps({
             "schema":"zodiac-text-safe-v1", "date":date_iso,
+            "style_id":style_for_day(date_iso)["id"],
             "status":"PASS", "layout_reports":layout_reports,
             "protection_source":"composition_contract_not_animal_detection",
             "paid_api_calls":0,

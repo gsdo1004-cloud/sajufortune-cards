@@ -54,12 +54,20 @@ def synth(text: str, out_mp3: Path, speed: float = 1.2) -> bool:
     speed 는 배율(1.0=기본). 호출부의 Edge식 '+N%' 는 1 + N/100 으로 환산해 넘긴다.
     """
     global _FAILED
+    target = Path(out_mp3)
     if not available():
+        # An earlier failed synthesis must not masquerade as the new voice.
+        target.unlink(missing_ok=True)
         return False
+    wav_path = target.with_suffix(".st.wav")
+    staging = target.with_name(target.stem + ".staging.mp3")
+    # A failed retry must never claim an old MP3 for a new narration.
+    target.unlink(missing_ok=True)
+    staging.unlink(missing_ok=True)
+    wav_path.unlink(missing_ok=True)
     try:
         eng = _engine()
         style = eng.get_voice_style(voice_name=VOICE)
-        wav_path = Path(out_mp3).with_suffix(".st.wav")
         if os.environ.get("SUPERTONIC_DETERMINISTIC_QA", "0") == "1":
             # Offline QA only. Supertonic samples a random diffusion latent.
             # Stable identity seeds deterministic replay; restore RNG afterward.
@@ -81,12 +89,17 @@ def synth(text: str, out_mp3: Path, speed: float = 1.2) -> bool:
         eng.save_audio(wav, str(wav_path))
         subprocess.run(
             ["ffmpeg", "-y", "-i", str(wav_path), "-c:a", "libmp3lame",
-             "-b:a", "128k", str(out_mp3)],
-            capture_output=True, timeout=120,
+             "-b:a", "128k", str(staging)],
+            capture_output=True, timeout=120, check=True,
         )
-        wav_path.unlink(missing_ok=True)
-        return Path(out_mp3).exists() and Path(out_mp3).stat().st_size > 1000
+        if not staging.is_file() or staging.stat().st_size <= 1000:
+            raise RuntimeError("SUPERTONIC_MP3_EMPTY_OR_UNDER_SIZE")
+        staging.replace(target)
+        return True
     except Exception as e:
         print(f"  [Supertonic] 사용 불가 → Edge 폴백: {e}")
         _FAILED = True
-    return False
+        return False
+    finally:
+        wav_path.unlink(missing_ok=True)
+        staging.unlink(missing_ok=True)

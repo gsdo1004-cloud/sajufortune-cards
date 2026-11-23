@@ -30,7 +30,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: threads-zodiac-evening
+  group: zodiac-publication-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
@@ -123,6 +123,7 @@ jobs:
             git commit -m "fix(cards): recover daily carousel assets $DI"
             bash scripts/safe_git_push.sh main
           fi
+          echo "ZODIAC_RAW_COMMIT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - name: Validate public carousel assets (no publish)
         if: steps.preflight.outputs.already != 'true'

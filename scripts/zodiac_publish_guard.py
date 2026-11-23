@@ -47,6 +47,57 @@ def _read_json(path: Path, reason: str) -> dict:
     return result
 
 
+# The first seven-style promotion shipped on 2026-11-22. Existing
+# historical PNG dates keep their legacy publisher, but a new JPEG/MP4
+# without intact source/layout identity must never be accepted as legacy.
+STYLE_PROTECTION_START = dt.date(2026, 11, 22)
+
+
+def _styled_artifact_evidence(day: str, root: Path) -> bool:
+    """Read-only independent evidence: tolerate deletion of BOTH manifests.
+
+    Raw files, rendered layout, style schedule, and review/receipt markers
+    are considered even when the adjacent JSON was removed during a sync.
+    """
+    cards = root / "cards" / day
+    source = root / "assets" / "flux_daily" / day
+    if source.exists():
+        if any(entry.name != "manifest.json" for entry in source.iterdir()):
+            return True
+        manifest_path = source / "manifest.json"
+        if manifest_path.exists():
+            item = _read_json(manifest_path, "RELEASE_SOURCE_MANIFEST_INVALID")
+            if item.get("schema") == "social-flux-backgrounds-v1":
+                return True
+    if (root / "assets" / "zodiac_release_approvals" / (day + ".json")).exists():
+        return True
+    if any((cards / name).exists() for name in (
+        "flux_backgrounds_applied.json", "layout_manifest.json",
+        "visual_style.json", "review_evidence.json",
+    )):
+        # A layout / visual_style file alone is not proof of styled content;
+        # inspect it below and classify malformed metadata conservatively.
+        for name in ("layout_manifest.json", "visual_style.json"):
+            path = cards / name
+            if path.exists():
+                meta = _read_json(path, "RELEASE_LAYOUT_BROKEN")
+                if (meta.get("style_id") or
+                    meta.get("protection_source") == "composition_contract_not_animal_detection" or
+                    str(meta.get("family_id", "")).startswith("STYLE_")):
+                    return True
+        if (cards / "flux_backgrounds_applied.json").exists() or (cards / "review_evidence.json").exists():
+            return True
+    if dt.date.fromisoformat(day) >= STYLE_PROTECTION_START:
+        if list(cards.glob("card_*.jpg")) or list(cards.glob("card_*.jpeg")):
+            return True
+        if list((root / "reels").glob(day + "_tts*.mp4")):
+            # A dated reel is not independently attributed to a verified
+            # legacy source. Require a source manifest or historical legacy
+            # proof for new dates; never trust only a video file name.
+            return True
+    return False
+
+
 def styled_manifest(day: str, root: Path = ROOT) -> dict | None:
     dt.date.fromisoformat(day)
     if dt.date.fromisoformat(day).isoformat() != day:
@@ -54,19 +105,19 @@ def styled_manifest(day: str, root: Path = ROOT) -> dict | None:
     source = root / "assets" / "flux_daily" / day / "manifest.json"
     layout = root / "cards" / day / "layout_manifest.json"
     if not source.exists():
-        if layout.exists():
-            item = _read_json(layout, "RELEASE_LAYOUT_BROKEN")
-            if item.get("style_id"):
-                raise ReleaseHold("RELEASE_STYLED_ASSETS_WITHOUT_MANIFEST")
+        if _styled_artifact_evidence(day, root):
+            raise ReleaseHold("RELEASE_STYLED_ASSETS_WITHOUT_MANIFEST")
         return None
     manifest = _read_json(source, "RELEASE_SOURCE_MANIFEST_INVALID")
-    if not manifest.get("style_id") and layout.exists():
-        card_layout = _read_json(layout, "RELEASE_LAYOUT_BROKEN")
-        if card_layout.get("style_id"):
-            # Removing style_id from a styled manifest must never downgrade
-            # a seven-style FLUX composition to the legacy publish policy.
+    if not manifest.get("style_id"):
+        if _styled_artifact_evidence(day, root):
             raise ReleaseHold("RELEASE_STYLE_ID_DOWNGRADE_DETECTED")
-    return manifest if manifest.get("style_id") else None
+        return None
+    if layout.exists():
+        card_layout = _read_json(layout, "RELEASE_LAYOUT_BROKEN")
+        if card_layout.get("style_id") not in (None, manifest["style_id"]):
+            raise ReleaseHold("RELEASE_LAYOUT_STYLE_MISMATCH")
+    return manifest
 
 
 def _signature_valid(record: dict, key: str) -> bool:
@@ -105,15 +156,20 @@ def check(day: str, *, root: Path = ROOT, mode: str = "video",
 
     # Never interpret mere presence of a source as an independent approval.
     from scripts.zodiac_card_assets import verify as verify_cards
+    from scripts.flux_first_card_assets import verify as verify_flux
     from scripts.zodiac_mascot_atlas import atlas_dir, verify_atlas
     from scripts.visual_quality_gate import video_check
     try:
+        verified_source = verify_flux(day, root)
+        if verified_source.get("style_id") != manifest.get("style_id"):
+            raise ValueError("FLUX_SOURCE_STYLE_MISMATCH")
         cards = verify_cards(day, root)
         atlas = verify_atlas(day, root)
-    except (ValueError, OSError, KeyError) as exc:
+    except (ValueError, OSError, KeyError, TypeError) as exc:
         raise ReleaseHold("RELEASE_SOURCE_INDEPENDENT_QA_HOLD") from exc
 
     source_path = root / "assets" / "flux_daily" / day / "manifest.json"
+    layout_path = root / "cards" / day / "layout_manifest.json"
     atlas_path = atlas_dir(day, root) / "manifest.json"
     approval = _read_json(root / "assets" / "zodiac_release_approvals" / (day + ".json"),
                           "RELEASE_ATTESTATION_MISSING_OR_INVALID")
@@ -126,12 +182,16 @@ def check(day: str, *, root: Path = ROOT, mode: str = "video",
             or approval.get("status") != "APPROVED"
             or approval.get("date") != day
             or approval.get("style_id") != manifest.get("style_id")
-            or mode not in (approval.get("scopes") or [])
+            or not isinstance(approval.get("scopes"), list)
+            or len(set(str(x) for x in approval["scopes"])) != len(approval["scopes"])
+            or any(x not in ("video", "cards") for x in approval["scopes"])
+            or mode not in approval["scopes"]
             or not isinstance(reviewer_id, str)
             or len(reviewer_id.strip()) < 4
             or reviewer_id.casefold() in ("local_model", "flux2_klein_local", "self")
             or approved_at.tzinfo is None
             or approval.get("source_manifest_sha256") != sha256(source_path)
+            or approval.get("layout_manifest_sha256") != sha256(layout_path)
             or approval.get("atlas_manifest_sha256") != sha256(atlas_path)
             or approval.get("cards_sha256") != {p.name: sha256(p) for p in cards}
             or atlas.get("status") != "PASS"):
@@ -148,13 +208,15 @@ def check(day: str, *, root: Path = ROOT, mode: str = "video",
             checked = video_check(selected, require_audio=True)
         except (OSError, ValueError) as exc:
             raise ReleaseHold("RELEASE_FULL_TTS_VIDEO_QA_FAILED") from exc
-        if checked.get("status") != "PASS" or checked.get("duration_seconds", 0) < 15:
+        if (checked.get("status") != "PASS" or
+                not 15 <= checked.get("duration_seconds", 0) <= 85.0):
             raise ReleaseHold("RELEASE_FULL_TTS_VIDEO_UNAPPROVED")
         checked_hash = checked["sha256"]
         if (not isinstance(approval.get("videos_sha256"), dict)
                 or approval["videos_sha256"].get(selected.name) != checked_hash):
             raise ReleaseHold("RELEASE_VIDEO_SHA_UNAPPROVED")
-        if approval.get("avatar_and_voice_qa_status") != "PASS":
+        if (approval.get("avatar_and_voice_qa_status") != "PASS" or
+                approval.get("twelve_signs_narration_qa_status") != "PASS"):
             raise ReleaseHold("RELEASE_HANBOK_AND_TTS_QA_UNAPPROVED")
 
     return {"status": "VERIFIED_SIGNED_RELEASE", "date": day, "mode": mode,
@@ -164,12 +226,31 @@ def check(day: str, *, root: Path = ROOT, mode: str = "video",
             "video": str(selected) if selected else None}
 
 
-def verify_remote_sha(url: str, expected_sha: str, *, max_bytes: int = 120_000_000) -> None:
-    """Read-only CDN identity check; no remote payload accepted without exact SHA."""
+def immutable_raw_url(url: str) -> str:
+    """Bind external media to an exact successful git push commit, not main."""
     from urllib.parse import urlparse
+    import re
     uri = urlparse(url)
+    prefix = "/gsdo1004-cloud/sajufortune-cards/main/"
+    if uri.scheme != "https" or uri.netloc != "raw.githubusercontent.com" or not uri.path.startswith(prefix):
+        raise ReleaseHold("RELEASE_REMOTE_URL_NOT_APPROVED")
+    commit = os.environ.get("ZODIAC_RAW_COMMIT_SHA", "").strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{40}", commit):
+        raise ReleaseHold("RELEASE_IMMUTABLE_RAW_COMMIT_UNAVAILABLE")
+    return f"https://raw.githubusercontent.com/gsdo1004-cloud/sajufortune-cards/{commit}/{uri.path[len(prefix):]}"
+
+
+def verify_remote_sha(url: str, expected_sha: str, *, max_bytes: int = 120_000_000,
+                      require_immutable: bool = False) -> None:
+    """Read-only CDN identity check; strict styled URLs must pin commit SHA."""
+    from urllib.parse import urlparse
+    import re
+    uri = urlparse(url)
+    prefix = "/gsdo1004-cloud/sajufortune-cards/"
+    ref = uri.path[len(prefix):].split("/", 1)[0] if uri.path.startswith(prefix) else ""
     if (uri.scheme != "https" or uri.netloc != "raw.githubusercontent.com"
-        or not uri.path.startswith("/gsdo1004-cloud/sajufortune-cards/main/")):
+            or uri.query or uri.fragment or ref not in ("main",) and not re.fullmatch(r"[a-f0-9]{40}", ref)
+            or (require_immutable and ref == "main")):
         raise ReleaseHold("RELEASE_REMOTE_URL_NOT_APPROVED")
     import requests
     digest = hashlib.sha256()

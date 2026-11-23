@@ -36,18 +36,18 @@ def test_styled_layout_and_manifest_match(tmp_path):
 def test_style_removed_from_manifest_blocks_downgrade(tmp_path):
     put(tmp_path,f'assets/flux_daily/{DAY}/manifest.json',{'schema':1})
     put(tmp_path,f'cards/{DAY}/layout_manifest.json',{'style_id':'STYLE_02'})
-    with pytest.raises(wa.WorkflowHold,match='STYLED_LAYOUT_WITHOUT_ATLAS_MANIFEST'):
+    with pytest.raises(wa.WorkflowHold,match='RELEASE_(STYLE_ID_DOWNGRADE_DETECTED|STYLED_ASSETS_WITHOUT_MANIFEST)'):
         wa.mode(DAY,tmp_path)
 
 def test_style_layout_without_manifest_blocks_downgrade(tmp_path):
     put(tmp_path,f'cards/{DAY}/layout_manifest.json',{'style_id':'STYLE_02'})
-    with pytest.raises(wa.WorkflowHold,match='STYLED_LAYOUT_WITHOUT_ATLAS_MANIFEST'):
+    with pytest.raises(wa.WorkflowHold,match='RELEASE_(STYLE_ID_DOWNGRADE_DETECTED|STYLED_ASSETS_WITHOUT_MANIFEST)'):
         wa.mode(DAY,tmp_path)
 
 def test_mismatch_blocks(tmp_path):
     put(tmp_path,f'assets/flux_daily/{DAY}/manifest.json',{'style_id':'STYLE_04'})
     put(tmp_path,f'cards/{DAY}/layout_manifest.json',{'style_id':'STYLE_05'})
-    with pytest.raises(wa.WorkflowHold,match='STYLED_LAYOUT_STYLE_MISMATCH'):
+    with pytest.raises(wa.WorkflowHold,match='RELEASE_LAYOUT_STYLE_MISMATCH'):
         wa.mode(DAY,tmp_path)
 
 def test_unsupported_style_blocks(tmp_path):
@@ -64,7 +64,7 @@ def test_invalid_json_fails_closed(tmp_path):
     p=tmp_path/f'assets/flux_daily/{DAY}/manifest.json'
     p.parent.mkdir(parents=True,exist_ok=True)
     p.write_text('{bad',encoding='utf-8')
-    with pytest.raises(wa.WorkflowHold,match='STYLED_METADATA_MISSING_OR_INVALID'):
+    with pytest.raises(wa.WorkflowHold,match='RELEASE_SOURCE_MANIFEST_INVALID'):
         wa.mode(DAY,tmp_path)
 
 def test_invalid_date_blocks(tmp_path):
