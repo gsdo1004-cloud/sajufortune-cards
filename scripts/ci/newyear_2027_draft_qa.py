@@ -22,6 +22,22 @@ TEN={
  "47_imsu":("임수","정재"),"48_gyesu":("계수","편재"),
 }
 
+APPROVED_SOURCE_SHA={
+ "39_gapmok":"69fe3a243b084c98f58e8db20bd9890f47ed496dab31a1b1b6c472391e07337d",
+ "40_eulmok":"7ed4a2b5fb655c246efc77f22762a0f83f06e7e8dc1922119ba8933864a9f46e",
+ "41_byeonghwa":"cf506db54e2b4a2a6613ad007dca2690e674a10d3f6dfcb49d055c11acd39ce3",
+ "42_jeonghwa":"d324b065e39f79585caca3d315a20946c267253a9651da1f2ca3d4f309e874cc",
+ "43_muto":"d673db9560f4d74f402d857b15d96c12e6771d4867ed07d0ebd1567e097d0298",
+ "44_gito":"47fbe097c96df28b4915c62f1df1b610a36bc042ca4c5e2b458983b14d36eb92",
+ "45_gyeonggeum":"c51fbd02a087e1471e8559a776a59ba78b6445a948e5387834fe08a2bd711c35",
+ "46_singeum":"3e107af167b9e941c2fa3dec09c7316a5b3d00ca93209e5a3127e72d4ea43389",
+ "47_imsu":"857760d5c33473548f5964b92a5a0c0bb7aba65a23e36163d1af19ff7ab89c9e",
+ "48_gyesu":"9517e98d15ea946a45c5002e0c2659a4e9240684a4e590437d93f681b510994a",
+}
+# The original article files are not stored in this GitHub repo. These ten
+# immutable SHA-256 attestations were independently computed on PC1 from
+# the approved article.md bytes; they are public content hashes, not secrets.
+
 def fail(reason):
     raise ValueError("SAFE_CI_HOLD: "+reason)
 
@@ -66,6 +82,7 @@ def inspect(current:dict,baseline:dict,asset_root:Path)->dict:
             if not item['threads_text'].count("\n\n")>=2:fail("threads structure")
             if not 4<=len(item['youtube_title'])<=100:fail("YouTube title length")
             if not re.fullmatch(r'[0-9a-f]{64}',item['source_sha256']):fail("source SHA shape")
+            if item['source_sha256']!=APPROVED_SOURCE_SHA[key]:fail("approved source SHA drift")
             hooks.append(item['shorts_script'][:32]);changed.append(item['publish_date'])
             image=asset_root/item['asset']
             if not image.is_file():fail("missing image "+str(image))
