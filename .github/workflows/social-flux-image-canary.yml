@@ -28,7 +28,7 @@ jobs:
         run: |
           # Include fail-closed integration tests for the unpublished strict
           # TTS/Hanbok route, left rail, AAC, receipt protection, and render lock.
-          python -m pytest -q test_flux_first_card_assets.py test_card_flux_promotion.py test_zodiac_seven_style_layout.py test_zodiac_mascot_atlas.py test_zodiac_hanbok_avatar_gate.py test_supertonic_deterministic_qa.py test_pr25_strict_reel_offline.py test_pr25_failsafe_audio_gate.py test_pr25_hanbok_bundle_left_rail.py test_pr25_published_receipt_and_lock.py test_pr25_signed_release_before_external_publish.py test_pr25_optional_m2_dog_clarity_pilot.py
+          python -m pytest -q test_flux_first_card_assets.py test_card_flux_promotion.py test_zodiac_seven_style_layout.py test_zodiac_mascot_atlas.py test_zodiac_hanbok_avatar_gate.py test_supertonic_deterministic_qa.py test_pr25_strict_reel_offline.py test_pr25_failsafe_audio_gate.py test_pr25_hanbok_bundle_left_rail.py test_pr25_published_receipt_and_lock.py test_pr25_signed_release_before_external_publish.py test_pr25_optional_m2_dog_clarity_pilot.py test_pr25_m2_readable_pace_pilot.py
           python - <<'PY'
           from pathlib import Path
           t=Path("scripts/flux_first_card_assets.py").read_text()

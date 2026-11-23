@@ -294,6 +294,51 @@ def _optional_m2_dog_clarity_pilot(date_iso: str, card_stem: str,
     return out
 
 
+def _optional_m2_readable_pace_pilot(date_iso: str, card_stem: str,
+                                      narrs: list[str]) -> list[str]:
+    """Opt-in QA: shorter cover/CTA, never abbreviate any zodiac readings.
+
+    Senior-viewer pace is protected by an explicit total-length/rate HOLD.
+    The experiment is OFF in all existing schedules and publications.
+    """
+    if os.environ.get("ZODIAC_M2_READABLE_PACE_PILOT", "0") != "1":
+        return narrs
+    if (card_stem != "card_" or
+            os.environ.get("ZODIAC_REQUIRE_HANBOK_AVATAR", "0") != "1" or
+            os.environ.get("SUPERTONIC_VOICE", "").strip().upper() != "M2" or
+            os.environ.get("ZODIAC_DOG_M2_CLARITY_PILOT", "0") != "1"):
+        raise RuntimeError("READABLE_PACE_REQUIRES_STRICT_FLUX_M2_DOG_QA")
+    from zodiac_cardnews_tpl import _flux_active
+    if not _flux_active(date_iso):
+        raise RuntimeError("READABLE_PACE_REQUIRES_VERIFIED_FLUX_DATE")
+    if len(narrs) != 6:
+        raise RuntimeError("READABLE_PACE_REQUIRES_SIX_ZODIAC_SCENES")
+    original_intro = f"{date_full(date_iso)} 오늘의 띠별 운세. 내 띠는 오늘 어떤 흐름일까요?"
+    closing_prefix = "오늘 운이 좋은 띠는 "
+    closing_suffix = ". 자세한 운세는 사주포춘에서 확인하세요."
+    if (narrs[0] != original_intro or
+            not narrs[5].startswith(closing_prefix) or
+            not narrs[5].endswith(closing_suffix)):
+        raise RuntimeError("READABLE_PACE_UNEXPECTED_COVER_OR_CTA")
+    top_names = narrs[5][len(closing_prefix):-len(closing_suffix)]
+    if (top_names.count(", ") != 2 or
+            any("띠" not in word for word in top_names.split(", "))):
+        raise RuntimeError("READABLE_PACE_UNEXPECTED_TOP_THREE")
+    output = list(narrs)
+    output[0] = f"{date_full(date_iso)}, 열두 띠 운세입니다."
+    output[5] = f"좋은 띠는 {top_names}. 자세한 운세는 사주포춘에서 확인하세요."
+    assert output[1:5] == narrs[1:5]  # no fortune-text compression
+    return output
+
+
+def _assert_readable_pace_length(rate_pct: int, total_seconds: float) -> None:
+    """An opt-in senior readability pilot must not silently speed to +31%."""
+    if os.environ.get("ZODIAC_M2_READABLE_PACE_PILOT", "0") != "1":
+        return
+    if rate_pct > 24 or total_seconds > CLIP_LIMIT:
+        raise RuntimeError("READABLE_PACE_QA_HOLD_TOO_FAST_OR_LONG")
+
+
 def _make_reel_tts_impl(date_iso, card_stem: str = "card_", narrs: list[str] | None = None,
                   out_name: str | None = None):
     """카드 + 나레이션 → 9:16 릴스.
@@ -321,6 +366,7 @@ def _make_reel_tts_impl(date_iso, card_stem: str = "card_", narrs: list[str] | N
     # Strict M2 FLUX QA can opt in to the independently sampled dog-sign
     # phrasing pilot; never rewrite original source readings or legacy dates.
     narrs = _optional_m2_dog_clarity_pilot(date_iso, card_stem, narrs)
+    narrs = _optional_m2_readable_pace_pilot(date_iso, card_stem, narrs)
     n = min(len(cards), len(narrs))
 
     tmp = BASE / "cards" / date_iso / f"_reel_{card_stem.strip('_')}"
@@ -344,6 +390,8 @@ def _make_reel_tts_impl(date_iso, card_stem: str = "card_", narrs: list[str] | N
             break
         print(f"[..] 길이 {total:.1f}초 > {CLIP_LIMIT}초 → rate +{rate}% → +{new_rate}% 재합성")
         rate = new_rate
+
+    _assert_readable_pace_length(rate, total)
 
     # 2) 확정된 나레이션으로 클립을 만든다.
     clips = []

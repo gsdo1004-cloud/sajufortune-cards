@@ -91,3 +91,37 @@ one targeted audio crop. This is encouraging engineering evidence **not**
 independent reviewer identity, human listening, or release permission.
 Source atlas manifests remain PENDING_QA, and externally authorized signed
 release evidence is not available. Keep PR Draft / HOLD.
+
+## Optional senior-readable M2 speech pacing QA (default OFF)
+
+To avoid speeding up the original Hanbok narrator to +31% to meet the
+85-second clip limit, a separate **explicit opt-in QA-only** mode is
+available:
+
+\`ZODIAC_M2_READABLE_PACE_PILOT=1\`
+
+This mode requires all other strict FLUX male M2 + Hanbok + dog-clarity
+flags. It rewrites **only** the calendar cover and end-of-reel CTA, retaining
+the exact date, weekday, top-three lucky signs and 사주포춘 reference.
+All 12 original daily fortune interpretations in the four main scenes
+remain **byte-identical** to those delivered to TTS. It refuses unexpected
+cover, CTA or missing scenes instead of changing them by guesswork.
+
+When enabled, the finished narrated six-scene video must meet:
+**duration <= 85s** and **Supertonic speaking rate <= +24%**. Any longer
+or faster would HOLD instead of delivering a hurried senior-facing video.
+These checks are independent of the default legacy video path, which stays
+unchanged. The option is **not** set in the operating scheduler.
+
+In the isolated STYLE_01 / 2026-12-07 local M2 experiment, the shortened
+cover and closing saved 2.586 seconds at the unchanged +20% pace.
+The 12 zodiac readings themselves remained unshortened. The actual QA-only full Hanbok M2 movie on 2026-12-07 finished in
+**84.601 seconds at +20%**, twice byte-identically with SHA-256
+b6c0fd0fa7b197b31171998fe2bb6b816c70af953a0f4f196974e094dc7909e8.
+Nine phone-sized frames showed no overlap or clipping, but small secondary
+score fonts still require senior readability review. Each full offline ASR
+recognized 11/12 with different ambiguous zodiac words; targeted unprompted
+crops recognized the missing ones. This does not establish an independently
+certified full 12/12 transcript or human voice signoff. Original atlas
+manifests stay PENDING_QA. No HMAC review key, external reviewer credentials
+or official release approval were created by the experiment.
