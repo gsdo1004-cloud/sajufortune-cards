@@ -68,3 +68,26 @@ The original offline full-TTS male/female and two-run canary are separate.
 review, authentic reviewer attestation, source atlas approval, 12/12
 voice-to-scene validation, and safe workflow rollout on production after
 authorization. Therefore KEEP PR Draft, NO MERGE / NO DEPLOY / NO POSTS.
+
+## Optional M2 dog-sign speech clarity pilot (not automatically enabled)
+
+The offline QA of 2026-12-07 found unstable ASR transcription of the M2
+\`개띠\` word when spoken directly after a rooster phrase ending in \`득\`.
+An original-reading-preserving, strictly **opt-in** experiment is available:
+
+\`ZODIAC_DOG_M2_CLARITY_PILOT=1\`
+
+Only on signed-release-gated FLUX card scenes with
+\`ZODIAC_REQUIRE_HANBOK_AVATAR=1\` and \`SUPERTONIC_VOICE=M2\`,
+the voice sentence \`개띠, ...\` becomes \`이어서 개띠 운세입니다. ...\`.
+The user-visible daily fortunes, animals and their order remain unchanged.
+With the setting absent, the legacy and styled source narration is *exactly*
+unchanged. This flag is **not** set in any operating scheduler or workflow.
+
+The isolated 2026-12-07 complete male Hanbok 80.434 s AAC video rendered
+twice with identical SHA, and local vocabulary-context ASR recognized all
+twelve names. Unprompted full ASR recognized eleven, with rat recovered in
+one targeted audio crop. This is encouraging engineering evidence **not**
+independent reviewer identity, human listening, or release permission.
+Source atlas manifests remain PENDING_QA, and externally authorized signed
+release evidence is not available. Keep PR Draft / HOLD.

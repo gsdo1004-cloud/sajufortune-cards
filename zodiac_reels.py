@@ -264,6 +264,36 @@ def make_reel_tts(date_iso, card_stem: str = "card_", narrs: list[str] | None = 
             pass
 
 
+def _optional_m2_dog_clarity_pilot(date_iso: str, card_stem: str,
+                                    narrs: list[str]) -> list[str]:
+    """EXPLICIT QA OPT-IN ONLY: protect the dog-sign phrase from ASR confusion.
+
+    This is a text-only candidate, not release certification. Until a
+    trusted reviewer approves every complete video, the default must
+    remain OFF and signed release preflight must keep styled media HOLD.
+    """
+    if os.environ.get("ZODIAC_DOG_M2_CLARITY_PILOT", "0") != "1":
+        return narrs
+    voice = os.environ.get("SUPERTONIC_VOICE", "").strip().upper()
+    if (card_stem != "card_" or voice != "M2"
+            or os.environ.get("ZODIAC_REQUIRE_HANBOK_AVATAR", "0") != "1"):
+        raise RuntimeError("DOG_CLARITY_PILOT_REQUIRES_STRICT_M2_HANBOK")
+    from zodiac_cardnews_tpl import _flux_active
+    if not _flux_active(date_iso):
+        raise RuntimeError("DOG_CLARITY_PILOT_REQUIRES_VERIFIED_FLUX_DATE")
+    if len(narrs) != 6:
+        raise RuntimeError("DOG_CLARITY_PILOT_REQUIRES_SIX_SCENES")
+    marker = "개띠, "
+    occurrences = sum(x.count(marker) for x in narrs)
+    if occurrences != 1:
+        raise RuntimeError("DOG_CLARITY_PILOT_SIGN_COUNT_MISMATCH")
+    out = [line.replace(marker, "이어서 개띠 운세입니다. ", 1)
+           for line in narrs]
+    if out[0] != narrs[0] or out[-1] != narrs[-1]:
+        raise RuntimeError("DOG_CLARITY_PILOT_UNEXPECTED_SCENE")
+    return out
+
+
 def _make_reel_tts_impl(date_iso, card_stem: str = "card_", narrs: list[str] | None = None,
                   out_name: str | None = None):
     """카드 + 나레이션 → 9:16 릴스.
@@ -288,6 +318,9 @@ def _make_reel_tts_impl(date_iso, card_stem: str = "card_", narrs: list[str] | N
             verify_cards(date_iso)
     if narrs is None:
         narrs = narration_lines(date_iso)
+    # Strict M2 FLUX QA can opt in to the independently sampled dog-sign
+    # phrasing pilot; never rewrite original source readings or legacy dates.
+    narrs = _optional_m2_dog_clarity_pilot(date_iso, card_stem, narrs)
     n = min(len(cards), len(narrs))
 
     tmp = BASE / "cards" / date_iso / f"_reel_{card_stem.strip('_')}"
