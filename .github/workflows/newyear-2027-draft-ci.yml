@@ -1,0 +1,27 @@
+name: Newyear2027 Draft Offline QA (NO PUBLISH)
+on:
+  push:
+    branches:
+      - review/newyear2027-ci-qa-20261123
+    paths:
+      - newyear_2027/content.json
+      - scripts/ci/newyear_2027_draft_qa.py
+      - .github/workflows/newyear-2027-draft-ci.yml
+permissions:
+  contents: read
+concurrency:
+  group: newyear2027-draft-ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  draft-offline-qa:
+    name: Verify 10 revised future items / zero publishing
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout only read-only content
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check modified future copy and asset SHA with stdlib only
+        run: python3 scripts/ci/newyear_2027_draft_qa.py --base-ref origin/main
