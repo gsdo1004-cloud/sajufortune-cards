@@ -100,8 +100,21 @@ jobs:
           # zodiac_reels.py generate 는 인자가 없으면 zs.target_iso() = 오늘+오프셋을
           # 만들므로, 가드만 오늘을 보면 만들 파일과 확인할 파일이 하루 어긋난다.
           TARGET=$(TZ=Asia/Seoul date -d "+${ZODIAC_PUBLISH_OFFSET_DAYS:-0} days" +%F)
+          # PR25 opt-in strict gate only for actual 7-style FLUX dates.
+          # Do not evaluate untrusted YAML/JSON as shell. Unknown styled
+          # metadata HOLDs; old non-FLUX dates retain their legacy behavior.
+          AVATAR_MODE=$(python scripts/zodiac_workflow_avatar_env.py "$TARGET") || exit 1
+          case "$AVATAR_MODE" in
+            STYLED)
+              export ZODIAC_ALLOW_HUMAN_PIP=1
+              export ZODIAC_REQUIRE_HANBOK_AVATAR=1
+              echo "[QA] signed-FLUX candidate: full Hanbok PIP required"
+              ;;
+            LEGACY) echo "[QA] legacy date: existing policy unchanged" ;;
+            *) echo "[HOLD] invalid avatar workflow mode" >&2; exit 1 ;;
+          esac
           if [ -s "reels/${TARGET}_tts.mp4" ]; then
-            echo "쇼츠 영상 존재($TARGET) — 레거시 릴스 생성 건너뜀"
+            echo "쇼츠 영상 존재($TARGET) — 기존 영상 사용; 게시 전 별도 signed release preflight"
           else
             python zodiac_reels.py generate
           fi
