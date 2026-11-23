@@ -339,8 +339,13 @@ def _verified_image_urls(date_iso):
     files = sorted(outdir.glob("card_*.png")) or sorted(outdir.glob("card_*.jpg"))
     if not (2 <= len(files) <= 20):
         raise SystemExit(f"[HOLD] invalid carousel asset count: {len(files)} (expected 2..20)")
+    from scripts.zodiac_publish_guard import check as release_check, sha256 as release_sha256
+    from scripts.zodiac_publish_guard import verify_remote_sha
+    approved = release_check(date_iso, mode="cards")
     urls = [f"{RAW_BASE}/cards/{date_iso}/{f.name}" for f in files]
-    for index, url in enumerate(urls, 1):
+    for index, (file, url) in enumerate(zip(files, urls), 1):
+        if approved["status"] == "VERIFIED_SIGNED_RELEASE":
+            verify_remote_sha(url, release_sha256(file))
         ok, reason = check_public_media(url, "image")
         if not ok:
             raise SystemExit(f"[HOLD] card {index}/{len(urls)} not ready: {reason}")

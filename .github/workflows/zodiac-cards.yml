@@ -112,6 +112,15 @@ jobs:
           python instagram_reel_variant.py "$TARGET" A
           python instagram_reel_variant.py "$TARGET" B
 
+      # New FLUX seven-style: missing signed release proof must HOLD before any push.
+      - name: FLUX seven-style release preflight (no publish)
+        id: release_preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET=$(TZ=Asia/Seoul date -d "+${ZODIAC_PUBLISH_OFFSET_DAYS:-0} days" +%F)
+          python scripts/zodiac_publish_guard.py video "$TARGET" --video "reels/${TARGET}_tts.mp4"
+
       - name: 커밋 (카드+릴스 public raw 호스팅)
         run: |
           git config user.name "github-actions[bot]"
@@ -162,6 +171,8 @@ jobs:
           if [ -f "cards/${TODAY}/uploaded.json" ] || [ -f "cards/${TODAY}/youtube_pub.json" ]; then
             echo "이미 업로드됨(멱등 가드) — 건너뜀"; exit 0
           fi
+          # Recheck immediately before YouTube uploader subprocess.
+          python scripts/zodiac_publish_guard.py video "$TODAY" --video "$VIDEO"
           python - "$TODAY" <<'PY'
           import json, subprocess, sys
           from pathlib import Path
@@ -189,7 +200,9 @@ jobs:
       # Threads 저녁 슬롯도 실제 게시물 1편만 발행한다.
       # 날짜 홀짝으로 캐러셀/릴스를 교대해 형식 실험은 유지하되 같은 소재 중복 게시를 막는다.
       - name: 발행 마커 커밋 (재실행 중복 방지)
-        if: always()
+        # Never write receipt markers to main after a failed release guard.
+        # Keep the existing recovery behavior for post-upload failures.
+        if: always() && steps.release_preflight.outcome == 'success'
         continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"

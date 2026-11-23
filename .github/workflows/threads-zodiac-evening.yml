@@ -114,6 +114,8 @@ jobs:
           set -euo pipefail
           DI="${{ steps.preflight.outputs.date }}"
           python scripts/zodiac_card_assets.py ensure "$DI"
+          # For styled assets, refuse to push cards before signed approval.
+          python scripts/zodiac_publish_guard.py cards "$DI"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A -- "cards/$DI"

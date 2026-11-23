@@ -464,15 +464,12 @@ def do_publish(date_iso):
     if marker.exists():
         print(f"[스킵] {date_iso} 릴스 이미 발행됨(멱등 가드)")
         return
-    from zodiac_cardnews_tpl import _flux_active
-    if _flux_active(date_iso):
-        # Receipt check runs first; do not create a Threads API container if
-        # local source video or text geometry has not passed.
-        from scripts.zodiac_card_assets import verify as verify_cards
-        from scripts.visual_quality_gate import video_check
-        verify_cards(date_iso)
-        video_check(BASE / "reels" / f"{date_iso}_tts.mp4", require_audio=True)
+    from scripts.zodiac_publish_guard import check, verify_remote_sha
+    # An existing MP4 is never exempt from SHA-bound signed review.
+    release = check(date_iso, root=BASE, mode="video")
     url = f"{RAW_BASE}/reels/{date_iso}_tts.mp4"
+    if release["status"] == "VERIFIED_SIGNED_RELEASE":
+        verify_remote_sha(url, release["video_sha256"])
     caption = (f"{date_full(date_iso)} 오늘의 띠별 운세 🔮\n"
                f"영상으로 보는 12띠 오늘의 흐름\n\n"
                f"👉 무료 '오늘의 운세'는 프로필 링크에서 확인하세요\n"
