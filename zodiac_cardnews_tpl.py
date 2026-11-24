@@ -155,7 +155,7 @@ def set_no(date_iso: str) -> int:
     return dt.date.fromisoformat(date_iso).toordinal() % N_SETS + 1
 
 
-def bg(set_n: int, name: str, date_iso: str | None = None) -> Image.Image:
+def bg(set_n: int, name: str, date_iso: str | None = None, *, legacy_only: bool = False) -> Image.Image:
     # 배경은 jpg 로 보관한다(png 는 세트 12개에 50MB — 러너가 매번 체크아웃한다).
     # Pre-produced HomeCode FLUX images take priority when a COMPLETE, hash-
     # checked six-background set exists. A missing set uses the approved
@@ -163,13 +163,15 @@ def bg(set_n: int, name: str, date_iso: str | None = None) -> Image.Image:
     # An incomplete/corrupted FLUX set fails closed instead of silently
     # mixing sources in one published carousel/reel.
     p = None
-    if date_iso:
+    if date_iso and not legacy_only:
         from scripts.flux_first_card_assets import background_path_for
         p = background_path_for(date_iso, name, BASE)
     if p is None:
         p = SETS_DIR / f"set{set_n:02d}" / f"{name}.jpg"
     if not p.exists():                      # 세트가 비면 1번으로 떨어진다(발행이 죽지 않게)
         p = SETS_DIR / "set01" / f"{name}.jpg"
+    if legacy_only and not p.is_file():
+        raise FileNotFoundError(f"approved static background missing: {p}")
     if not p.exists():
         im = Image.new("RGB", (W, H), (232, 240, 250))
     else:
@@ -231,8 +233,8 @@ def date_full(date_iso: str) -> str:
 
 
 # ── 01 표지 / 06 요약 표지 ────────────────────────────────────
-def card_cover(set_n: int, date_iso: str, name: str, title: str, sub: str) -> Image.Image:
-    im = bg(set_n, name, date_iso)
+def card_cover(set_n: int, date_iso: str, name: str, title: str, sub: str, *, legacy_only: bool = False) -> Image.Image:
+    im = bg(set_n, name, date_iso, legacy_only=legacy_only)
     dr = ImageDraw.Draw(im, "RGBA")
     f_t = F("GowunBatang-Bold.ttf", 118)
     f_d = F("Pretendard-Black.ttf", 50)
@@ -279,8 +281,8 @@ assert TEXT_X - 18 > W * AVATAR_SAFE_X, (
 
 
 def card_group(set_n: int, date_iso: str, name: str,
-               rows: list[tuple[str, dict]]) -> Image.Image:
-    im = bg(set_n, name, date_iso)
+               rows: list[tuple[str, dict]], *, legacy_only: bool = False) -> Image.Image:
+    im = bg(set_n, name, date_iso, legacy_only=legacy_only)
     dr = ImageDraw.Draw(im, "RGBA")
     f_h = F("Pretendard-Black.ttf", 46)
     f_ko = F("GowunBatang-Bold.ttf", 66)
@@ -322,8 +324,8 @@ def card_group(set_n: int, date_iso: str, name: str,
 
 
 # ── 06 12띠 요약 ─────────────────────────────────────────────
-def card_summary(set_n: int, date_iso: str, allrows: dict[str, dict]) -> Image.Image:
-    im = bg(set_n, "06_12띠요약", date_iso)
+def card_summary(set_n: int, date_iso: str, allrows: dict[str, dict], *, legacy_only: bool = False) -> Image.Image:
+    im = bg(set_n, "06_12띠요약", date_iso, legacy_only=legacy_only)
     dr = ImageDraw.Draw(im, "RGBA")
     f_h = F("Pretendard-Black.ttf", 48)
     # 셀 높이가 260 인데 내용이 180 밖에 안 차 아래가 비었다 → 전부 키워 채운다(2026-08-05).
@@ -358,22 +360,22 @@ def card_summary(set_n: int, date_iso: str, allrows: dict[str, dict]) -> Image.I
     return im
 
 
-def build(date_iso: str, force_set: int | None = None) -> list[Path]:
+def build(date_iso: str, force_set: int | None = None, *, output_dir: Path | None = None, legacy_only: bool = False) -> list[Path]:
     import zodiac_topview as zt          # build_rows 재사용(사이트와 같은 운세 데이터)
     sn = force_set or set_no(date_iso)
     rows = zt.build_rows(date_iso)
     # build_rows 에는 이모지가 없다 — 기존 코드를 건드리지 않고 여기서 얹는다.
     for ko, r in rows.items():
         r.setdefault("emoji", zs.SIGN_EMOJI.get(zs.KO_TO_SLUG.get(ko, ""), ""))
-    out = BASE / "cards" / date_iso
+    out = output_dir if output_dir is not None else BASE / "cards" / date_iso
     out.mkdir(parents=True, exist_ok=True)
 
-    imgs = [("01_표지", card_cover(sn, date_iso, "01_표지", "오늘의 운세", "12띠 전체 흐름"))]
+    imgs = [("01_표지", card_cover(sn, date_iso, "01_표지", "오늘의 운세", "12띠 전체 흐름", legacy_only=legacy_only))]
     for gi, (gname, group) in enumerate(zip(
             ["02_띠별A", "03_띠별B", "04_띠별C", "05_띠별D"], CARD_GROUPS)):
         imgs.append((gname, card_group(sn, date_iso, gname,
-                                       [(ko, rows[ko]) for ko in group])))
-    imgs.append(("06_12띠요약", card_summary(sn, date_iso, rows)))
+                                       [(ko, rows[ko]) for ko in group], legacy_only=legacy_only)))
+    imgs.append(("06_12띠요약", card_summary(sn, date_iso, rows, legacy_only=legacy_only)))
 
     paths = []
     for i, (_, im) in enumerate(imgs, 1):

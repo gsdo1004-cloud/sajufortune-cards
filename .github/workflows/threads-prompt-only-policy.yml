@@ -11,6 +11,10 @@ on:
       - 'zodiac_social_daily.py'
       - 'test_zodiac_social_daily.py'
       - 'zodiac_cardnews.py'
+      - 'zodiac_cardnews_tpl.py'
+      - 'scripts/threads_card_assets.py'
+      - 'config/threads_legacy_png_review.json'
+      - 'test_threads_card_assets.py'
       - 'zodiac_instagram.py'
   pull_request:
     paths:
@@ -21,6 +25,10 @@ on:
       - 'zodiac_social_daily.py'
       - 'test_zodiac_social_daily.py'
       - 'zodiac_cardnews.py'
+      - 'zodiac_cardnews_tpl.py'
+      - 'scripts/threads_card_assets.py'
+      - 'config/threads_legacy_png_review.json'
+      - 'test_threads_card_assets.py'
       - 'zodiac_instagram.py'
   workflow_dispatch:
 
@@ -41,10 +49,12 @@ jobs:
             /*
             !/*/
             /.github/workflows/
+            /scripts/
+            /config/
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Install test dependencies
         run: python -m pip install --disable-pip-version-check -q requests Pillow
       - name: Threads 유도글 정책·미디어 게시 안전 테스트
-        run: python -m unittest -v test_threads_prompt_only_policy.py test_media_publish_guards.py test_zodiac_social_daily.py
+        run: python -m unittest -v test_threads_prompt_only_policy.py test_media_publish_guards.py test_zodiac_social_daily.py test_threads_card_assets.py
