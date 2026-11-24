@@ -1,0 +1,52 @@
+name: Zodiac signed release offline regression
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - 'scripts/**'
+      - 'test_pr25*.py'
+      - 'test_threads_video_integrity.py'
+      - 'test_threads_publisher_adapter.py'
+      - 'test_media_publish_guards.py'
+      - 'zodiac_*.py'
+      - 'threads_publisher_adapter.py'
+      - 'tts_supertonic.py'
+      - 'avatar_pip.py'
+      - 'media_preflight.py'
+
+permissions:
+  contents: read
+
+jobs:
+  offline-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/*/
+            /.github/workflows/
+            /scripts/
+            /assets/fonts/
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies (no provider SDKs or credentials)
+        run: python -m pip install --disable-pip-version-check pytest requests Pillow numpy PyYAML
+      - name: Run signed-release regressions with network disabled
+        shell: bash
+        run: |
+          set -euo pipefail
+          qa_home=$(mktemp -d)
+          sudo unshare --net -- runuser -u "$(id -un)" -- env -i \
+            HOME="$qa_home" PATH="$PATH" PYTHONPATH="$PWD" \
+            PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 LANG=C.UTF-8 TZ=Asia/Seoul \
+            python -m pytest -q --tb=short \
+            test_pr25*.py test_threads_video_integrity.py \
+            test_threads_publisher_adapter.py test_media_publish_guards.py

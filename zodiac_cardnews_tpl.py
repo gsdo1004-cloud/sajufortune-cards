@@ -31,6 +31,8 @@ from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 import zodiac_seo as zs
 import zodiac_prompt_engine as zpe
 import zodiac_visual_rotation as zvr
+from scripts.zodiac_character_prompts import protected_boxes
+from scripts.text_safe_layout_gate import TrackedDraw, LayoutHold
 
 BASE = Path(__file__).resolve().parent
 SETS_DIR = BASE / "assets" / "bg_sets"
@@ -151,8 +153,37 @@ def draw_emoji(dr, xy, ch: str, size: int, im: Image.Image | None = None) -> int
 
 
 def set_no(date_iso: str) -> int:
-    """12일 주기로 세트를 돌린다. 세트=화풍이라 화풍 회전이 그대로 유지된다."""
+    """Legacy approved background set sequence; generated FLUX has a 7-day art rotation."""
     return dt.date.fromisoformat(date_iso).toordinal() % N_SETS + 1
+
+
+def _flux_active(day: str | None) -> bool:
+    """Strict new gate only for v1 manifests carrying explicit seven-style metadata.
+
+    Older stored FLUX bundles retain original layout behavior until regenerated
+    on an unpublished future day; never silently relabel old art as STYLE_XX.
+    """
+    if not day:
+        return False
+    manifest = BASE / "assets" / "flux_daily" / day / "manifest.json"
+    if not manifest.is_file():
+        return False
+    import json
+    return bool(json.loads(manifest.read_text(encoding="utf-8")).get("style_id"))
+
+
+def _safe_draw(im: Image.Image, day: str, stem: str):
+    if _flux_active(day):
+        from scripts.zodiac_semantic_qa_gate import face_boxes_for
+        audited = face_boxes_for(day, stem, BASE)
+        return TrackedDraw(im, protected_boxes(stem, W, H) + audited, auto_shift=True)
+    return ImageDraw.Draw(im, "RGBA")
+
+
+def _finish_draw(im: Image.Image, dr):
+    if isinstance(dr, TrackedDraw):
+        im.info["text_safe_layout"] = dr.verify()
+    return im
 
 
 def bg(set_n: int, name: str, date_iso: str | None = None) -> Image.Image:
@@ -171,7 +202,7 @@ def bg(set_n: int, name: str, date_iso: str | None = None) -> Image.Image:
     if not p.exists():                      # 세트가 비면 1번으로 떨어진다(발행이 죽지 않게)
         p = SETS_DIR / "set01" / f"{name}.jpg"
     if not p.exists():
-        im = Image.new("RGB", (W, H), (232, 240, 250))
+        raise FileNotFoundError(f"[HOLD] no approved zodiac background for {name}: {p}")
     else:
         im = Image.open(p).convert("RGB")
         sc = max(W / im.width, H / im.height)
@@ -181,7 +212,7 @@ def bg(set_n: int, name: str, date_iso: str | None = None) -> Image.Image:
     # Keep the 12 already approved original animal-background sets and zero-cost
     # renderer. Their photographic/illustrative content cannot be regenerated
     # by color filters; this is a safe 8-family editorial color variation only.
-    if date_iso:
+    if date_iso and not (p is not None):
         style = zvr.style_for(date_iso, channel="github_12zodiac_cards")
         accent = tuple(int(style["accent"][j:j+2], 16) for j in (1, 3, 5))
         tint = tuple(int(style["bg"][j:j+2], 16) for j in (1, 3, 5))
@@ -233,13 +264,18 @@ def date_full(date_iso: str) -> str:
 # ── 01 표지 / 06 요약 표지 ────────────────────────────────────
 def card_cover(set_n: int, date_iso: str, name: str, title: str, sub: str) -> Image.Image:
     im = bg(set_n, name, date_iso)
-    dr = ImageDraw.Draw(im, "RGBA")
+    dr = _safe_draw(im, date_iso, name)
     f_t = F("GowunBatang-Bold.ttf", 118)
     f_d = F("Pretendard-Black.ttf", 50)
     f_s = F("NanumGothic-Regular.ttf", 42)
 
     # 배경 가운데가 비어 있게 뽑았으므로 그 자리에 얹는다.
-    cy = int(H * 0.37)
+    cy = int(H * (0.105 if _flux_active(date_iso) else 0.37))
+    if isinstance(dr, TrackedDraw):
+        dr.panel([58, cy - 28, W - 58, cy + 143],radius=40,
+                 fill=(255, 255, 255, 240))
+        dr.panel([64, int(H * .795), W - 64, int(H * .854)],radius=33,
+                 fill=(255, 255, 255, 236))
     tw = dr.textlength(title, font=f_t)
     dr.text(((W - tw) / 2, cy), title, font=f_t, fill=INK,
             stroke_width=11, stroke_fill=(255, 255, 255))
@@ -247,15 +283,16 @@ def card_cover(set_n: int, date_iso: str, name: str, title: str, sub: str) -> Im
     dw = dr.textlength(d, font=f_d)
     # 제목(118pt)의 실제 높이가 150 가까워서 +150 이면 날짜 배지가 제목에 붙어 보인다.
     # 제목 아래끝에서 한 숨 띄운다.
-    y = cy + 206
+    y = cy + (168 if _flux_active(date_iso) else 206)
     dr.rounded_rectangle([(W - dw) / 2 - 32, y - 10, (W + dw) / 2 + 32, y + 70],
                          radius=40, fill=ACCENT)
     dr.text(((W - dw) / 2, y), d, font=f_d, fill=(255, 255, 255))
     if sub:
         sw = dr.textlength(sub, font=f_s)
-        dr.text(((W - sw) / 2, y + 120), sub, font=f_s, fill=SUB,
+        sub_y = int(H * .809) if _flux_active(date_iso) else y + 120
+        dr.text(((W - sw) / 2, sub_y), sub, font=f_s, fill=SUB,
                 stroke_width=6, stroke_fill=(255, 255, 255))
-    return im
+    return _finish_draw(im, dr)
 
 
 # ── 02~05 띠별 3띠 ───────────────────────────────────────────
@@ -281,7 +318,7 @@ assert TEXT_X - 18 > W * AVATAR_SAFE_X, (
 def card_group(set_n: int, date_iso: str, name: str,
                rows: list[tuple[str, dict]]) -> Image.Image:
     im = bg(set_n, name, date_iso)
-    dr = ImageDraw.Draw(im, "RGBA")
+    dr = _safe_draw(im, date_iso, name)
     f_h = F("Pretendard-Black.ttf", 46)
     f_ko = F("GowunBatang-Bold.ttf", 66)
     f_line = F("NanumGothic-Bold.ttf", 40)
@@ -304,8 +341,11 @@ def card_group(set_n: int, date_iso: str, name: str,
         blk = 18 + NAME_ROW + len(line_ls) * 52 + 84 + 22
         # 첫 블록 리드가 2줄이면 패널이 위로 자라 상단 헤더 알약(하단 y=130)에 닿는다 → 20px 띄운다.
         top = max(cy - blk // 2, 150)
-        dr.rounded_rectangle([TEXT_X - 18, top, W - 34, top + blk],
-                             radius=34, fill=PANEL)
+        if isinstance(dr, TrackedDraw):
+            dr.panel([TEXT_X - 18, top, W - 34, top + blk],radius=34,fill=PANEL)
+        else:
+            dr.rounded_rectangle([TEXT_X - 18, top, W - 34, top + blk],
+                                 radius=34, fill=PANEL)
         y = top + 18
         ew = draw_emoji(dr, (TEXT_X + 14, y + 2), r.get("emoji", ""), 66, im=im)
         dr.text((TEXT_X + 14 + ew, y), ko, font=f_ko, fill=INK)
@@ -318,13 +358,13 @@ def card_group(set_n: int, date_iso: str, name: str,
              f"연애 {stars(st['연애'])}   건강 {stars(st['건강'])}")
         for i, ln in enumerate(s.split("\n")):
             dr.text((TEXT_X + 16, y + i * 42), ln, font=f_star, fill=ACCENT)
-    return im
+    return _finish_draw(im, dr)
 
 
 # ── 06 12띠 요약 ─────────────────────────────────────────────
 def card_summary(set_n: int, date_iso: str, allrows: dict[str, dict]) -> Image.Image:
     im = bg(set_n, "06_12띠요약", date_iso)
-    dr = ImageDraw.Draw(im, "RGBA")
+    dr = _safe_draw(im, date_iso, "06_12띠요약")
     f_h = F("Pretendard-Black.ttf", 48)
     # 셀 높이가 260 인데 내용이 180 밖에 안 차 아래가 비었다 → 전부 키워 채운다(2026-08-05).
     f_ko = F("GowunBatang-Bold.ttf", 54)
@@ -339,7 +379,9 @@ def card_summary(set_n: int, date_iso: str, allrows: dict[str, dict]) -> Image.I
     # 12띠를 2열 6행. 큰 패널 하나로 덮으면 배경 동물이 뿌옇게 비쳐 지저분하고
     # 가운데가 텅 빈다(2026-08-05 실측) → 셀마다 작은 패널을 두고 배경은 살린다.
     order = [ko for g in zpe.GROUPS for ko in g]
-    top, bot = 176, H - 120
+    # Reserve two larger thumbnail rows for the reviewed FLUX atlas.
+    # Legacy summary layouts keep their existing geometry.
+    top, bot = 176, H - (390 if _flux_active(date_iso) else 120)
     gap_x, gap_y = 16, 12
     cw = (W - 88 - gap_x) // 2
     ch = (bot - top - gap_y * 5) // 6
@@ -355,7 +397,7 @@ def card_summary(set_n: int, date_iso: str, allrows: dict[str, dict]) -> Image.I
         # 한 줄 운세까지 넣어야 셀이 채워지고 저장할 이유가 생긴다.
         for j, ln in enumerate(wrap(dr, allrows[ko]["line"], f_ln, cw - 44)[:2]):
             dr.text((cx + 22, cy + 134 + j * 40), ln, font=f_ln, fill=SUB)
-    return im
+    return _finish_draw(im, dr)
 
 
 def build(date_iso: str, force_set: int | None = None) -> list[Path]:
@@ -375,6 +417,12 @@ def build(date_iso: str, force_set: int | None = None) -> list[Path]:
                                        [(ko, rows[ko]) for ko in group])))
     imgs.append(("06_12띠요약", card_summary(sn, date_iso, rows)))
 
+    # New FLUX assets must have six independently measured and passing text
+    # geometry reports; the legacy 12-set pipeline remains unchanged.
+    layout_reports = [im.info.get("text_safe_layout") for _, im in imgs]
+    if _flux_active(date_iso) and (len(layout_reports) != 6 or
+                                  any(not x or x.get("status") != "PASS" for x in layout_reports)):
+        raise LayoutHold("FLUX_LAYOUT_REPORT_INCOMPLETE")
     paths = []
     for i, (_, im) in enumerate(imgs, 1):
         p = out / f"card_{i:02d}.jpg"
@@ -382,10 +430,29 @@ def build(date_iso: str, force_set: int | None = None) -> list[Path]:
         paths.append(p)
     import json
     visual = zvr.style_for(date_iso, channel="github_12zodiac_cards")
+    if _flux_active(date_iso):
+        import json
+        from scripts.zodiac_style_rotation import style_for_day
+        from scripts.visual_quality_gate import image_check
+        for card in paths:
+            image_check(card,min_bytes=60000)
+        (out / "layout_manifest.json").write_text(json.dumps({
+            "schema":"zodiac-text-safe-v1", "date":date_iso,
+            "style_id":style_for_day(date_iso)["id"],
+            "status":"PASS", "layout_reports":layout_reports,
+            "protection_source":"composition_contract_not_animal_detection",
+            "paid_api_calls":0,
+        },ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+        flux_style = style_for_day(date_iso)
+    else:
+        flux_style = None
     (out / "visual_style.json").write_text(
-        json.dumps({"date": date_iso, "family_id": visual["id"],
-                    "family_name": visual["name"], "background_set": sn,
-                    "method": "existing_approved_background_plus_editorial_palette",
+        json.dumps({"date": date_iso,
+                    "family_id": flux_style["id"] if flux_style else visual["id"],
+                    "family_name": flux_style["name"] if flux_style else visual["name"],
+                    "background_set": sn,
+                    "method": "flux2_klein_local_or_included" if flux_style else
+                              "existing_approved_background_plus_editorial_palette",
                     "generative_calls": 0}, ensure_ascii=False, indent=2),
         encoding="utf-8")
     return paths

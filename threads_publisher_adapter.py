@@ -28,4 +28,7 @@ def publish_job(item: dict) -> str:
     if item.get("kind") != "zodiac_carousel":
         raise RuntimeError(f"unsupported queue kind: {item.get('kind')}")
     payload = build_zodiac_payload(item)
-    return str(zc.publish_carousel(payload["urls"], payload["caption"], payload["target"]))
+    # The live queue must reuse the signed-media gate before a single remote
+    # Threads container is created; previews still perform no network work.
+    verified_urls = zc._verified_image_urls(payload["target"])
+    return str(zc.publish_carousel(verified_urls, payload["caption"], payload["target"]))

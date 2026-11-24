@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: zodiac-card-assets
+  group: zodiac-publication-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
@@ -67,9 +67,18 @@ jobs:
           set -euo pipefail
           DAY="${{ steps.target.outputs.date }}"
           python scripts/zodiac_card_assets.py verify "$DAY"
+          python scripts/zodiac_publish_guard.py cards "$DAY"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A -- "cards/$DAY"
+          for i in 01 02 03 04 05 06; do
+            if test -f "cards/$DAY/card_$i.jpg"; then
+              git add -- "cards/$DAY/card_$i.jpg"
+            elif test -f "cards/$DAY/card_$i.png"; then
+              git add -- "cards/$DAY/card_$i.png"
+            else
+              echo "[HOLD] card_$i missing" >&2; exit 3
+            fi
+          done
           if git diff --cached --quiet; then
             echo "[SKIP] same-date assets already stored"
             exit 0

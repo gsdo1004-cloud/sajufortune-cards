@@ -22,11 +22,13 @@
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import json
 import os
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
@@ -98,7 +100,16 @@ def git_push(dates: list[str], alerts: list[str]) -> bool:
 
     def _copy_generated() -> list[str]:
         stage_paths: list[str] = []
+        from scripts.zodiac_publish_guard import check
         for d in dates:
+            # A local mirror must never bypass the release gate used by CI.
+            # This is read-only: no key/approval means HOLD for styled dates.
+            card_has_media = any((BASE / "cards" / d).glob("card_*.*"))
+            video_has_media = (BASE / "reels" / f"{d}_tts.mp4").is_file()
+            if card_has_media:
+                check(d, root=BASE, mode="cards")
+            if video_has_media:
+                check(d, root=BASE, mode="video", video=BASE / "reels" / f"{d}_tts.mp4")
             src_dir = BASE / "cards" / d
             dst_dir = pub / "cards" / d
             if not src_dir.exists():
@@ -212,6 +223,9 @@ def _is_our_shorts(date_iso: str) -> bool:
         if m.get("date") != date_iso or not m.get("voice"):
             return False
         # 표식이 영상보다 먼저 만들어졌으면(=영상이 나중에 딴 걸로 덮임) 신뢰 불가
+        if dt.date.fromisoformat(date_iso) >= dt.date(2026, 11, 22):
+            if m.get("video_sha256") != hashlib.sha256(video.read_bytes()).hexdigest():
+                return False
         return meta.stat().st_mtime >= video.stat().st_mtime - 5
     except (json.JSONDecodeError, OSError):
         return False
@@ -221,29 +235,45 @@ def _upload_marker(date_iso: str) -> Path:
     return BASE / "cards" / date_iso / "uploaded.json"
 
 
-def _record_upload(date_iso: str, variant: str = "B") -> str:
-    """업로더 로그에서 방금 올린 영상ID를 찾아 표식으로 남긴다. 반환=video_id.
+def _record_upload(date_iso: str, variant: str = "B", *,
+                   expected_title: str, started_at: float) -> str:
+    """Write receipt ONLY for this invocation's expected video/title/log.
 
-    variant도 함께 기록 → 2주 뒤 A/B 집계 때 어느 날이 어느 변종이었는지 근거가 된다.
+    The uploader's logs do not expose a source SHA, so independently prove
+    *which* completed upload matched the queued item. Missing provenance
+    stays HOLD without writing a misleading receipt.
     """
     vid = ""
     try:
-        logs = sorted((UPLOADER_DIR / "logs").glob("upload_unmyeong_*.json"),
-                      key=lambda p: p.stat().st_mtime)
-        if logs:
-            for e in json.loads(logs[-1].read_text(encoding="utf-8")):
-                if e.get("status") == "success":
-                    vid = e.get("video_id", "")
-    except Exception as e:
-        log(f"[WARN] 업로드 로그 파싱 실패(표식은 남김): {e}")
+        folder = UPLOADER_DIR / "logs"
+        logs = sorted(folder.glob("upload_unmyeong_*.json"),
+                      key=lambda p: p.stat().st_mtime, reverse=True)
+        for path in logs:
+            if path.stat().st_mtime < started_at - 2:
+                break
+            for entry in json.loads(path.read_text(encoding="utf-8")):
+                if (isinstance(entry, dict) and entry.get("status") == "success"
+                        and entry.get("title") == expected_title
+                        and str(entry.get("video_id", "")).strip()):
+                    vid = str(entry["video_id"]).strip()
+                    break
+            if vid:
+                break
+    except (OSError, ValueError, TypeError) as exc:
+        log(f"[HOLD] Youtube upload log cannot be attributed to current title: {type(exc).__name__}")
+    if not vid:
+        log("[HOLD] no fresh matching YouTube success entry; no upload receipt created")
+        return ""
     try:
         _upload_marker(date_iso).write_text(json.dumps(
             {"date": date_iso, "video_id": vid, "variant": variant,
-             "privacy": YT_PRIVACY, "publish_at": youtube_publish_at(date_iso),
+             "title": expected_title, "privacy": YT_PRIVACY,
+             "publish_at": youtube_publish_at(date_iso),
              "uploaded_at": dt.datetime.now().isoformat(timespec="seconds")},
             ensure_ascii=False), encoding="utf-8")
-    except OSError as e:
-        log(f"[WARN] 업로드 표식 기록 실패(다음 실행에 중복 위험): {e}")
+    except OSError as exc:
+        log(f"[HOLD] upload succeeded but receipt cannot be saved: {type(exc).__name__}")
+        return ""
     return vid
 
 
@@ -310,11 +340,22 @@ def queue_youtube_shorts(date_iso: str, alerts: list[str],
         alerts.append(f"{date_iso} mp4가 우리 쇼츠가 아님(레거시 릴스 추정) — "
                       f"유튜브 업로드 거부")
         return False
+    # Verify the real file, approval scope and signed SHA before queue copy.
+    from scripts.zodiac_publish_guard import check
+    try:
+        check(date_iso, root=BASE, mode="video", video=video)
+    except (OSError, ValueError) as exc:
+        alerts.append(f"Signed release gate HOLD before YouTube queue: {exc}")
+        return False
     meta_src = (BASE / "cards" / date_iso /
                 ("shorts10_meta.json" if variant == "A" else "shorts_meta.json"))
     voice, fmt, theme_title = "", "", ""
     try:
         m = json.loads(meta_src.read_text(encoding="utf-8"))
+        if dt.date.fromisoformat(date_iso) >= dt.date(2026, 11, 22):
+            if m.get("video_sha256") != hashlib.sha256(video.read_bytes()).hexdigest():
+                alerts.append("YouTube queued video SHA does not match this date metadata")
+                return False
         voice = m.get("voice", {}).get("voice", "")
         fmt = m.get("format", "")      # 20초판 포맷(pick3/table12/없으면 기존 ai12)
         theme_title = m.get("theme_title", "")   # 지목형 주제(오늘/이번주/이달 × 축)
@@ -368,6 +409,7 @@ def queue_youtube_shorts(date_iso: str, alerts: list[str],
     if not do_upload:
         log("업로더 실행 생략(--no-upload)")
         return True
+    started_at = time.time()
     r = _run([UPLOADER_PY, "04_auto_upload.py", "--channel", "unmyeong"],
              cwd=UPLOADER_DIR, timeout=900)
     if r.returncode != 0:
@@ -375,7 +417,8 @@ def queue_youtube_shorts(date_iso: str, alerts: list[str],
         return False
     # 업로더는 실패해도 종료코드 0을 낸다(썸네일 오류 등을 삼킴). 로그 파일의 status 를
     # 근거로 실제 성공 여부를 판정한다. 성공 로그가 없으면 uploaded 표식·push를 막는다.
-    vid = _record_upload(date_iso, variant)
+    vid = _record_upload(date_iso, variant, expected_title=title[:100],
+                         started_at=started_at)
     if not vid:
         alerts.append(f"유튜브 업로드 성공표식 없음(마지막 log status=success 아님) — Threads/push 보류")
         return False

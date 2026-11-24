@@ -263,9 +263,19 @@ def _skip_if_done(date_iso: str, kind: str) -> bool:
 def do_carousel(date_iso: str) -> None:
     if _skip_if_done(date_iso, "carousel"):
         return
+    from scripts.zodiac_publish_guard import check as release_check, sha256 as release_sha256
+    from scripts.zodiac_publish_guard import verify_remote_sha
+    approved = release_check(date_iso, root=BASE, mode="cards")
     local = sorted((BASE / "cards" / date_iso).glob("card_*.png"))
-    n = len(local) if local else N_CARDS
-    urls = [f"{RAW_BASE}/cards/{date_iso}/card_{i:02d}.png" for i in range(1, n + 1)]
+    if approved["status"] == "VERIFIED_SIGNED_RELEASE":
+        from scripts.zodiac_publish_guard import immutable_raw_url
+        local = sorted((BASE / "cards" / date_iso).glob("card_*.jpg"))
+        urls = [immutable_raw_url(f"{RAW_BASE}/cards/{date_iso}/{image.name}") for image in local]
+        for image, url in zip(local, urls):
+            verify_remote_sha(url, release_sha256(image), require_immutable=True)
+    else:
+        n = len(local) if local else N_CARDS
+        urls = [f"{RAW_BASE}/cards/{date_iso}/card_{i:02d}.png" for i in range(1, n + 1)]
     caption = (
         f"{date_full(date_iso)} 오늘의 띠별 운세 🔮\n"
         "내 띠의 흐름을 먼저 보고, 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.\n\n"
@@ -295,13 +305,27 @@ def reel_media_url(date_iso: str) -> str:
 def do_reel(date_iso: str) -> None:
     if _skip_if_done(date_iso, "reel"):
         return
+    from scripts.zodiac_publish_guard import check as release_check
+    from scripts.zodiac_publish_guard import styled_manifest, verify_remote_sha, immutable_raw_url
+    is_styled = styled_manifest(date_iso, BASE) is not None
+    # Validate base before trying any A/B variant.
+    release_check(date_iso, root=BASE, mode="video")
     caption = reel_caption(date_iso)
     urls = [
         reel_media_url(date_iso),
         f"{RAW_BASE}/reels/{date_iso}_tts.mp4",
     ]
     errors = []
-    for url in dict.fromkeys(urls):
+    for mutable_url in dict.fromkeys(urls):
+        url = immutable_raw_url(mutable_url) if is_styled else mutable_url
+        if is_styled:
+            # Each variant requires its own signed SHA; no unsigned fallback.
+            video = BASE / "reels" / url.rsplit("/", 1)[-1]
+            if not video.is_file():
+                errors.append(f"local variant unavailable: {video.name}")
+                continue
+            signed = release_check(date_iso, root=BASE, mode="video", video=video)
+            verify_remote_sha(url, signed["video_sha256"], require_immutable=True)
         try:
             pid = publish_reel(url, caption)
         except FileNotFoundError as e:

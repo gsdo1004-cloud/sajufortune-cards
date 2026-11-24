@@ -323,11 +323,32 @@ def do_generate():
 
 def _verified_image_urls(date_iso):
     outdir = Path(__file__).resolve().parent / "cards" / date_iso
+    # Strict quality and independent species audit for NEW styled FLUX only.
+    # Existing published/legacy dates retain their original validation path.
+    # Avoid importing the Pillow renderer in lightweight policy-only checks.
+    # Render dependencies are only required for NEW manifests with style_id.
+    manifest = Path(__file__).resolve().parent / "assets" / "flux_daily" / date_iso / "manifest.json"
+    if manifest.is_file():
+        try:
+            styled_flux = bool(json.loads(manifest.read_text(encoding="utf-8")).get("style_id"))
+        except (ValueError, OSError) as exc:
+            raise SystemExit(f"[HOLD] invalid FLUX inventory: {date_iso}") from exc
+        if styled_flux:
+            from scripts.zodiac_card_assets import verify as verify_cards
+            verify_cards(date_iso)
     files = sorted(outdir.glob("card_*.png")) or sorted(outdir.glob("card_*.jpg"))
     if not (2 <= len(files) <= 20):
         raise SystemExit(f"[HOLD] invalid carousel asset count: {len(files)} (expected 2..20)")
+    from scripts.zodiac_publish_guard import check as release_check, sha256 as release_sha256
+    from scripts.zodiac_publish_guard import verify_remote_sha
+    approved = release_check(date_iso, mode="cards")
     urls = [f"{RAW_BASE}/cards/{date_iso}/{f.name}" for f in files]
-    for index, url in enumerate(urls, 1):
+    if approved["status"] == "VERIFIED_SIGNED_RELEASE":
+        from scripts.zodiac_publish_guard import immutable_raw_url
+        urls = [immutable_raw_url(url) for url in urls]
+    for index, (file, url) in enumerate(zip(files, urls), 1):
+        if approved["status"] == "VERIFIED_SIGNED_RELEASE":
+            verify_remote_sha(url, release_sha256(file), require_immutable=True)
         ok, reason = check_public_media(url, "image")
         if not ok:
             raise SystemExit(f"[HOLD] card {index}/{len(urls)} not ready: {reason}")

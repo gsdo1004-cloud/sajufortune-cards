@@ -25,6 +25,11 @@ on:
         required: false
         default: ''
 
+# Serialize regular, backup and manual runs sharing one public account.
+concurrency:
+  group: zodiac-publication-${{ github.repository }}
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -100,8 +105,21 @@ jobs:
           # zodiac_reels.py generate 는 인자가 없으면 zs.target_iso() = 오늘+오프셋을
           # 만들므로, 가드만 오늘을 보면 만들 파일과 확인할 파일이 하루 어긋난다.
           TARGET=$(TZ=Asia/Seoul date -d "+${ZODIAC_PUBLISH_OFFSET_DAYS:-0} days" +%F)
+          # PR25 opt-in strict gate only for actual 7-style FLUX dates.
+          # Do not evaluate untrusted YAML/JSON as shell. Unknown styled
+          # metadata HOLDs; old non-FLUX dates retain their legacy behavior.
+          AVATAR_MODE=$(python scripts/zodiac_workflow_avatar_env.py "$TARGET") || exit 1
+          case "$AVATAR_MODE" in
+            STYLED)
+              export ZODIAC_ALLOW_HUMAN_PIP=1
+              export ZODIAC_REQUIRE_HANBOK_AVATAR=1
+              echo "[QA] signed-FLUX candidate: full Hanbok PIP required"
+              ;;
+            LEGACY) echo "[QA] legacy date: existing policy unchanged" ;;
+            *) echo "[HOLD] invalid avatar workflow mode" >&2; exit 1 ;;
+          esac
           if [ -s "reels/${TARGET}_tts.mp4" ]; then
-            echo "쇼츠 영상 존재($TARGET) — 레거시 릴스 생성 건너뜀"
+            echo "쇼츠 영상 존재($TARGET) — 기존 영상 사용; 게시 전 별도 signed release preflight"
           else
             python zodiac_reels.py generate
           fi
@@ -112,17 +130,30 @@ jobs:
           python instagram_reel_variant.py "$TARGET" A
           python instagram_reel_variant.py "$TARGET" B
 
+      # New FLUX seven-style: missing signed release proof must HOLD before any push.
+      - name: FLUX seven-style release preflight (no publish)
+        id: release_preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET=$(TZ=Asia/Seoul date -d "+${ZODIAC_PUBLISH_OFFSET_DAYS:-0} days" +%F)
+          python scripts/zodiac_publish_guard.py video "$TARGET" --video "reels/${TARGET}_tts.mp4"
+
       - name: 커밋 (카드+릴스 public raw 호스팅)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add cards/ reels/
+          # Preserve approval boundaries: never push a whole cards/reels tree.
+          # Variants are staged only if each MP4 has its OWN approved SHA.
+          TARGET=$(TZ=Asia/Seoul date -d "+${ZODIAC_PUBLISH_OFFSET_DAYS:-0} days" +%F)
+          python scripts/zodiac_safe_public_stage.py "$TARGET" --stage
           if git diff --cached --quiet; then
             echo "[SKIP] 카드+릴스 변경 없음 — push 생략"
           else
             git commit -m "cards+reel $(TZ=Asia/Seoul date +%F)"
             bash scripts/safe_git_push.sh main
           fi
+          echo "ZODIAC_RAW_COMMIT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - name: raw URL 전파 대기
         run: sleep 30
@@ -162,6 +193,8 @@ jobs:
           if [ -f "cards/${TODAY}/uploaded.json" ] || [ -f "cards/${TODAY}/youtube_pub.json" ]; then
             echo "이미 업로드됨(멱등 가드) — 건너뜀"; exit 0
           fi
+          # Recheck immediately before YouTube uploader subprocess.
+          python scripts/zodiac_publish_guard.py video "$TODAY" --video "$VIDEO"
           python - "$TODAY" <<'PY'
           import json, subprocess, sys
           from pathlib import Path
@@ -189,7 +222,9 @@ jobs:
       # Threads 저녁 슬롯도 실제 게시물 1편만 발행한다.
       # 날짜 홀짝으로 캐러셀/릴스를 교대해 형식 실험은 유지하되 같은 소재 중복 게시를 막는다.
       - name: 발행 마커 커밋 (재실행 중복 방지)
-        if: always()
+        # Never write receipt markers to main after a failed release guard.
+        # Keep the existing recovery behavior for post-upload failures.
+        if: always() && steps.release_preflight.outcome == 'success'
         continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"

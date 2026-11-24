@@ -16,6 +16,7 @@ import sys
 import time
 import json
 import asyncio
+import hashlib
 import subprocess
 import datetime as dt
 from pathlib import Path
@@ -157,6 +158,10 @@ def _tts(text, out_mp3, rate_pct: int = BASE_RATE_PCT):
             return
     except ImportError:
         pass
+    # Strict FLUX/Hanbok QA must never silently switch from configured
+    # Supertonic gender to SunHi (female) while keeping a male avatar.
+    if os.environ.get("ZODIAC_REQUIRE_HANBOK_AVATAR", "0") == "1":
+        raise RuntimeError("HANBOK_VOICE_GENDER_UNVERIFIED_LOCAL_TTS_FAILED")
     if edge_tts is None:
         raise SystemExit(
             "[FAIL] Supertonic 도 edge-tts 도 없어 TTS 를 만들 수 없습니다"
@@ -175,7 +180,190 @@ def _dur(path):
     return float(json.loads(r.stdout)["format"]["duration"])
 
 
+def _flux_zoom_cap(index: int, total_scenes: int) -> float:
+    # The summary's twelve verified portraits sit near the foot of the
+    # frame. 1.08x zoom cropped them in a real 80.8s TTS render.
+    return 1.03 if index == total_scenes - 1 else 1.08
+
+
+def _apply_reel_avatar(video: Path, date_iso: str, card_stem: str,
+                       flux_active: bool) -> str:
+    """Fail-closed in opt-in QA; legacy route stays opt-out as before.
+
+    This function does not attest independent visual QA and never uploads.
+    """
+    required = os.environ.get("ZODIAC_REQUIRE_HANBOK_AVATAR", "0") == "1"
+    try:
+        import avatar_pip
+    except ImportError as exc:
+        if required:
+            raise RuntimeError("HANBOK_AVATAR_MODULE_MISSING") from exc
+        return "SKIPPED_MISSING_MODULE"
+    enabled = avatar_pip.enabled()
+    if required and card_stem == "card_" and flux_active:
+        if not enabled:
+            raise RuntimeError("HANBOK_AVATAR_REQUIRED_BUT_DISABLED")
+        voice = os.environ.get("SUPERTONIC_VOICE", "").strip().upper()
+        if not voice.startswith(("M", "F")):
+            raise RuntimeError("HANBOK_AVATAR_TTS_VOICE_NOT_DECLARED")
+        pre_sha = hashlib.sha256(Path(video).read_bytes()).hexdigest()
+        if not avatar_pip.apply(video, voice=voice, left_rail=True):
+            raise RuntimeError("HANBOK_AVATAR_COMPOSITING_FAILED")
+        post_sha = hashlib.sha256(Path(video).read_bytes()).hexdigest()
+        if pre_sha == post_sha:
+            raise RuntimeError("HANBOK_AVATAR_COMPOSITING_NOOP")
+        return "APPLIED_QA_PENDING_VISUAL"
+    if enabled and card_stem == "card_" and flux_active:
+        print("[SAFE] avatar PIP skipped: protected zodiac subjects occupy left-side frame")
+        return "SKIPPED_LEGACY_FLUX"
+    if enabled:
+        return "APPLIED_LEGACY" if avatar_pip.apply(video) else "SKIPPED_APPLY_FAILED"
+    return "SKIPPED_DISABLED"
+
+
 def make_reel_tts(date_iso, card_stem: str = "card_", narrs: list[str] | None = None,
+                  out_name: str | None = None):
+    """Opt-in FLUX QA: atomic same-day lock + protect existing publication.
+
+    Deliberately does not alter the legacy default route. A stale lock is
+    a HOLD requiring manual investigation; never auto-delete stale state.
+    """
+    if not (card_stem == "card_" and
+            os.environ.get("ZODIAC_REQUIRE_HANBOK_AVATAR", "0") == "1"):
+        return _make_reel_tts_impl(date_iso, card_stem, narrs, out_name)
+
+    import secrets
+    from scripts.zodiac_card_assets import _publication_receipt_exists
+    folder = BASE / "cards" / date_iso
+    if not folder.is_dir():
+        raise RuntimeError("STRICT_ZODIAC_CARDS_FOLDER_MISSING")
+    if _publication_receipt_exists(folder):
+        raise RuntimeError("STRICT_ZODIAC_PUBLISHED_RECEIPT_PROTECTED")
+    lock_path = folder / ".pr25_hanbok_render.lock"
+    token = secrets.token_hex(16)
+    try:
+        descriptor = os.open(str(lock_path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError as exc:
+        raise RuntimeError("STRICT_ZODIAC_CONCURRENT_RENDER_BLOCKED") from exc
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"date": date_iso, "pid": os.getpid(),
+                                "token": token}, ensure_ascii=False) + "\n")
+        # Re-check after taking the lock, so another publisher's receipt
+        # appearing during lock acquisition cannot be overwritten.
+        if _publication_receipt_exists(folder):
+            raise RuntimeError("STRICT_ZODIAC_PUBLISHED_RECEIPT_PROTECTED")
+        return _make_reel_tts_impl(date_iso, card_stem, narrs, out_name)
+    finally:
+        try:
+            state = json.loads(lock_path.read_text(encoding="utf-8"))
+            if state.get("token") == token:
+                lock_path.unlink()
+        except (OSError, ValueError):
+            # Never unlink another process's or tampered lock.
+            pass
+
+
+def _optional_m2_dog_clarity_pilot(date_iso: str, card_stem: str,
+                                    narrs: list[str]) -> list[str]:
+    """EXPLICIT QA OPT-IN ONLY: protect the dog-sign phrase from ASR confusion.
+
+    This is a text-only candidate, not release certification. Until a
+    trusted reviewer approves every complete video, the default must
+    remain OFF and signed release preflight must keep styled media HOLD.
+    """
+    if os.environ.get("ZODIAC_DOG_M2_CLARITY_PILOT", "0") != "1":
+        return narrs
+    voice = os.environ.get("SUPERTONIC_VOICE", "").strip().upper()
+    if (card_stem != "card_" or voice != "M2"
+            or os.environ.get("ZODIAC_REQUIRE_HANBOK_AVATAR", "0") != "1"):
+        raise RuntimeError("DOG_CLARITY_PILOT_REQUIRES_STRICT_M2_HANBOK")
+    from zodiac_cardnews_tpl import _flux_active
+    if not _flux_active(date_iso):
+        raise RuntimeError("DOG_CLARITY_PILOT_REQUIRES_VERIFIED_FLUX_DATE")
+    if len(narrs) != 6:
+        raise RuntimeError("DOG_CLARITY_PILOT_REQUIRES_SIX_SCENES")
+    marker = "개띠, "
+    if narrs[4].count(marker) != 1:
+        raise RuntimeError("DOG_CLARITY_PILOT_SIGN_COUNT_MISMATCH")
+    out = list(narrs)
+    out[4] = narrs[4].replace(marker, "이어서 개띠 운세입니다. ", 1)
+    if out[0] != narrs[0] or out[5] != narrs[5]:
+        raise RuntimeError("DOG_CLARITY_PILOT_UNEXPECTED_SCENE")
+    return out
+
+
+def _validate_twelve_zodiac_narration(date_iso: str, narrs: list[str]) -> None:
+    """A spoken zodiac label must appear once in its proper scene.
+
+    This is a script-level safety check; independent ASR and human approval
+    of the actual MP4 remain mandatory for signed release.
+    """
+    import re
+    if len(narrs) != 6:
+        raise RuntimeError("TTS_TWELVE_ZODIAC_SCENES_REQUIRED")
+    reading = {s: zs.make_reading(s, date_iso).sign_ko for s in ORDER}
+    for group in range(4):
+        line = narrs[group + 1]
+        labels = [reading[s] for s in ORDER[group * 3: group * 3 + 3]]
+        seen = []
+        for label in labels:
+            # Exact announced label, never count an incidental mention.
+            token = re.escape(label) + r"(?:,| 운세입니다\.)"
+            matches = list(re.finditer(token, line))
+            if len(matches) != 1:
+                raise RuntimeError("TTS_TWELVE_ZODIAC_NAME_MISSING_OR_DUPLICATED")
+            seen.append(matches[0].start())
+        if seen != sorted(seen):
+            raise RuntimeError("TTS_TWELVE_ZODIAC_ORDER_MISMATCH")
+
+
+def _optional_m2_readable_pace_pilot(date_iso: str, card_stem: str,
+                                      narrs: list[str]) -> list[str]:
+    """Opt-in QA: shorter cover/CTA, never abbreviate any zodiac readings.
+
+    Senior-viewer pace is protected by an explicit total-length/rate HOLD.
+    The experiment is OFF in all existing schedules and publications.
+    """
+    if os.environ.get("ZODIAC_M2_READABLE_PACE_PILOT", "0") != "1":
+        return narrs
+    if (card_stem != "card_" or
+            os.environ.get("ZODIAC_REQUIRE_HANBOK_AVATAR", "0") != "1" or
+            os.environ.get("SUPERTONIC_VOICE", "").strip().upper() != "M2" or
+            os.environ.get("ZODIAC_DOG_M2_CLARITY_PILOT", "0") != "1"):
+        raise RuntimeError("READABLE_PACE_REQUIRES_STRICT_FLUX_M2_DOG_QA")
+    from zodiac_cardnews_tpl import _flux_active
+    if not _flux_active(date_iso):
+        raise RuntimeError("READABLE_PACE_REQUIRES_VERIFIED_FLUX_DATE")
+    if len(narrs) != 6:
+        raise RuntimeError("READABLE_PACE_REQUIRES_SIX_ZODIAC_SCENES")
+    original_intro = f"{date_full(date_iso)} 오늘의 띠별 운세. 내 띠는 오늘 어떤 흐름일까요?"
+    closing_prefix = "오늘 운이 좋은 띠는 "
+    closing_suffix = ". 자세한 운세는 사주포춘에서 확인하세요."
+    if (narrs[0] != original_intro or
+            not narrs[5].startswith(closing_prefix) or
+            not narrs[5].endswith(closing_suffix)):
+        raise RuntimeError("READABLE_PACE_UNEXPECTED_COVER_OR_CTA")
+    top_names = narrs[5][len(closing_prefix):-len(closing_suffix)]
+    if (top_names.count(", ") != 2 or
+            any("띠" not in word for word in top_names.split(", "))):
+        raise RuntimeError("READABLE_PACE_UNEXPECTED_TOP_THREE")
+    output = list(narrs)
+    output[0] = f"{date_full(date_iso)}, 열두 띠 운세입니다."
+    output[5] = f"좋은 띠는 {top_names}. 자세한 운세는 사주포춘에서 확인하세요."
+    assert output[1:5] == narrs[1:5]  # no fortune-text compression
+    return output
+
+
+def _assert_readable_pace_length(rate_pct: int, total_seconds: float) -> None:
+    """An opt-in senior readability pilot must not silently speed to +31%."""
+    if os.environ.get("ZODIAC_M2_READABLE_PACE_PILOT", "0") != "1":
+        return
+    if rate_pct > 24 or total_seconds > CLIP_LIMIT:
+        raise RuntimeError("READABLE_PACE_QA_HOLD_TOO_FAST_OR_LONG")
+
+
+def _make_reel_tts_impl(date_iso, card_stem: str = "card_", narrs: list[str] | None = None,
                   out_name: str | None = None):
     """카드 + 나레이션 → 9:16 릴스.
 
@@ -191,8 +379,22 @@ def make_reel_tts(date_iso, card_stem: str = "card_", narrs: list[str] | None = 
              or sorted(_d.glob(f"{card_stem}*.jpg")))
     if not cards:
         raise SystemExit(f"[FAIL] 카드 없음: {date_iso} ({card_stem}*) — generate 먼저")
+    if card_stem == "card_":
+        # New local-FLUX carousel cannot be converted to video without PASS.
+        from zodiac_cardnews_tpl import _flux_active
+        if _flux_active(date_iso):
+            from scripts.zodiac_card_assets import verify as verify_cards
+            verify_cards(date_iso)
     if narrs is None:
         narrs = narration_lines(date_iso)
+    # Strict M2 FLUX QA can opt in to the independently sampled dog-sign
+    # phrasing pilot; never rewrite original source readings or legacy dates.
+    narrs = _optional_m2_dog_clarity_pilot(date_iso, card_stem, narrs)
+    narrs = _optional_m2_readable_pace_pilot(date_iso, card_stem, narrs)
+    if card_stem == "card_" and os.environ.get("ZODIAC_REQUIRE_HANBOK_AVATAR") == "1":
+        _validate_twelve_zodiac_narration(date_iso, narrs)
+        if len(cards) != 6:
+            raise RuntimeError("TTS_STRICT_SIX_CARD_SCENES_REQUIRED")
     n = min(len(cards), len(narrs))
 
     tmp = BASE / "cards" / date_iso / f"_reel_{card_stem.strip('_')}"
@@ -217,15 +419,26 @@ def make_reel_tts(date_iso, card_stem: str = "card_", narrs: list[str] | None = 
         print(f"[..] 길이 {total:.1f}초 > {CLIP_LIMIT}초 → rate +{rate}% → +{new_rate}% 재합성")
         rate = new_rate
 
+    _assert_readable_pace_length(rate, total)
+
     # 2) 확정된 나레이션으로 클립을 만든다.
     clips = []
     for i in range(n):
         mp3 = mp3s[i]
         L = round(_dur(mp3) + PAD, 2)
         clip = tmp / f"c{i:02d}.mp4"
-        vf = (f"scale=1080:1350,"
-              f"zoompan=z='min(zoom+0.0008,1.10)':d={int(L * FPS)}:s=1080x1350:fps={FPS},"
-              f"pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color={BG},format=yuv420p")
+        from zodiac_cardnews_tpl import _flux_active
+        if card_stem == "card_" and _flux_active(date_iso):
+            # New 9:16 artwork must keep its native aspect ratio. The legacy
+            # 1080x1350 stretch is intentionally preserved for older dates.
+            zoom_cap = _flux_zoom_cap(i, n)
+            vf = (f"scale=960:1706,"
+                  f"zoompan=z='min(zoom+0.0008,{zoom_cap:.2f})':d={int(L * FPS)}:s=960x1706:fps={FPS},"
+                  f"pad={W}:{H}:60:107:color={BG},format=yuv420p")
+        else:
+            vf = (f"scale=1080:1350,"
+                  f"zoompan=z='min(zoom+0.0008,1.10)':d={int(L * FPS)}:s=1080x1350:fps={FPS},"
+                  f"pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color={BG},format=yuv420p")
         subprocess.run(
             ["ffmpeg", "-y", "-loop", "1", "-i", str(cards[i]), "-i", str(mp3),
              "-t", str(L), "-vf", vf, "-r", str(FPS), "-af", "apad",
@@ -236,30 +449,35 @@ def make_reel_tts(date_iso, card_stem: str = "card_", narrs: list[str] | None = 
 
     lst = tmp / "list.txt"
     lst.write_text("".join(f"file '{c.as_posix()}'\n" for c in clips), encoding="utf-8")
-    out = BASE / "reels" / (out_name or f"{date_iso}_tts.mp4")
-    out.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run(
-        ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst),
-         "-c", "copy", str(out)],
-        check=True, capture_output=True)
-
-    for f in tmp.glob("*"):
-        f.unlink()
-    tmp.rmdir()
-    _mix_bgm(out, date_iso)  # 2026-07-11 일진 오행 BGM (은은하게 11%)
-
-    # PNGTuber 아바타 PIP (2026-08-05) — ZODIAC_AVATAR=1 일 때만.
-    # BGM까지 끝난 최종본에 얹는다. 아바타 자산이 없는 환경(Actions 러너)에서는
-    # 조용히 건너뛴다 — 아바타 때문에 발행을 멈출 이유가 없다.
+    final = BASE / "reels" / (out_name or f"{date_iso}_tts.mp4")
+    final.parent.mkdir(parents=True, exist_ok=True)
+    strict = card_stem == "card_" and os.environ.get("ZODIAC_REQUIRE_HANBOK_AVATAR") == "1"
+    # Only validated complete Hanbok media receives the public file name.
+    out = final.with_name(final.stem + ".pr25-building.mp4") if strict else final
     try:
-        import avatar_pip
-        if avatar_pip.enabled():
-            avatar_pip.apply(out)
-    except ImportError:
-        pass
-
-    print(f"[OK] reel+TTS → {out} ({n}컷, 약 {round(_dur(out), 1)}초, {W}x{H})")
-    return out
+        subprocess.run(
+            ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst),
+             "-c", "copy", str(out)], check=True, capture_output=True)
+        for f in tmp.glob("*"):
+            f.unlink()
+        tmp.rmdir()
+        _mix_bgm(out, date_iso)
+        _apply_reel_avatar(out, date_iso, card_stem, _flux_active(date_iso))
+        if card_stem == "card_" and _flux_active(date_iso):
+            from scripts.visual_quality_gate import video_check
+            result = video_check(out, require_audio=True)
+            if result.get("status") != "PASS":
+                raise RuntimeError("TTS_REEL_FULL_VIDEO_QA_HOLD")
+            if result.get("duration_seconds", 0) > CLIP_LIMIT:
+                raise RuntimeError("TTS_REEL_FINAL_MP4_EXCEEDS_85_SECONDS")
+        if strict:
+            out.replace(final)
+    except Exception:
+        if strict:
+            out.unlink(missing_ok=True)
+        raise
+    print(f"[OK] reel+TTS → {final} ({n}컷, 약 {round(_dur(final), 1)}초, {W}x{H})")
+    return final
 
 
 # ── 스레드 VIDEO 발행 ──
@@ -357,7 +575,14 @@ def do_publish(date_iso):
     if marker.exists():
         print(f"[스킵] {date_iso} 릴스 이미 발행됨(멱등 가드)")
         return
+    from scripts.zodiac_publish_guard import check, verify_remote_sha
+    # An existing MP4 is never exempt from SHA-bound signed review.
+    release = check(date_iso, root=BASE, mode="video")
     url = f"{RAW_BASE}/reels/{date_iso}_tts.mp4"
+    if release["status"] == "VERIFIED_SIGNED_RELEASE":
+        from scripts.zodiac_publish_guard import immutable_raw_url
+        url = immutable_raw_url(url)
+        verify_remote_sha(url, release["video_sha256"], require_immutable=True)
     caption = (f"{date_full(date_iso)} 오늘의 띠별 운세 🔮\n"
                f"영상으로 보는 12띠 오늘의 흐름\n\n"
                f"👉 무료 '오늘의 운세'는 프로필 링크에서 확인하세요\n"

@@ -1,0 +1,66 @@
+{
+  "date_kst": "2026-11-22",
+  "draft_pr": "https://github.com/gsdo1004-cloud/sajufortune-cards/pull/25",
+  "real_local_FLUX_sources": 7,
+  "source_provider": "flux2_klein_local",
+  "preview_images": 21,
+  "preview_mp4_samples": 7,
+  "underlay_heuristic_HOLD": 15,
+  "underlay_heuristic_PASS": 6,
+  "independent_12_zodiac_semantic_PASS": 0,
+  "paid_api_calls": 0,
+  "additional_image_api_cost_KRW": 0,
+  "production_deployment": "NOT_MERGED_NOT_DEPLOYED",
+  "actual_social_posts_verified": 0,
+  "limitations": [
+    "real multi-animal FLUX samples contain duplicate/misidentified zodiac animals",
+    "STYLE_06 contains unwanted incidental text-like marks",
+    "heuristic edge detection is not an animal face detector",
+    "verified local-FLUX portraits 12 species x 7 styles are not yet generated/reviewed",
+    "21 previews are visual samples, not actual published media"
+  ],
+  "per_style": {
+    "STYLE_01": {
+      "local_FLUX": "PASS",
+      "preview_count": 3,
+      "underlay_HOLD": 3,
+      "zodiac_semantics": "HOLD: independent species and duplication audit missing"
+    },
+    "STYLE_02": {
+      "local_FLUX": "PASS",
+      "preview_count": 3,
+      "underlay_HOLD": 3,
+      "zodiac_semantics": "HOLD: independent species and duplication audit missing"
+    },
+    "STYLE_03": {
+      "local_FLUX": "PASS",
+      "preview_count": 3,
+      "underlay_HOLD": 0,
+      "zodiac_semantics": "HOLD: independent species and duplication audit missing"
+    },
+    "STYLE_04": {
+      "local_FLUX": "PASS",
+      "preview_count": 3,
+      "underlay_HOLD": 3,
+      "zodiac_semantics": "HOLD: independent species and duplication audit missing"
+    },
+    "STYLE_05": {
+      "local_FLUX": "PASS",
+      "preview_count": 3,
+      "underlay_HOLD": 3,
+      "zodiac_semantics": "HOLD: independent species and duplication audit missing"
+    },
+    "STYLE_06": {
+      "local_FLUX": "PASS",
+      "preview_count": 3,
+      "underlay_HOLD": 3,
+      "zodiac_semantics": "HOLD: independent species and duplication audit missing"
+    },
+    "STYLE_07": {
+      "local_FLUX": "PASS",
+      "preview_count": 3,
+      "underlay_HOLD": 0,
+      "zodiac_semantics": "HOLD: independent species and duplication audit missing"
+    }
+  }
+}
