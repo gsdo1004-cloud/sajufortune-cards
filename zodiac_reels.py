@@ -354,6 +354,9 @@ def youtube_meta(date_iso: str) -> dict:
 
 def do_publish(date_iso):
     marker = Path(__file__).resolve().parent / "cards" / date_iso / "threads_pub_reels.json"
+    if (marker.parent / "social_claim_threads_short.json").exists():
+        print("[HOLD] durable Threads short claim exists; no republish")
+        return
     if marker.exists():
         print(f"[스킵] {date_iso} 릴스 이미 발행됨(멱등 가드)")
         return

@@ -49,6 +49,7 @@ jobs:
             /scripts/
             /analytics/
             /cards/*/instagram_pub_*.json
+            /cards/*/social_claim_ig_short.json
 
       - uses: actions/setup-python@v5
         with:
@@ -107,7 +108,7 @@ jobs:
           PY
 
       - name: Validate Primary Instagram authorization
-        if: github.event_name == 'schedule' || github.event.inputs.account == 'primary' || github.event.inputs.account == 'both'
+        if: (github.event_name == 'schedule' && vars.ZODIAC_TWO_SLOT_LIVE != '1') || github.event.inputs.account == 'primary' || github.event.inputs.account == 'both'
         env:
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_UNIFIED_ACCESS_TOKEN }}
           INSTAGRAM_USER_ID: "17841448828636115"
@@ -129,7 +130,7 @@ jobs:
         run: python zodiac_instagram.py preflight
 
       - name: Show Primary safe status
-        if: github.event_name == 'schedule' || github.event.inputs.account == 'primary' || github.event.inputs.account == 'both'
+        if: (github.event_name == 'schedule' && vars.ZODIAC_TWO_SLOT_LIVE != '1') || github.event.inputs.account == 'primary' || github.event.inputs.account == 'both'
         env:
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_UNIFIED_ACCESS_TOKEN }}
           INSTAGRAM_USER_ID: "17841448828636115"
@@ -151,7 +152,7 @@ jobs:
         run: python zodiac_instagram.py status "${{ steps.target.outputs.date }}"
 
       - name: Publish scheduled Primary Instagram content
-        if: github.event_name == 'schedule' && steps.target.outputs.mode != 'skip'
+        if: (github.event_name == 'schedule' && vars.ZODIAC_TWO_SLOT_LIVE != '1') && steps.target.outputs.mode != 'skip'
         env:
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_UNIFIED_ACCESS_TOKEN }}
           INSTAGRAM_USER_ID: "17841448828636115"

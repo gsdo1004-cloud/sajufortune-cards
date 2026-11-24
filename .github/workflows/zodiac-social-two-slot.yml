@@ -1,0 +1,114 @@
+name: Daily Zodiac Social Two Slot
+on:
+  schedule:
+    - cron: '0 1 * * *'    # IG image 10:00 KST
+    - cron: '20 1 * * *'   # backup, durable claim blocks duplicate
+    - cron: '0 9 * * *'    # IG short 18:00 KST
+    - cron: '30 9 * * *'   # backup
+    - cron: '10 9 * * *'   # Threads short 18:10 KST; carousel remains 21:10
+    - cron: '40 9 * * *'   # backup
+  workflow_dispatch:
+    inputs:
+      kind:
+        type: choice
+        options: [ig_image, ig_short, threads_short]
+        default: ig_image
+      date:
+        type: string
+        description: YYYY-MM-DD (blank = today); manual execution is always dry-run
+        default: ''
+      verify_account:
+        type: boolean
+        description: Read-only platform account preflight; never publishes
+        default: false
+permissions:
+  contents: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    permissions:
+      contents: write
+    concurrency:
+      group: ${{ (github.event.schedule == '10 9 * * *' || github.event.schedule == '40 9 * * *' || inputs.kind == 'threads_short') && 'threads-zodiac-evening' || 'instagram-revenue-publisher' }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/*/
+            /assets/bg/
+            /assets/fonts/
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check -q requests Pillow
+      - name: Resolve slot and validate date
+        id: slot
+        env:
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          INPUT_KIND: ${{ inputs.kind }}
+          INPUT_DATE: ${{ inputs.date }}
+        run: |
+          python - <<'PY'
+          import os, datetime as dt
+          from zodiac_social_daily import SLOTS, KINDS, KST, date_check
+          k=SLOTS[os.environ['SCHEDULE']] if os.environ['EVENT']=='schedule' else os.environ['INPUT_KIND']
+          assert k in KINDS
+          day=dt.datetime.now(KST).date().isoformat() if os.environ['EVENT']=='schedule' else os.environ['INPUT_DATE'] or dt.datetime.now(KST).date().isoformat()
+          date_check(day)
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write(f'kind={k}\ndate={day}\n')
+          PY
+      - name: Dry run without platform credentials
+        if: github.event_name != 'schedule' || vars.ZODIAC_TWO_SLOT_LIVE != '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python zodiac_social_daily.py --kind '${{ steps.slot.outputs.kind }}' --date '${{ steps.slot.outputs.date }}'
+      - name: Read-only Instagram account preflight
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.verify_account && steps.slot.outputs.kind != 'threads_short'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_UNIFIED_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: '17841448828636115'
+          INSTAGRAM_API_MODE: unified
+          INSTAGRAM_API_VERSION: v27.0
+          INSTAGRAM_ACCOUNT_KEY: gsdo10042026
+          INSTAGRAM_EXPECTED_USERNAME: gsdo10042026
+          INSTAGRAM_AUTO_COMMENT: '0'
+        run: python zodiac_social_daily.py --kind '${{ steps.slot.outputs.kind }}' --date '${{ steps.slot.outputs.date }}' --account-check
+      - name: Read-only Threads account preflight
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.verify_account && steps.slot.outputs.kind == 'threads_short'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+          THREADS_EXPECTED_USERNAME: gsdo10042026
+          THREADS_CARDNEWS_AUTO_REPLY: '0'
+        run: python zodiac_social_daily.py --kind threads_short --date '${{ steps.slot.outputs.date }}' --account-check
+      - name: Publish Instagram only after durable claim
+        if: github.event_name == 'schedule' && github.ref == 'refs/heads/main' && vars.ZODIAC_TWO_SLOT_LIVE == '1' && steps.slot.outputs.kind != 'threads_short'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ZODIAC_TWO_SLOT_LIVE: '1'
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_UNIFIED_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: '17841448828636115'
+          INSTAGRAM_API_MODE: unified
+          INSTAGRAM_API_VERSION: v27.0
+          INSTAGRAM_ACCOUNT_KEY: gsdo10042026
+          INSTAGRAM_EXPECTED_USERNAME: gsdo10042026
+          INSTAGRAM_AUTO_COMMENT: '0'
+        run: python zodiac_social_daily.py --kind '${{ steps.slot.outputs.kind }}' --date '${{ steps.slot.outputs.date }}' --live
+      - name: Publish Threads short only after durable claim
+        if: github.event_name == 'schedule' && github.ref == 'refs/heads/main' && vars.ZODIAC_TWO_SLOT_LIVE == '1' && steps.slot.outputs.kind == 'threads_short'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ZODIAC_TWO_SLOT_LIVE: '1'
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+          THREADS_EXPECTED_USERNAME: gsdo10042026
+          THREADS_CARDNEWS_AUTO_REPLY: '0'
+        run: python zodiac_social_daily.py --kind threads_short --date '${{ steps.slot.outputs.date }}' --live
