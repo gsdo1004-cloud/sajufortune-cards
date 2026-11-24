@@ -1,0 +1,15 @@
+{
+  "2026-11-25": {
+    "date": "2026-11-25",
+    "source": "legacy_canonical_png",
+    "review": "visual_12_signs_complete",
+    "reviewed_at": "2026-11-24",
+    "source_commit": "229fad2c5ca1d2e94ff8f2c391bf7e48ff2257fa",
+    "sha256": {
+      "card_01.png": "87c61058ba93e5d0b1483d88076c7d214004c3fa13bf4423a7dd20e645750011",
+      "card_02.png": "a0da0e7aa071365a61e5c6ed383657d5e40d87d491c244096c1713a0d7b3050d",
+      "card_03.png": "b1207cd534d8fbb62e8f9480b71f62559f9e7d36998bf4c5c8c6cc4184992294",
+      "card_04.png": "02e62bc698332f891196e4b347d3187353f74518993f31cfceae098f4977122f"
+    }
+  }
+}

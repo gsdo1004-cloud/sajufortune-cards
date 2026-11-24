@@ -41,11 +41,21 @@ jobs:
       THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
       THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
       THREADS_CARDNEWS_AUTO_REPLY: "0"
+      THREADS_CARD_ASSET_MODE: isolated_v1
       ZODIAC_PUBLISH_OFFSET_DAYS: ${{ github.event_name == 'workflow_dispatch' && inputs.offset_days || '1' }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/*/
+            /scripts/
+            /config/
+            /assets/bg_sets/
+            /assets/fonts/
+            /cards/*/threads_pub_carousel.json
 
       - uses: actions/setup-python@v5
         with:
@@ -99,28 +109,41 @@ jobs:
             exit 0
           fi
           echo "already=false" >> "$GITHUB_OUTPUT"
+          if git cat-file -e 'origin/main:scripts/zodiac_publish_guard.py' 2>/dev/null; then
+            echo "[HOLD] signed release guard requires integrated publisher"
+            exit 4
+          fi
+          git sparse-checkout add "/cards/$DI/" "/assets/flux_daily/$DI/" "/threads_cards/$DI/"
 
           if [[ -z "${THREADS_ACCESS_TOKEN:-}" || -z "${THREADS_USER_ID:-}" ]]; then
             echo "[HOLD] Threads secret missing"
             exit 3
           fi
 
-      # Generator-only recovery. The legacy zodiac-cards publisher remains disabled;
-      # this step makes no external publication until public assets are verified.
-      - name: Ensure missing daily cards without paid image API
+      # Separate reviewed asset lane: never replace canonical PNG/JPEG cards.
+      - name: Prepare reviewed Threads-only assets without paid API
         if: steps.preflight.outputs.already != 'true'
         shell: bash
         run: |
           set -euo pipefail
-          DI="${{ steps.preflight.outputs.date }}"
-          python scripts/zodiac_card_assets.py ensure "$DI"
+          DI="$ZODIAC_TARGET_DATE"
+          python scripts/threads_card_assets.py prepare "$DI"
+          python scripts/threads_card_assets.py verify "$DI"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A -- "cards/$DI"
+          git add -- "threads_cards/$DI/card_"* "threads_cards/$DI/manifest.json"
           if ! git diff --cached --quiet; then
-            git commit -m "fix(cards): recover daily carousel assets $DI"
+            git commit -m "chore(threads): isolated verified carousel assets $DI"
             bash scripts/safe_git_push.sh main
           fi
+          git fetch --quiet --no-tags origin main
+          PIN="$(git rev-parse origin/main)"
+          if git cat-file -e "$PIN:scripts/zodiac_publish_guard.py" 2>/dev/null; then
+            echo "[HOLD] signed release guard requires integrated publisher"
+            exit 4
+          fi
+          git cat-file -e "$PIN:threads_cards/$DI/manifest.json"
+          echo "THREADS_CARD_ASSET_COMMIT=$PIN" >> "$GITHUB_ENV"
 
       - name: Validate public carousel assets (no publish)
         if: steps.preflight.outputs.already != 'true'
@@ -144,7 +167,19 @@ jobs:
 
       - name: Publish carousel via official Threads API
         if: (github.event_name == 'schedule' || inputs.send == true) && steps.preflight.outputs.already != 'true'
-        run: python zodiac_cardnews.py publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --quiet --no-tags origin main
+          if git cat-file -e 'origin/main:scripts/zodiac_publish_guard.py' 2>/dev/null; then
+            echo "[HOLD] signed release guard requires integrated publisher"
+            exit 4
+          fi
+          if git cat-file -e "origin/main:cards/$ZODIAC_TARGET_DATE/threads_pub_carousel.json" 2>/dev/null; then
+            echo "[HOLD] remote receipt appeared; no second publish"
+            exit 5
+          fi
+          python zodiac_cardnews.py publish
 
       - name: Persist receipt safely
         if: (github.event_name == 'schedule' || inputs.send == true) && steps.preflight.outputs.already != 'true'

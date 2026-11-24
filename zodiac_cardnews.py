@@ -322,6 +322,9 @@ def do_generate():
 
 
 def _verified_image_urls(date_iso):
+    if os.environ.get("THREADS_CARD_ASSET_MODE") == "isolated_v1":
+        from scripts.threads_card_assets import public_urls
+        return public_urls(date_iso, os.environ.get("THREADS_CARD_ASSET_COMMIT", ""), Path(__file__).resolve().parent)
     outdir = Path(__file__).resolve().parent / "cards" / date_iso
     files = sorted(outdir.glob("card_*.png")) or sorted(outdir.glob("card_*.jpg"))
     if not (2 <= len(files) <= 20):
@@ -349,6 +352,7 @@ def do_publish():
         return
     # Validate remote assets before creating any Meta media containers.
     urls = _verified_image_urls(date_iso)
+    outdir.mkdir(parents=True, exist_ok=True)
     base_caption = (f"{date_full(date_iso)} 오늘의 띠별 운세 🔮\n"
                     f"내 띠는 오늘 어떤 흐름일까요?")
     caption = conv.apply(base_caption, "carousel", date_iso)
