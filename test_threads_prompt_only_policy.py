@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Repository policy: scheduled Threads posts are limited to saju prompts and one daily horoscope cardnews; replies stay manual."""
+"""Repository policy: scheduled Threads posts are limited to saju prompts and one daily horoscope cardnews and one daily short; replies stay manual."""
 from pathlib import Path
 import unittest
 
@@ -14,6 +14,7 @@ READ_ONLY_TOKEN_WORKFLOWS = {
 }
 PUBLISH_WORKFLOW = "threads-public-saju.yml"
 DAILY_CARDNEWS_WORKFLOW = "threads-zodiac-evening.yml"
+DAILY_SHORT_WORKFLOW = "zodiac-social-two-slot.yml"
 REMOVED_PUBLISHERS = {
     "zodiac-ghost.yml",
     "promo-weekly.yml",
@@ -35,7 +36,7 @@ DENY_PUBLISH_SNIPPETS = (
 
 class ThreadsPromptOnlyPolicyTest(unittest.TestCase):
     def test_only_approved_workflows_have_threads_publish_credentials(self):
-        allowed = READ_ONLY_TOKEN_WORKFLOWS | {PUBLISH_WORKFLOW, DAILY_CARDNEWS_WORKFLOW}
+        allowed = READ_ONLY_TOKEN_WORKFLOWS | {PUBLISH_WORKFLOW, DAILY_CARDNEWS_WORKFLOW, DAILY_SHORT_WORKFLOW}
         offenders = []
         for p in sorted(WF.glob("*.yml")):
             body = p.read_text(encoding="utf-8")
@@ -50,7 +51,7 @@ class ThreadsPromptOnlyPolicyTest(unittest.TestCase):
     def test_no_non_prompt_workflow_invokes_known_threads_publishers(self):
         offenders = []
         for p in sorted(WF.glob("*.yml")):
-            if p.name in {PUBLISH_WORKFLOW, DAILY_CARDNEWS_WORKFLOW}:
+            if p.name in {PUBLISH_WORKFLOW, DAILY_CARDNEWS_WORKFLOW, DAILY_SHORT_WORKFLOW}:
                 continue
             body = p.read_text(encoding="utf-8")
             for snippet in DENY_PUBLISH_SNIPPETS:
@@ -58,7 +59,7 @@ class ThreadsPromptOnlyPolicyTest(unittest.TestCase):
                     offenders.append(f"{p.name}: {snippet}")
         self.assertEqual(offenders, [], "\n".join(offenders))
 
-    def test_daily_cardnews_is_the_only_approved_scheduled_content_publisher(self):
+    def test_daily_cardnews_preserved(self):
         path = WF / DAILY_CARDNEWS_WORKFLOW
         self.assertTrue(path.exists(), "daily Threads cardnews workflow must exist")
         body = path.read_text(encoding="utf-8")
@@ -75,6 +76,14 @@ class ThreadsPromptOnlyPolicyTest(unittest.TestCase):
         self.assertIn('THREADS_CARDNEWS_AUTO_REPLY: "0"', workflow)
         self.assertIn('THREADS_CARDNEWS_AUTO_REPLY', publisher)
         self.assertIn('[SKIP] automatic first reply disabled', publisher)
+
+    def test_new_short_has_only_scheduled_live_and_no_replies(self):
+        body=(WF / DAILY_SHORT_WORKFLOW).read_text(encoding="utf-8")
+        self.assertIn("vars.ZODIAC_TWO_SLOT_LIVE == '1'", body)
+        self.assertIn("--kind threads_short", body)
+        self.assertIn("THREADS_EXPECTED_USERNAME: gsdo10042026", body)
+        self.assertNotIn("zodiac_reels.py publish", body)
+        self.assertNotIn("threads_replies.py", body)
 
     def test_public_saju_is_prompt_only(self):
         body = (WF / PUBLISH_WORKFLOW).read_text(encoding="utf-8")

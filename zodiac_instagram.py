@@ -250,6 +250,9 @@ def publish_reel(video_url: str, caption: str) -> str:
 
 def _skip_if_done(date_iso: str, kind: str) -> bool:
     p = _marker(date_iso, kind)
+    if kind == "reel" and _account_key() == ide.PRIMARY_ACCOUNT and (p.parent / "social_claim_ig_short.json").exists():
+        print("[HOLD] durable two-slot claim exists; no legacy/manual republish")
+        return True
     if not p.exists():
         return False
     try:
