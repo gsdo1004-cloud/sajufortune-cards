@@ -78,10 +78,10 @@ jobs:
 
           if os.environ.get("GITHUB_EVENT_NAME") == "schedule":
               # This is an evening KST schedule. GitHub can delay cron runs by hours;
-              # if it starts after midnight but before 06:00, keep the previous
+              # if it starts before 21:00 KST, keep the previous
               # evening as the base day so "next day" does not jump by two days.
               base = dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=9)
-              if base.hour < 6:
+              if base.hour < 21:
                   base -= dt.timedelta(days=1)
               try:
                   offset = int(os.environ.get("ZODIAC_PUBLISH_OFFSET_DAYS", "1"))
@@ -166,6 +166,8 @@ jobs:
           echo "Target=${{ steps.preflight.outputs.date }}"
 
       - name: Publish carousel via official Threads API
+        env:
+          CAROUSEL_GITHUB_TOKEN: ${{ github.token }}
         if: (github.event_name == 'schedule' || inputs.send == true) && steps.preflight.outputs.already != 'true'
         shell: bash
         run: |
@@ -179,6 +181,21 @@ jobs:
             echo "[HOLD] remote receipt appeared; no second publish"
             exit 5
           fi
+          # Atomic create-only claim on main BEFORE any external publication.
+          # Never remove a claim automatically: a failed response may hide a successful post.
+          CLAIM="cards/$ZODIAC_TARGET_DATE/social_claim_threads_carousel.json"
+          if git cat-file -e "origin/main:$CLAIM" 2>/dev/null; then
+            echo "[HOLD] durable carousel claim exists; reconcile before retry"
+            exit 5
+          fi
+          export CLAIM
+          python - <<'PYCLAIM'
+          import base64, json, os, requests
+          body = dict(state="PUBLISHING", date=os.environ["ZODIAC_TARGET_DATE"], kind="threads_carousel", run_id=os.environ["GITHUB_RUN_ID"])
+          response = requests.put("https://api.github.com/repos/" + os.environ["GITHUB_REPOSITORY"] + "/contents/" + os.environ["CLAIM"], headers={"Authorization": "Bearer " + os.environ["CAROUSEL_GITHUB_TOKEN"]}, json={"branch":"main", "message":"chore: claim Threads carousel " + body["date"], "content":base64.b64encode(json.dumps(body).encode()).decode()}, timeout=30)
+          if response.status_code != 201:
+              raise SystemExit(f"[HOLD] durable claim not created: HTTP {response.status_code}")
+          PYCLAIM
           python zodiac_cardnews.py publish
 
       - name: Persist receipt safely
