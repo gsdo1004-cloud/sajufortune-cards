@@ -1,16 +1,27 @@
 {
-  "collected_at": "2026-11-24T21:33:08+00:00",
+  "collected_at": "2026-11-25T17:21:15+00:00",
   "account_key": "gsdo10042026",
   "expected_username": "gsdo10042026",
   "count": 30,
   "media": [
+    {
+      "id": "17879803815582028",
+      "media_type": "VIDEO",
+      "media_product_type": "REELS",
+      "timestamp": "2026-11-25T11:00:05+0000",
+      "permalink": "https://www.instagram.com/reel/DgKX2QevuD5/",
+      "like_count": 1,
+      "comments_count": 0,
+      "caption_head": "전 세계 시가총액 1위 엔비디아의 젠슨 황이 CEO 자리에서 물러났다가 11일 만에 복귀했습니다. 자평진전·궁통보감·억부·적천수 4대 고전을 교차 분석해 2026년 복귀의 구조와, 2027년 대운과 세운이 똑같은 정",
+      "metrics": {}
+    },
     {
       "id": "17921968221536788",
       "media_type": "VIDEO",
       "media_product_type": "REELS",
       "timestamp": "2026-11-23T22:41:29+0000",
       "permalink": "https://www.instagram.com/reel/DgGeb4MDR3l/",
-      "like_count": 3,
+      "like_count": 4,
       "comments_count": 0,
       "caption_head": "오늘 내 띠의 흐름, 끝까지 확인해 보세요 🔮 2026년 11월 24일 화요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세",
       "metrics": {}
@@ -44,7 +55,7 @@
       "timestamp": "2026-11-23T14:27:18+0000",
       "permalink": "https://www.instagram.com/reel/DgFlkY9Bbis/",
       "like_count": 6,
-      "comments_count": 5,
+      "comments_count": 8,
       "caption_head": "12월 7일 대설, 병오년(火)과 경자월(水)이 만나는 '자오충'이 오히려 반전의 신호가 되는 이유를 정리했습니다. 1년 내내 버텨 온 소·쥐·용·원숭이띠의 12월 돈줄·운 흐름과, 뇌과학으로 보는 '자오충 리셋',",
       "metrics": {}
     },
@@ -321,17 +332,6 @@
       "like_count": 3,
       "comments_count": 0,
       "caption_head": "오늘 내 띠의 흐름, 끝까지 확인해 보세요 🔮 2026년 10월 25일 일요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #오늘의운세",
-      "metrics": {}
-    },
-    {
-      "id": "18115496276103139",
-      "media_type": "VIDEO",
-      "media_product_type": "REELS",
-      "timestamp": "2026-10-23T15:47:22+0000",
-      "permalink": "https://www.instagram.com/reel/De16XUuDbAH/",
-      "like_count": 5,
-      "comments_count": 0,
-      "caption_head": "재물·인연 흐름이 달라지는 띠, 내 띠도 있을까요? 🍀 2026년 10월 24일 토요일 오늘의 띠별 운세 🔮 영상은 12띠의 공통 흐름입니다. 내 생년월일 기준 오늘운세는 프로필 첫 링크에서 무료로 확인하세요.  #",
       "metrics": {}
     }
   ]
