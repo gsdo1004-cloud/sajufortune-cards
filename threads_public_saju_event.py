@@ -4,16 +4,18 @@
 운영
 - 예정 발행은 그대로 유지: 화 09:00 / 목 20:00 / 일 20:00 (KST)
 - 사용자가 직접 지시할 때는 workflow_dispatch 로 즉시 발행 가능
-- 공개 댓글에 생년월일시/성별/질문을 자발적으로 남긴 사람만 공개풀이
+- 공개 댓글은 질문 주제만 요청하며 개인 출생정보는 공개 요청하지 않는다
 - 비공개 DM 유도는 현재 보류
 - 답글에서 원문 생년월일시는 다시 적지 않는다
 
-10개 유도문은 Threads 공식 성장 팁(대화 유도, 원본성, 주말 참여, 2~5+회/주)
-및 실제 사주 계정의 '띠/연도+질문' 훅을 참고해 만들었다.
+기존 예약 슬롯에서만 일반형/질문형 훅 실험을 진행한다. 추가 발행 및 자동 답글은 없다.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
+import unicodedata
+from difflib import SequenceMatcher
 import datetime as dt
 import json
 import os
@@ -27,135 +29,196 @@ BASE = Path(__file__).resolve().parent
 OUT = BASE / "public_saju_events"
 KST = dt.timezone(dt.timedelta(hours=9))
 
-# 스하리는 풀이의 대가/조건으로 강제하지 않는다.
-# '마음에 들면' 수준의 선택형 표현만 일부 샘플에 넣는다.
-OPTIONAL_TIP = "복채는 선택이야. 풀이가 마음에 들면 스하리 해주면 고맙고 :)"
-PRIVACY_NOTICE = "이름·전화번호·주소 같은 다른 개인정보는 적지 말아줘."
+PRIVACY_NOTICE = "공개 댓글에는 생년월일·출생시간·성별·전화번호·주소 등 개인정보 기재 금지."
 
-SPECIAL_TEMPLATES = {
-    "holiday_mid": {
-        "name": "연휴중간_즉시형",
-        "text": (
-            "연휴 중간인데 사주 한번 풀어볼까 🔥\n\n"
-            "요즘 제일 답답한 거 딱 하나만 물어봐.\n"
-            "생일시 + 성별 + 고민 1개\n"
-            "구체적으로 적을수록 더 정확하게 봐줄게.\n\n"
-            "재물 / 사업 / 이직 / 연애 / 재회 다 괜찮아.\n"
-            "공개해도 괜찮은 사람만 댓글 남겨줘.\n\n"
-            + OPTIONAL_TIP
-        ),
-    },
-}
+SPECIAL_TEMPLATES = {'holiday_mid': {'name': '연휴중간_개인정보보호형',
+                 'text': '연휴 중에 사주가 궁금한 사람이 있어?\n'
+                         '\n'
+                         '재물·직업·인연 가운데 궁금한 주제만 댓글로 이야기해 줘. 개인적인 풀이는 프로필 신청 페이지에서 선택할 수 있어.'}}
 
-TEMPLATES = {
-    1: {
-        "name": "10명_정밀형",
-        "text": (
-            "오늘 공개 사주 10명만 제대로 봐줄게 🔮\n\n"
-            "좋은 말만 한두 줄 적는 풀이 말고,\n"
-            "묻는 한 가지를 중심으로 지금 흐름과 가까운 시기까지 자세히 볼게.\n\n"
-            "공개해도 괜찮은 사람만 댓글에\n"
-            "① 양력/음력 ② 생년월일 ③ 태어난 시간 ④ 성별\n"
-            "⑤ 재물·직장·사업·연애 중 딱 1가지 고민\n\n"
-            "답글에는 생년월일시는 다시 적지 않고 풀이만 남길게.\n"
-            ""
-        ),
-    },
-    2: {
-        "name": "결정앞둔사람",
-        "text": (
-            "지금 이직·사업·연애에서 결정을 앞둔 사람 있어?\n"
-            "오늘은 사주로 '지금 움직일 때인지, 조금 더 볼 때인지' 공개로 봐줄게.\n\n"
-            "댓글: 양/음력 · 생년월일 · 태어난 시간 · 성별 · 고민 1개\n"
-            "공개 가능한 사람만 남겨줘.\n"
-            "묻는 것만 잡아서 지금 흐름과 시기를 중심으로 자세히 풀어줄게.\n"
-            "생년정보는 답글에서 다시 반복하지 않아."
-        ),
-    },
-    3: {
-        "name": "재물직장집중",
-        "text": (
-            "돈 때문에 답답하거나 직장을 옮길까 고민 중이면 오늘 들어와.\n\n"
-            "재물운은 '돈 들어온다' 한마디보다\n"
-            "언제 움직이고, 뭘 조심하고, 사람운이 어떻게 붙는지가 더 중요해.\n\n"
-            "양/음력 · 생년월일 · 태어난 시간 · 성별 + 재물/직장 고민 1개 남겨줘.\n"
-            "공개해도 괜찮은 사람만. 묻는 분야의 흐름과 시기만 집중해서 봐줄게."
-        ),
-    },
-    4: {
-        "name": "좋은말만안함",
-        "text": (
-            "오늘은 좋은 말만 해주는 사주풀이 안 할게.\n"
-            "좋은 흐름은 좋은 흐름대로, 조심할 시기는 조심하라고 말해줄게.\n\n"
-            "공개풀이 원하는 사람은\n"
-            "양력/음력 · 생년월일 · 태어난 시간 · 성별 · 궁금한 것 1개.\n\n"
-            "짧은 띠풀이가 아니라 실제 생년월일 기준으로 묻는 것만 자세히 볼게.\n"
-            "답글에는 개인정보를 다시 옮겨 적지 않아."
-        ),
-    },
-    5: {
-        "name": "올해남은기간",
-        "text": (
-            "올해 남은 기간, 내 운에서 뭐가 제일 크게 움직일까?\n"
-            "재물 · 직장 · 사업 · 인연 중 하나만 골라줘.\n\n"
-            "양/음력 · 생년월일 · 태어난 시간 · 성별 + 질문 1개를 댓글에 남기면\n"
-            "다른 얘기 섞지 않고 '지금부터 가까운 시기'를 중심으로 그 질문만 볼게.\n"
-            "공개 가능한 사람만 참여해줘. 생년정보는 답글에 반복하지 않아."
-        ),
-    },
-    6: {
-        "name": "딱한가지질문",
-        "text": (
-            "사주는 질문이 구체적일수록 답도 구체적으로 나와.\n"
-            "오늘은 '딱 한 가지'만 물어봐줘.\n\n"
-            "예) 이직해도 될까 / 사업 방향 바꿔도 될까 / 재물 흐름 언제 풀릴까 / 인연운은?\n\n"
-            "양/음력 · 생년월일 · 태어난 시간 · 성별 · 질문 1개.\n"
-            "공개 가능한 사람만 댓글로. 질문 분야와 시기까지 묶어서 풀어줄게."
-        ),
-    },
-    7: {
-        "name": "사주샘플상담",
-        "text": (
-            "무료사주인데 '운이 좋아요' 한 줄이면 나라도 안 볼 것 같아.\n"
-            "그래서 오늘은 공개 미니상담처럼 풀어볼게.\n\n"
-            "질문한 한 가지를 기준으로 지금 흐름 · 시기 · 조심할 점\n"
-            "이것만 구체적으로 답할게.\n\n"
-            "양/음력 · 생년월일 · 태어난 시간 · 성별 · 고민 1개 남겨줘.\n"
-            "공개 가능한 사람만 참여."
-        ),
-    },
-    8: {
-        "name": "사업이직기회",
-        "text": (
-            "요즘 '이 자리에 계속 있어야 하나?' 생각이 자주 들면 남겨봐.\n"
-            "오늘은 사업·이직·새로운 자리 흐름만 집중해서 볼게.\n\n"
-            "양/음력 · 생년월일 · 태어난 시간 · 성별\n"
-            "+ 지금 고민 중인 선택을 한 줄로 적어줘.\n\n"
-            "사업·이직 질문만 보고, 움직임이 강해지는 시점까지 공개로 답할게."
-        ),
-    },
-    9: {
-        "name": "연애인연",
-        "text": (
-            "연애운은 '인연이 와요'보다 어떤 관계를 조심해야 하는지가 더 중요해.\n"
-            "오늘은 인연·재회·결혼 고민 위주로 공개풀이할게.\n\n"
-            "양/음력 · 생년월일 · 태어난 시간 · 성별 + 질문 1개.\n"
-            "공개 가능한 사람만 댓글로 남겨줘.\n"
-            "인연 질문만 보고, 관계 흐름과 가까운 시기를 구체적으로 답할게. 생년정보는 답글에 다시 적지 않아."
-        ),
-    },
-    10: {
-        "name": "복채선택형",
-        "text": (
-            "오늘 공개 사주풀이 열어둘게 🔮\n"
-            "짧은 띠운세 말고 생년월일 기준으로 묻는 한 가지를 자세히 볼게.\n\n"
-            "댓글에 양/음력 · 생년월일 · 태어난 시간 · 성별 · 고민 1개.\n"
-            "공개 가능한 사람만 남겨줘.\n"
-            "답글에는 생년월일을 다시 쓰지 않을게.\n\n"
-            + OPTIONAL_TIP
-        ),
-    },
-}
+TEMPLATES = {1: {'name': '재물운_개인정보보호형',
+     'text': '재물운은 재성만 보면 충분할까?\n'
+             '\n'
+             '명리학에서는 재성의 역할과 대운의 흐름을 함께 살펴봐. 실제 재정 판단은 수입과 지출을 기준으로 하는 게 좋아.\n'
+             '\n'
+             '돈을 버는 것과 지키는 것 중 어느 쪽이 더 고민이야?\n'
+             '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ 2: {'name': '직업_개인정보보호형',
+     'text': '직업운을 살펴볼 때 참고할 점이 있어.\n'
+             '\n'
+             '명리학에서는 관성과 식상의 역할을 함께 해석해. 실제 이직은 근무 조건과 생활 여건도 고려해야 해.\n'
+             '\n'
+             '일할 때 안정과 성장 중 무엇이 더 중요해?\n'
+             '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ 3: {'name': '관계_개인정보보호형',
+     'text': '인연운은 만나는 시기만 중요할까?\n'
+             '\n'
+             '명리학에서는 배우자궁과 전체 흐름을 함께 봐. 현실에서는 대화와 존중이 중요해.\n'
+             '\n'
+             '관계에서 가장 소중하게 여기는 건 뭐야?\n'
+             '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ 4: {'name': '대운_개인정보보호형',
+     'text': '대운의 의미를 정리해 볼게.\n'
+             '\n'
+             '명리학에서 대운은 장기적인 흐름을 해석하는 틀이야. 실제 변화는 상황과 선택에 따라 달라.\n'
+             '\n'
+             '최근에 바꿔 보고 싶은 생활 습관이 있어?\n'
+             '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ 5: {'name': '띠_개인정보보호형',
+     'text': '열두 띠를 해석하는 기준이 있어.\n'
+             '\n'
+             '명리학에서는 태어난 해 외에도 월과 일, 시를 함께 해석해. 이런 해석은 가볍게 참고하는 것이 좋아.\n'
+             '\n'
+             '열두 띠 이야기에서 어떤 주제를 자주 읽어?\n'
+             '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ 6: {'name': '궁합_개인정보보호형',
+     'text': '궁합을 해석할 때 살펴보는 점이 있어.\n'
+             '\n'
+             '명리학에서는 서로의 명식을 함께 살펴봐. 평소에는 서로의 말을 충분히 듣는 태도도 중요해.\n'
+             '\n'
+             '함께 지내며 중요하다고 느낀 태도는 뭐야?\n'
+             '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ 7: {'name': '신년_개인정보보호형',
+     'text': '신년운세를 읽고 어떤 계획부터 세우면 좋을까?\n'
+             '\n'
+             '명리학의 세운은 한 해를 돌아보는 참고 틀이야. 현실적인 목표와 실행 계획을 함께 세워 보는 것도 좋아.\n'
+             '\n'
+             '새해에 가장 먼저 정리하고 싶은 일은 뭐야?\n'
+             '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ 8: {'name': '오행_개인정보보호형',
+     'text': '오행이 골고루 있으면 좋은 명식일까?\n'
+             '\n'
+             '명리학에서는 오행의 개수보다 계절과 각 기운의 역할을 함께 해석해. 단순한 숫자로 사람을 평가할 수는 없어.\n'
+             '\n'
+             '오행을 공부할 때 어떤 부분이 가장 어렵게 느껴져?\n'
+             '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ 9: {'name': '일간_개인정보보호형',
+     'text': '일간은 명리학의 출발점이야.\n'
+             '\n'
+             '일간은 명식의 중심으로 읽는 기준이지만 주변 글자와의 관계에 따라 해석이 달라져.\n'
+             '\n'
+             '자신의 성향을 돌아보는 데 어떤 기준이 도움이 돼?\n'
+             '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ 10: {'name': '식상_개인정보보호형',
+      'text': '식상은 말솜씨만 뜻하는 걸까?\n'
+              '\n'
+              '명리학에서는 표현과 창작, 생각을 구체화하는 과정도 식상에 빗대어 해석해. 실제 역량은 경험과 연습으로 키울 수 있어.\n'
+              '\n'
+              '새롭게 배우고 싶은 표현이나 창작 활동이 있어?\n'
+              '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'}}
+
+HOOK_EXPERIMENT = {'2026-11-26': {'slot': 1,
+                'arm': 'B',
+                'text': '재물운은 재성만 보면 충분할까?\n'
+                        '\n'
+                        '명리학에서는 재성의 역할과 대운의 흐름을 함께 살펴봐. 실제 재정 판단은 수입과 지출을 기준으로 하는 게 좋아.\n'
+                        '\n'
+                        '돈을 버는 것과 지키는 것 중 어느 쪽이 더 고민이야?\n'
+                        '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ '2026-11-29': {'slot': 2,
+                'arm': 'A',
+                'text': '직업운을 살펴볼 때 참고할 점이 있어.\n'
+                        '\n'
+                        '명리학에서는 관성과 식상의 역할을 함께 해석해. 실제 이직은 근무 조건과 생활 여건도 고려해야 해.\n'
+                        '\n'
+                        '일할 때 안정과 성장 중 무엇이 더 중요해?\n'
+                        '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ '2026-12-01': {'slot': 3,
+                'arm': 'B',
+                'text': '인연운은 만나는 시기만 중요할까?\n'
+                        '\n'
+                        '명리학에서는 배우자궁과 전체 흐름을 함께 봐. 현실에서는 대화와 존중이 중요해.\n'
+                        '\n'
+                        '관계에서 가장 소중하게 여기는 건 뭐야?\n'
+                        '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ '2026-12-03': {'slot': 4,
+                'arm': 'A',
+                'text': '대운의 의미를 정리해 볼게.\n'
+                        '\n'
+                        '명리학에서 대운은 장기적인 흐름을 해석하는 틀이야. 실제 변화는 상황과 선택에 따라 달라.\n'
+                        '\n'
+                        '최근에 바꿔 보고 싶은 생활 습관이 있어?\n'
+                        '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ '2026-12-06': {'slot': 5,
+                'arm': 'A',
+                'text': '열두 띠를 해석하는 기준이 있어.\n'
+                        '\n'
+                        '명리학에서는 태어난 해 외에도 월과 일, 시를 함께 해석해. 이런 해석은 가볍게 참고하는 것이 좋아.\n'
+                        '\n'
+                        '열두 띠 이야기에서 어떤 주제를 자주 읽어?\n'
+                        '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ '2026-12-08': {'slot': 6,
+                'arm': 'A',
+                'text': '궁합을 해석할 때 살펴보는 점이 있어.\n'
+                        '\n'
+                        '명리학에서는 서로의 명식을 함께 살펴봐. 평소에는 서로의 말을 충분히 듣는 태도도 중요해.\n'
+                        '\n'
+                        '함께 지내며 중요하다고 느낀 태도는 뭐야?\n'
+                        '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ '2026-12-10': {'slot': 7,
+                'arm': 'B',
+                'text': '신년운세를 읽고 어떤 계획부터 세우면 좋을까?\n'
+                        '\n'
+                        '명리학의 세운은 한 해를 돌아보는 참고 틀이야. 현실적인 목표와 실행 계획을 함께 세워 보는 것도 좋아.\n'
+                        '\n'
+                        '새해에 가장 먼저 정리하고 싶은 일은 뭐야?\n'
+                        '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ '2026-12-13': {'slot': 8,
+                'arm': 'B',
+                'text': '오행이 골고루 있으면 좋은 명식일까?\n'
+                        '\n'
+                        '명리학에서는 오행의 개수보다 계절과 각 기운의 역할을 함께 해석해. 단순한 숫자로 사람을 평가할 수는 없어.\n'
+                        '\n'
+                        '오행을 공부할 때 어떤 부분이 가장 어렵게 느껴져?\n'
+                        '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ '2026-12-15': {'slot': 9,
+                'arm': 'A',
+                'text': '일간은 명리학의 출발점이야.\n'
+                        '\n'
+                        '일간은 명식의 중심으로 읽는 기준이지만 주변 글자와의 관계에 따라 해석이 달라져.\n'
+                        '\n'
+                        '자신의 성향을 돌아보는 데 어떤 기준이 도움이 돼?\n'
+                        '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ '2026-12-17': {'slot': 10,
+                'arm': 'B',
+                'text': '식상은 말솜씨만 뜻하는 걸까?\n'
+                        '\n'
+                        '명리학에서는 표현과 창작, 생각을 구체화하는 과정도 식상에 빗대어 해석해. 실제 역량은 경험과 연습으로 키울 수 있어.\n'
+                        '\n'
+                        '새롭게 배우고 싶은 표현이나 창작 활동이 있어?\n'
+                        '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ '2026-12-20': {'slot': 11,
+                'arm': 'B',
+                'text': '인성이 있으면 공부가 저절로 잘될까?\n'
+                        '\n'
+                        '전통 명리에서는 배움과 도움을 받는 관계를 인성으로 설명하기도 해. 현실의 학습은 습관과 환경도 중요해.\n'
+                        '\n'
+                        '어떤 방식으로 배울 때 내용이 오래 기억돼?\n'
+                        '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ '2026-12-22': {'slot': 12,
+                'arm': 'A',
+                'text': '비겁에 관한 해석을 소개할게.\n'
+                        '\n'
+                        '명리학에서는 비겁을 나와 비슷한 기운으로 보고 협력과 경쟁의 맥락을 함께 읽어. 실제 관계는 서로의 행동을 살펴야 해.\n'
+                        '\n'
+                        '혼자 일할 때와 함께 일할 때 어느 쪽이 더 편해?\n'
+                        '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ '2026-12-24': {'slot': 13,
+                'arm': 'B',
+                'text': '태어난 계절은 명리에서 왜 중요할까?\n'
+                        '\n'
+                        '명리학에서는 월지를 계절의 기운을 살피는 출발점으로 활용해. 다른 글자와의 관계를 함께 해석하지.\n'
+                        '\n'
+                        '계절마다 생활 리듬이 달라진다고 느껴?\n'
+                        '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'},
+ '2026-12-27': {'slot': 14,
+                'arm': 'A',
+                'text': '십신을 공부할 때 참고할 점이 있어.\n'
+                        '\n'
+                        '명리학에서는 일간과 다른 글자의 관계를 십신이라는 틀로 표현해. 개인의 삶을 단정하는 기준으로 쓰기보다는 해석의 참고로 보는 게 좋아.\n'
+                        '\n'
+                        '명리 용어 가운데 이해하기 어려웠던 말이 있어?\n'
+                        '무료 사주풀이에 관심 있다면 궁금한 주제만 이야기해 줘. 개인 출생정보는 공개하지 않는 게 좋아.'}}
 
 # 예약 실행은 주차/요일을 섞어 10종을 순환한다.
 def scheduled_template_id(day: dt.date) -> int:
@@ -192,11 +255,53 @@ def marker(day: dt.date, *, manual: bool, template_id: int, occasion: str = "") 
     return OUT / f"{day.isoformat()}_scheduled.json"
 
 
+def experiment_copy(day: dt.date, *, manual: bool, template_id: int, occasion: str) -> dict | None:
+    # Experiment applies to existing scheduled slots only; manual dispatch stays separate.
+    if manual or template_id or occasion:
+        return None
+    return HOOK_EXPERIMENT.get(day.isoformat())
+
+
+def _normalized(text: str) -> str:
+    return " ".join("".join(c if c.isalnum() else " " for c in unicodedata.normalize("NFKC", text).casefold()).split())
+
+
+def verify_recent_copy(token: str, text: str) -> None:
+    """Read only the verified account's recent posts. Fail closed, without logging tokens."""
+    try:
+        response = requests.get(
+            f"{GRAPH}/me/threads",
+            params={"fields": "id,text,timestamp", "limit": 50, "access_token": token},
+            timeout=15,
+        )
+        response.raise_for_status()
+        data = response.json()
+    except Exception:
+        raise SystemExit("[HOLD] Threads recent-post verification failed") from None
+    if not isinstance(data, dict) or data.get("error") or not isinstance(data.get("data"), list):
+        raise SystemExit("[HOLD] Threads recent-post verification unavailable")
+    candidate = _normalized(text)
+    if not candidate:
+        raise SystemExit("[HOLD] empty candidate")
+    for row in data["data"]:
+        if not isinstance(row, dict) or not row.get("id"):
+            raise SystemExit("[HOLD] invalid Threads recent-post record")
+        recent = row.get("text")
+        if recent is None:
+            continue  # media-only post
+        if not isinstance(recent, str):
+            raise SystemExit("[HOLD] invalid recent-post text")
+        norm = _normalized(recent)
+        if norm and (norm == candidate or SequenceMatcher(None, candidate, norm).ratio() >= 0.88):
+            raise SystemExit("[HOLD] similar recent Threads post already exists")
+
+
 def publish(text: str) -> str:
     from zodiac_cardnews import _threads_uid
 
     tok = os.environ["THREADS_ACCESS_TOKEN"]
     uid = _threads_uid(tok)
+    verify_recent_copy(tok, text)
     base = f"{GRAPH}/{uid}"
     payload = {
         "media_type": "TEXT",
@@ -246,8 +351,13 @@ def main() -> int:
         print(f"[SKIP] {day} 예약 공개 사주 이벤트 이미 발행됨")
         return 0
 
-    text = build_text(day, tid, a.occasion)
-    template_name = SPECIAL_TEMPLATES[a.occasion]["name"] if a.occasion else TEMPLATES[tid]["name"]
+    experiment = experiment_copy(day, manual=a.manual, template_id=a.template, occasion=a.occasion)
+    if experiment:
+        text = experiment["text"].rstrip() + "\n\n" + PRIVACY_NOTICE
+        template_name = f"hook_experiment_{experiment['slot']}_{experiment['arm']}"
+    else:
+        text = build_text(day, tid, a.occasion)
+        template_name = SPECIAL_TEMPLATES[a.occasion]["name"] if a.occasion else TEMPLATES[tid]["name"]
     print(f"[TEMPLATE] {a.occasion or tid} {template_name}")
     print(text)
     if os.environ.get("PUBLIC_SAJU_DRY_RUN", "") == "1":
@@ -266,6 +376,10 @@ def main() -> int:
                 "template_id": tid,
                 "occasion": a.occasion,
                 "template_name": template_name,
+                "experiment_id": "THHOOK-PROMPT-20261126" if experiment else None,
+                "experiment_arm": experiment["arm"] if experiment else None,
+                "experiment_slot": experiment["slot"] if experiment else None,
+                "copy_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
             },
             ensure_ascii=False,
             indent=2,
