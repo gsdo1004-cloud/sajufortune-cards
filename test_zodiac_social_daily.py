@@ -81,4 +81,12 @@ class Safety(unittest.TestCase):
         with patch.dict(os.environ,{'THREADS_USER_ID':'different'}):
             with self.assertRaises(RuntimeError):self.run_publish()
         self.send.assert_not_called();self.assertEqual(self.gh.writes,[])
+    def test_dispatch_auth_fail_closed(self):
+        env={'ZODIAC_TWO_SLOT_LIVE':'1','GITHUB_REF':'refs/heads/main','GITHUB_EVENT_NAME':'workflow_dispatch'}
+        self.assertFalse(z.live_authorized(env,'ig_short'))
+        self.assertTrue(z.live_authorized({**env,'ZODIAC_LOCAL_DISPATCH':'1'},'ig_short'))
+        self.assertFalse(z.live_authorized({**env,'ZODIAC_LOCAL_DISPATCH':'1'},'threads_short'))
+        self.assertFalse(z.live_authorized({**env,'ZODIAC_LOCAL_DISPATCH':'1','GITHUB_REF':'refs/heads/other'},'ig_short'))
+        self.assertFalse(z.live_authorized({**env,'ZODIAC_LOCAL_DISPATCH':'1','ZODIAC_TWO_SLOT_LIVE':'0'},'ig_short'))
+        self.assertTrue(z.live_authorized({**env,'GITHUB_EVENT_NAME':'schedule'},'threads_short'))
 if __name__=='__main__':unittest.main()

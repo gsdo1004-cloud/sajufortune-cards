@@ -180,10 +180,15 @@ def publish(kind,day,gh,live=False,now=None):
         except Exception:print('WARN: receipt persisted; claim close needs reconciliation')
         print('PUBLISHED',kind,day,pid);return 'PUBLISHED'
 
+def live_authorized(env,kind):
+    return (env.get('ZODIAC_TWO_SLOT_LIVE')=='1' and env.get('GITHUB_REF')=='refs/heads/main' and
+            (env.get('GITHUB_EVENT_NAME')=='schedule' or
+             (env.get('GITHUB_EVENT_NAME')=='workflow_dispatch' and kind in ('ig_image','ig_short') and env.get('ZODIAC_LOCAL_DISPATCH')=='1')))
+
 def main():
     p=argparse.ArgumentParser();p.add_argument('--kind',choices=KINDS,required=True);p.add_argument('--date',required=True);p.add_argument('--live',action='store_true');p.add_argument('--account-check',action='store_true');a=p.parse_args()
     if a.account_check:
         require(not a.live,'account check cannot publish');verify_account(a.kind);return
-    if a.live:require(os.environ.get('ZODIAC_TWO_SLOT_LIVE')=='1' and os.environ.get('GITHUB_EVENT_NAME')=='schedule','live not authorized by scheduled workflow')
+    if a.live:require(live_authorized(os.environ,a.kind),'live not authorized by scheduled workflow')
     publish(a.kind,a.date,GitHub(os.environ.get('GH_TOKEN','')),a.live)
 if __name__=='__main__':main()

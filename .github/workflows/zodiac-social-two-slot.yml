@@ -15,8 +15,12 @@ on:
         default: ig_image
       date:
         type: string
-        description: YYYY-MM-DD (blank = today); manual execution is always dry-run
+        description: YYYY-MM-DD (required for explicit live dispatch; otherwise dry-run)
         default: ''
+      live_dispatch:
+        type: boolean
+        description: Explicit local Instagram scheduler; same date and safe slot required
+        default: false
       verify_account:
         type: boolean
         description: Read-only platform account preflight; never publishes
@@ -72,7 +76,7 @@ jobs:
           with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write(f'kind={k}\ndate={day}\n')
           PY
       - name: Dry run without platform credentials
-        if: github.event_name != 'schedule' || vars.ZODIAC_TWO_SLOT_LIVE != '1'
+        if: vars.ZODIAC_TWO_SLOT_LIVE != '1' || (github.event_name != 'schedule' && !inputs.live_dispatch) || inputs.verify_account
         env:
           GH_TOKEN: ${{ github.token }}
         run: python zodiac_social_daily.py --kind '${{ steps.slot.outputs.kind }}' --date '${{ steps.slot.outputs.date }}'
@@ -98,10 +102,11 @@ jobs:
           THREADS_CARDNEWS_AUTO_REPLY: '0'
         run: python zodiac_social_daily.py --kind threads_short --date '${{ steps.slot.outputs.date }}' --account-check
       - name: Publish Instagram only after durable claim
-        if: github.event_name == 'schedule' && github.ref == 'refs/heads/main' && vars.ZODIAC_TWO_SLOT_LIVE == '1' && steps.slot.outputs.kind != 'threads_short'
+        if: (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.live_dispatch && !inputs.verify_account && inputs.date != '')) && github.ref == 'refs/heads/main' && vars.ZODIAC_TWO_SLOT_LIVE == '1' && steps.slot.outputs.kind != 'threads_short'
         env:
           GH_TOKEN: ${{ github.token }}
           ZODIAC_TWO_SLOT_LIVE: '1'
+          ZODIAC_LOCAL_DISPATCH: ${{ inputs.live_dispatch && !inputs.verify_account && inputs.date != '' && '1' || '0' }}
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_UNIFIED_ACCESS_TOKEN }}
           INSTAGRAM_USER_ID: '17841448828636115'
           INSTAGRAM_API_MODE: unified
