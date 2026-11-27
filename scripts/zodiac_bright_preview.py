@@ -1,5 +1,6 @@
-"""Offline bright-palette QA renderer. Never writes release cards or receipts."""
+"""Bright card renderer and offline QA export. Never publishes or writes approvals."""
 from pathlib import Path
+import datetime as dt
 import json
 from PIL import Image, ImageDraw, ImageFont
 from scripts.text_safe_layout_gate import check_layout, contrast_ratio, intersects, LayoutHold
@@ -15,6 +16,22 @@ PALETTES = {
     "B": {"red":"#B92343","blue":"#2452B8","yellow":"#FFE36B","ink":"#16243A","sub":"#344054","bars":["#FF5A5F","#3B82F6","#34D399"]},
 }
 WHITE = "#FFFFFF"
+# Four editorial treatments rotate independently of the seven mascot styles.
+# A is the user-reviewed reference; all variants retain the same protected grid.
+DESIGNS = {
+    "PRIMARY_A": {"title_bg":"#164BC5","title_fg":"#FFFFFF","date_bg":"#FFD60A","date_fg":"#101828","cta_bg":"#C81D25","cta_fg":"#FFFFFF","radius":35,"date_half":335,"bars":["#FF3B30","#2563EB","#FFD60A"]},
+    "PRIMARY_RED": {"title_bg":"#C81D25","title_fg":"#FFFFFF","date_bg":"#164BC5","date_fg":"#FFFFFF","cta_bg":"#FFD60A","cta_fg":"#101828","radius":18,"date_half":370,"bars":["#2563EB","#FFD60A","#FF3B30"]},
+    "PRIMARY_YELLOW": {"title_bg":"#FFD60A","title_fg":"#101828","date_bg":"#C81D25","date_fg":"#FFFFFF","cta_bg":"#164BC5","cta_fg":"#FFFFFF","radius":50,"date_half":350,"bars":["#FFD60A","#FF3B30","#2563EB"]},
+    "PRIMARY_WHITE": {"title_bg":"#FFFFFF","title_fg":"#164BC5","date_bg":"#FFD60A","date_fg":"#101828","cta_bg":"#C81D25","cta_fg":"#FFFFFF","radius":12,"date_half":385,"bars":["#FF3B30","#FFD60A","#2563EB"]},
+}
+def design_for_day(day):
+    # Monday 2026-12-07 was the approved A preview.
+    return tuple(DESIGNS)[(dt.date.fromisoformat(day)-dt.date(2026,12,7)).days % len(DESIGNS)]
+
+def production_palette(day):
+    key=design_for_day(day)
+    return {**PALETTES["A"],**DESIGNS[key]}
+
 
 def rgb(s):
     return tuple(bytes.fromhex(s.lstrip("#")))
@@ -62,12 +79,16 @@ def render_card(source,day,stem,rows,palette):
     c=Canvas(im,protected_boxes(stem,1080,1920)+face_boxes_for(day,stem,source),palette)
     p=c.p; ink=p["ink"];sub=p["sub"];blue=p["blue"];red=p["red"];yellow=p["yellow"]
     idx=STEMS.index(stem)
+    title_bg=p.get("title_bg",blue);title_fg=p.get("title_fg",WHITE)
+    date_bg=p.get("date_bg",yellow);date_fg=p.get("date_fg",ink)
+    cta_bg=p.get("cta_bg",red);cta_fg=p.get("cta_fg",WHITE)
+    radius=p.get("radius",35);half=p.get("date_half",335)
     if idx==0:
-        b=(58,65,1022,228);c.panel(b,blue,35);c.text((540,84),"오늘의 운세",118,WHITE,blue,center=True,area=b)
-        b=(205,252,875,340);c.panel(b,yellow,30);c.text((540,269),t.date_full(day),51,ink,yellow,center=True,area=b)
-        b=(64,1540,1016,1650);c.panel(b,red,33);c.text((540,1560),"12띠 전체 흐름",63,WHITE,red,center=True,area=b)
+        b=(58,65,1022,228);c.panel(b,title_bg,radius);c.text((540,84),"오늘의 운세",118,title_fg,title_bg,center=True,area=b)
+        b=(540-half,252,540+half,340);c.panel(b,date_bg,30);c.text((540,269),t.date_full(day),51,date_fg,date_bg,center=True,area=b)
+        b=(64,1540,1016,1650);c.panel(b,cta_bg,33);c.text((540,1560),"12띠 전체 흐름",63,cta_fg,cta_bg,center=True,area=b)
     elif idx<=4:
-        b=(48,42,1032,142);c.panel(b,blue,30);c.text((540,66),"오늘의 띠별운세 · "+t.date_full(day),45,WHITE,blue,center=True,area=b)
+        b=(48,42,1032,142);c.panel(b,title_bg,radius);c.text((540,66),"오늘의 띠별운세 · "+t.date_full(day),45,title_fg,title_bg,center=True,area=b)
         for i,ko in enumerate(t.CARD_GROUPS[idx-1]):
             r=rows[ko]; y=220+i*490; b=(350,y,1040,y+354);c.panel(b)
             # Bright strips are decorative, not a substitute for readable labels.
@@ -80,7 +101,7 @@ def render_card(source,day,stem,rows,palette):
                 x=394+(j%2)*320; yy=y+239+(j//2)*52
                 c.text((x,yy),label+" "+t.stars(r["stars"][label]),42,red if j==0 else blue,area=b)
     else:
-        b=(48,42,1032,142);c.panel(b,blue,30);c.text((540,66),"12띠 총정리 · "+t.date_full(day),45,WHITE,blue,center=True,area=b)
+        b=(48,42,1032,142);c.panel(b,title_bg,radius);c.text((540,66),"12띠 총정리 · "+t.date_full(day),45,title_fg,title_bg,center=True,area=b)
         order=[ko for group in t.CARD_GROUPS for ko in group]
         for i,ko in enumerate(order):
             x=44+(i%2)*504;y=175+(i//2)*225;b=(x,y,x+488,y+213)

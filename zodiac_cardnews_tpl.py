@@ -411,13 +411,34 @@ def build(date_iso: str, force_set: int | None = None) -> list[Path]:
     out = BASE / "cards" / date_iso
     out.mkdir(parents=True, exist_ok=True)
 
-    imgs = [("01_표지", card_cover(sn, date_iso, "01_표지", "오늘의 운세", "12띠 전체 흐름"))]
-    for gi, (gname, group) in enumerate(zip(
-            ["02_띠별A", "03_띠별B", "04_띠별C", "05_띠별D"], CARD_GROUPS)):
-        imgs.append((gname, card_group(sn, date_iso, gname,
-                                       [(ko, rows[ko]) for ko in group])))
-    imgs.append(("06_12띠요약", card_summary(sn, date_iso, rows)))
-
+    editorial_design = None
+    if _flux_active(date_iso):
+        # The approved primary-color family is the default for newly built
+        # seven-style FLUX cards. Existing approved artifacts are not migrated.
+        from scripts.zodiac_bright_preview import render_card, production_palette, design_for_day
+        from scripts.flux_first_card_assets import verify as verify_source
+        from scripts.zodiac_character_prompts import STEMS
+        from scripts.zodiac_card_assets import _publication_receipt_exists
+        if (_publication_receipt_exists(out) or
+                (BASE / "assets" / "zodiac_release_approvals" / (date_iso + ".json")).exists()):
+            raise LayoutHold("PUBLISHED_OR_APPROVED_CARD_REBUILD_FORBIDDEN")
+        verify_source(date_iso, BASE)
+        editorial_design = design_for_day(date_iso)
+        imgs = []
+        for stem in STEMS:
+            im, report = render_card(BASE, date_iso, stem, rows, production_palette(date_iso))
+            # Render geometry evidence, not an independent release approval.
+            report.pop("preview_only", None)
+            report["editorial_design"] = editorial_design
+            im.info["text_safe_layout"] = report
+            imgs.append((stem, im))
+    else:
+        imgs = [("01_표지", card_cover(sn, date_iso, "01_표지", "오늘의 운세", "12띠 전체 흐름"))]
+        for gi, (gname, group) in enumerate(zip(
+                ["02_띠별A", "03_띠별B", "04_띠별C", "05_띠별D"], CARD_GROUPS)):
+            imgs.append((gname, card_group(sn, date_iso, gname,
+                                           [(ko, rows[ko]) for ko in group])))
+        imgs.append(("06_12띠요약", card_summary(sn, date_iso, rows)))
     # New FLUX assets must have six independently measured and passing text
     # geometry reports; the legacy 12-set pipeline remains unchanged.
     layout_reports = [im.info.get("text_safe_layout") for _, im in imgs]
@@ -443,6 +464,7 @@ def build(date_iso: str, force_set: int | None = None) -> list[Path]:
             "status":"PASS", "layout_reports":layout_reports,
             "protection_source":"composition_contract_not_animal_detection",
             "paid_api_calls":0,
+            "editorial_design":editorial_design,
         },ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
         flux_style = style_for_day(date_iso)
     else:
@@ -452,6 +474,7 @@ def build(date_iso: str, force_set: int | None = None) -> list[Path]:
                     "family_id": flux_style["id"] if flux_style else visual["id"],
                     "family_name": flux_style["name"] if flux_style else visual["name"],
                     "background_set": sn,
+                    **({"editorial_design": editorial_design} if editorial_design else {}),
                     "method": "flux2_klein_local_or_included" if flux_style else
                               "existing_approved_background_plus_editorial_palette",
                     "generative_calls": 0}, ensure_ascii=False, indent=2),

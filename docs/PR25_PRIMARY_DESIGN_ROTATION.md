@@ -1,0 +1,7 @@
+# Primary color editorial rotation
+
+Decision 2026-11-27 KST: user reviewed the A and B comparison videos and selected A as the future default, with multiple design variations instead of identical daily output. This is a visual preference approval, not a signed publication approval.
+
+New seven-style FLUX card builds use four editorial designs: PRIMARY_A (blue title, yellow date, red footer), PRIMARY_RED, PRIMARY_YELLOW, PRIMARY_WHITE. Rotate independently by date from the reviewed A sample dated 2026-12-07. The seven mascot styles and four editorial designs form 28 distinct pairings over 28 days. Variations change title/date/footer colors, badge width, corner radius and accent bar order, while preserving the protected grid, 12 signs, and legible white reading panels. No new image or TTS provider calls are required. The legacy renderer is unchanged. Existing applied manifests are not automatically rebuilt; existing release approvals and publication receipts block direct rebuild.
+
+Design selection is recorded in visual_style.json and layout_manifest.json. Render-time geometry and actual text-color contrast checks are not independent visual approval. The signed release guard remains unchanged and fail-closed. Final video production must retain gender-matched approved Hanbok avatar and verify safe composition, audio, and duration. No merge, deployment, publication or new paid API usage is authorized by the visual preference decision alone.
