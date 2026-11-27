@@ -525,10 +525,12 @@ def test_new_workflow_is_dispatch_only_and_platform_isolated():
     assert "workflow_dispatch:" in text
     assert "schedule:" not in text
     assert "newyear-2027-fanout-${{ inputs.date }}" in text
-    assert "threads:" in text
+    assert "\n  threads:" not in text
+    assert "publish-threads" not in text
+    assert "THREADS_ACCESS_TOKEN" not in text
     assert "youtube:" in text
     assert "needs: gate" in text
-    assert "needs: [gate, threads]" in text
+    assert "needs: [gate, threads]" not in text
     assert "always()" in text
     assert "youtube_canary" in text
     assert "newyear_2027/receipts" in text
@@ -664,7 +666,7 @@ def test_workflow_requires_signed_gate_before_platform_jobs():
     assert "verify-permit" in text
     assert "gate:" in text
     assert "needs: gate" in text
-    assert "needs: [gate, threads]" in text
+    assert "needs: [gate, threads]" not in text
 
 
 
@@ -719,7 +721,8 @@ def test_normal_youtube_fixed_channel_id_mismatch_blocks_before_upload(tmp_path,
 def test_workflow_pins_platform_jobs_to_gate_verified_commit():
     text = (Path(__file__).resolve().parent / ".github" / "workflows" / "newyear-2027-fanout.yml").read_text(encoding="utf-8")
     assert "commit_sha: ${{ steps.pin.outputs.commit_sha }}" in text
-    assert text.count("ref: ${{ needs.gate.outputs.commit_sha }}") == 2
+    assert text.count("ref: ${{ needs.gate.outputs.commit_sha }}") == 1
+    assert "\n  threads:" not in text
 
 
 
@@ -821,8 +824,9 @@ def test_durable_receipt_finalize_requires_same_publish_key_and_hashes():
 
 def test_workflow_revalidates_authorization_immediately_before_platform_publish():
     text = (Path(__file__).resolve().parent / ".github" / "workflows" / "newyear-2027-fanout.yml").read_text(encoding="utf-8")
-    assert text.count("newyear_2027_runner.py verify-permit") >= 3  # gate + Threads + YouTube
-    assert "Threads 발행 직전 허가 재검증" in text
+    assert text.count("newyear_2027_runner.py verify-permit") >= 3  # gate + YouTube pre-intent + pre-publish
+    assert "Threads 발행 직전 허가 재검증" not in text
+    assert text.index("YouTube 발행 직전 허가 재검증") < text.index("YouTube durable claim 소유권 확인") < text.index("YouTube 정상 예약발행") < text.index("YouTube 진짜 비공개 canary")
     assert "YouTube 발행 직전 허가 재검증" in text
 
 
@@ -911,7 +915,8 @@ def test_workflow_gate_only_uses_secret_on_main_and_checks_durable_owner():
     assert "github.ref == 'refs/heads/main'" in text
     assert "ref: ${{ github.sha }}" in text
     assert "ref: ${{ inputs.commit_sha }}" not in text
-    assert text.count("verify_newyear_2027_receipt_owner.sh") >= 2
+    assert text.count("verify_newyear_2027_receipt_owner.sh") == 1
+    assert "needs.gate.result == 'success'" in text
     helper = (root / "scripts" / "verify_newyear_2027_receipt_owner.sh").read_text(encoding="utf-8")
     assert "origin/main" in helper
     assert "receipt-owner" in helper
@@ -1034,7 +1039,10 @@ def test_runtime_authorization_guard_rechecks_signed_expiry_each_call(monkeypatc
 
 def test_workflow_passes_signed_authorization_to_platform_publish_steps():
     text = (Path(__file__).resolve().parent / ".github" / "workflows" / "newyear-2027-fanout.yml").read_text(encoding="utf-8")
-    assert text.count("NEWYEAR_2027_DISPATCH_KEY: ${{ secrets.NEWYEAR_2027_DISPATCH_KEY }}") >= 7
+    for label in ("로컬 Naver 발행확인 HMAC·시간창 검증", "YouTube intent 전 허가 재검증",
+                  "YouTube 발행 직전 허가 재검증", "YouTube 정상 예약발행", "YouTube 진짜 비공개 canary"):
+        step = text.split("- name: " + label, 1)[1].split("- name:", 1)[0]
+        assert "NEWYEAR_2027_DISPATCH_KEY: ${{ secrets.NEWYEAR_2027_DISPATCH_KEY }}" in step
     assert "SOURCE_URL_INPUT: ${{ inputs.source_url }}" in text
     assert "EXPIRES_AT_INPUT: ${{ inputs.expires_at }}" in text
     assert "DISPATCH_PERMIT_INPUT: ${{ inputs.permit }}" in text
@@ -1337,10 +1345,12 @@ def test_publish_threads_keeps_original_copy_when_home_og_prepare_fails(tmp_path
     assert final["home_og_finalized"] is False
 
 
-def test_newyear_workflow_supplies_home_og_registration_secret_only_to_threads_publish():
+def test_newyear_workflow_never_exposes_retired_threads_publication_secrets():
     workflow = (Path(__file__).parent / ".github" / "workflows" / "newyear-2027-fanout.yml").read_text(encoding="utf-8")
-    threads_block = workflow.split("\n  threads:\n", 1)[1].split("\n  youtube:\n", 1)[0]
-    assert "HOME_OG_AB_TOKEN: ${{ secrets.HOME_OG_AB_TOKEN }}" in threads_block
+    assert "\n  threads:" not in workflow
+    assert "HOME_OG_AB_TOKEN" not in workflow
+    assert "THREADS_ACCESS_TOKEN" not in workflow
+    assert "publish-threads" not in workflow
 
 
 def test_threads_remote_success_is_durable_when_home_og_finalize_raises(tmp_path, monkeypatch):

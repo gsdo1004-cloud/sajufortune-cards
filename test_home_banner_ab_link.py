@@ -120,10 +120,11 @@ def test_ghost_workflow_code_push_cannot_publish_and_marker_precedes_receipt_syn
     from pathlib import Path
     import zodiac_ghost as ghost
 
-    workflow = (Path(__file__).parent / ".github" / "workflows" / "zodiac-ghost.yml").read_text(encoding="utf-8")
-    on_block = workflow.split("jobs:", 1)[0]
-    assert "  push:" not in on_block
-    assert "schedule:" in on_block and "workflow_dispatch:" in on_block
+    workflows = Path(__file__).parent / ".github" / "workflows"
+    # Ghost was deliberately retired; preserve that policy and the legacy receipt order.
+    assert not (workflows / "zodiac-ghost.yml").exists()
+    for workflow in workflows.glob("*.yml"):
+        assert "python zodiac_ghost.py" not in workflow.read_text(encoding="utf-8")
 
     source = Path(ghost.__file__).read_text(encoding="utf-8")
     publish = source.index("pid = publish_ghost(text, date_iso)")

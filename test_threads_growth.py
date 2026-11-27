@@ -37,9 +37,33 @@ def _test_path(name: str) -> Path:
     return Path(_TEST_TMP.name) / name
 
 
+def _legacy_mock_config():
+    # Explicit in-memory fixture for the retired, mocked growth engine.
+    # Do not alter production manual-only configuration or make API calls.
+    cfg = g.load_config()
+    cfg.update(external_daily_cap=8, external_per_run=2, inbound_daily_cap=10,
+               inbound_per_run=2, total_daily_cap=30, keyword_discovery_enabled=True,
+               auto_interactions_enabled=True, interaction_policy="test_mock_only")
+    return cfg
+
+
+class ManualOnlyPolicyTests(unittest.TestCase):
+    def test_repository_configuration_disables_all_automatic_interactions(self):
+        cfg = g.load_config()
+        self.assertIs(cfg["auto_interactions_enabled"], False)
+        self.assertEqual(cfg["interaction_policy"], "manual_replies_only")
+        for key in ("external_daily_cap", "external_per_run", "inbound_daily_cap",
+                    "inbound_per_run", "total_daily_cap"):
+            self.assertEqual(cfg[key], 0, key)
+        self.assertIs(cfg["keyword_discovery_enabled"], False)
+        state = g.default_state()
+        self.assertFalse(g.can_send_external(cfg, state, "visitor"))
+        self.assertFalse(g.can_send_inbound(cfg, state))
+
+
 class GrowthSafetyTests(unittest.TestCase):
     def setUp(self):
-        self.cfg = g.load_config()
+        self.cfg = _legacy_mock_config()
         self.state = g.default_state()
 
     def test_quality_rejects_promo_and_urls(self):
@@ -271,7 +295,7 @@ class RevenueGateTests(unittest.TestCase):
 
 class ExternalGrowthScalingTests(unittest.TestCase):
     def setUp(self):
-        self.cfg = g.load_config()
+        self.cfg = _legacy_mock_config()
         self.state = g.default_state()
         self.now = dt.datetime(2026, 10, 10, 3, 0, tzinfo=dt.timezone.utc)
 
@@ -426,7 +450,7 @@ class ExternalDiscoveryIntegrationTests(unittest.TestCase):
                     {"id": "bait", "username": "promo", "text": "사주 재물운 이벤트 할인 중입니다. 댓글 달면 DM 드리고 지금 구매하면 혜택이 있습니다.", "timestamp": ts, "permalink": "https://threads.net/bait", "is_reply": False, "has_replies": True},
                 ]}
 
-        cfg = dict(g.load_config())
+        cfg = dict(_legacy_mock_config())
         cfg.update({
             "topic_keywords": ["사주", "재물운"],
             "keyword_search_types": ["TOP"],
@@ -457,7 +481,7 @@ class ExternalDiscoveryIntegrationTests(unittest.TestCase):
                     {"name": "shares", "values": [{"value": 0}]},
                 ]}
 
-        cfg = dict(g.load_config())
+        cfg = dict(_legacy_mock_config())
         cfg["external_insights_min_age_hours"] = 2
         cfg["external_insights_refresh_hours"] = 12
         state = g.default_state()
@@ -484,7 +508,7 @@ class ExternalDiscoveryIntegrationTests(unittest.TestCase):
                 import requests
                 raise requests.Timeout("transient")
 
-        cfg = dict(g.load_config())
+        cfg = dict(_legacy_mock_config())
         cfg["external_insights_min_age_hours"] = 0
         state = g.default_state()
         sent_at = g.utcnow() - dt.timedelta(hours=3)
@@ -504,7 +528,7 @@ class ExternalDiscoveryIntegrationTests(unittest.TestCase):
 
 class ExternalRuntimeSafetyTests(unittest.TestCase):
     def test_pause_file_disables_actual_api_publish(self):
-        cfg = dict(g.load_config())
+        cfg = dict(_legacy_mock_config())
         state = g.default_state()
         candidate = g.Candidate(
             id="in-1", username="visitor", text="개띠도 궁금해요", timestamp=g.utcnow().isoformat(), kind="inbound"
@@ -526,7 +550,7 @@ class ExternalRuntimeSafetyTests(unittest.TestCase):
             marker.unlink(missing_ok=True)
 
     def test_external_publish_error_is_recorded_for_stage_gate(self):
-        cfg = dict(g.load_config())
+        cfg = dict(_legacy_mock_config())
         state = g.default_state()
         candidate = g.Candidate(
             id="ex-err", username="writer", text="사주 재물운이 궁금합니다. 어떻게 보시나요?",
@@ -548,7 +572,7 @@ class ExternalRuntimeSafetyTests(unittest.TestCase):
 
 class ExternalReviewFixTests(unittest.TestCase):
     def setUp(self):
-        self.cfg = dict(g.load_config())
+        self.cfg = dict(_legacy_mock_config())
         self.state = g.default_state()
 
     def test_inbound_location_mismatch_pause_stops_external_publish(self):
@@ -668,7 +692,7 @@ class ExternalReviewFixTests(unittest.TestCase):
 
 class ExternalSafetyHardeningTests(unittest.TestCase):
     def setUp(self):
-        self.cfg = dict(g.load_config())
+        self.cfg = dict(_legacy_mock_config())
         self.state = g.default_state()
 
     def test_external_gate_blocks_bare_domain_and_promotional_install_text(self):
@@ -790,7 +814,7 @@ class ExternalSafetyHardeningTests(unittest.TestCase):
 
 class ExternalReservationRuntimeTests(unittest.TestCase):
     def setUp(self):
-        self.cfg = dict(g.load_config())
+        self.cfg = dict(_legacy_mock_config())
         self.state = g.default_state()
 
     def test_run_growth_success_uses_one_reservation_and_one_count(self):
@@ -891,7 +915,7 @@ class FinalAuditRegressionTests(unittest.TestCase):
     def setUp(self):
         g.PAUSE_PATH.unlink(missing_ok=True)
         g.STATE_PATH.unlink(missing_ok=True)
-        self.cfg = dict(g.load_config())
+        self.cfg = dict(_legacy_mock_config())
         self.state = g.default_state()
 
     def tearDown(self):
@@ -1093,7 +1117,7 @@ class FinalAuditRound2Tests(unittest.TestCase):
     def setUp(self):
         g.PAUSE_PATH.unlink(missing_ok=True)
         g.STATE_PATH.unlink(missing_ok=True)
-        self.cfg = dict(g.load_config())
+        self.cfg = dict(_legacy_mock_config())
         self.state = g.default_state()
 
     def tearDown(self):
@@ -1172,7 +1196,7 @@ class FinalAuditRound2Tests(unittest.TestCase):
 
 class ExternalSelfAccountExclusionTests(unittest.TestCase):
     def test_keyword_discovery_never_targets_own_account(self):
-        cfg = dict(g.load_config())
+        cfg = dict(_legacy_mock_config())
         cfg["topic_keywords"] = ["사주"]
         cfg["keyword_search_types"] = ["RECENT"]
         cfg["keyword_discovery_enabled"] = True
@@ -1208,7 +1232,7 @@ class ExternalSelfAccountExclusionTests(unittest.TestCase):
         self.assertIn("other_reader", {x.username for x in rows})
 
     def test_keyword_discovery_normalizes_at_case_and_spaces_for_self_exclusion(self):
-        cfg = dict(g.load_config())
+        cfg = dict(_legacy_mock_config())
         cfg["account_username"] = " @GSDO10042026 "
         cfg["topic_keywords"] = ["사주"]
         cfg["keyword_search_types"] = ["RECENT"]
@@ -1227,7 +1251,7 @@ class ExternalSelfAccountExclusionTests(unittest.TestCase):
         self.assertEqual({x.username for x in rows}, {"Other_Reader"})
 
     def test_profile_discovery_excludes_self_and_keeps_other(self):
-        cfg = dict(g.load_config())
+        cfg = dict(_legacy_mock_config())
         cfg["account_username"] = "@GSDO10042026"
         cfg["target_accounts"] = [" @gsdo10042026 ", "other_profile"]
         state = g.default_state()

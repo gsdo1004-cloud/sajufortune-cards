@@ -48,6 +48,21 @@ class VisualRotationContract(unittest.TestCase):
         self.assertEqual(image.getpixel((8, 8)),
                          tuple(int(style['accent'][j:j+2], 16) for j in (1, 3, 5)))
 
+    def test_verified_flux_background_is_not_tinted(self):
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from PIL import Image
+        import zodiac_cardnews_tpl as templated
+        from scripts import flux_first_card_assets as flux
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "verified.png"
+            Image.new("RGB", (1080, 1920), (71, 111, 149)).save(p)
+            with patch.object(flux, "background_path_for", return_value=p):
+                im = templated.bg(1, "01_표지", "2026-12-07")
+            self.assertEqual(im.getpixel((8, 8)), (71, 111, 149))
+            self.assertEqual(im.getpixel((500, 500)), (71, 111, 149))
+
     def test_scheduled_template_has_six_cards_and_twelve_animals(self):
         import zodiac_cardnews_tpl as templated
         self.assertEqual(len(templated.CARD_GROUPS), 4)

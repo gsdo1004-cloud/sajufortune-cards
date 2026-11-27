@@ -7,6 +7,7 @@ class VoicePolicy(unittest.TestCase):
   self.assertIn("REVENUE_SUPERTONIC_VOICE', 'F3'",src)
   self.assertIn("'tts_fallback':'Edge TTS'",src)
  def test_a_runtime_unchanged_m2(self):
-  p=r.BASE.parent/'_publish_runtime'/'.github'/'workflows'/'zodiac-cards.yml'
+  # Assert the versioned A-line workflow, not a machine-specific live checkout.
+  p=Path(__file__).resolve().parent/'.github'/'workflows'/'zodiac-cards.yml'
   self.assertIn('SUPERTONIC_VOICE: "M2"',p.read_text(encoding='utf-8'))
 if __name__=='__main__': unittest.main()

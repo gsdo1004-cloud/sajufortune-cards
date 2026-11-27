@@ -197,6 +197,7 @@ def bg(set_n: int, name: str, date_iso: str | None = None) -> Image.Image:
     if date_iso:
         from scripts.flux_first_card_assets import background_path_for
         p = background_path_for(date_iso, name, BASE)
+    from_flux = p is not None
     if p is None:
         p = SETS_DIR / f"set{set_n:02d}" / f"{name}.jpg"
     if not p.exists():                      # 세트가 비면 1번으로 떨어진다(발행이 죽지 않게)
@@ -212,7 +213,7 @@ def bg(set_n: int, name: str, date_iso: str | None = None) -> Image.Image:
     # Keep the 12 already approved original animal-background sets and zero-cost
     # renderer. Their photographic/illustrative content cannot be regenerated
     # by color filters; this is a safe 8-family editorial color variation only.
-    if date_iso and not (p is not None):
+    if date_iso and not from_flux:
         style = zvr.style_for(date_iso, channel="github_12zodiac_cards")
         accent = tuple(int(style["accent"][j:j+2], 16) for j in (1, 3, 5))
         tint = tuple(int(style["bg"][j:j+2], 16) for j in (1, 3, 5))
