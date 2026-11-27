@@ -1,6 +1,9 @@
 name: Zodiac signed release offline regression
 
 on:
+  # Explicit branch push also covers large PR diffs whose paths filter can miss files.
+  push:
+    branches: [feat/zodiac-flux-seven-styles-safe-layout-20261122]
   pull_request:
     paths:
       - '.github/workflows/**'
@@ -25,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: |
@@ -49,4 +52,7 @@ jobs:
             PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 LANG=C.UTF-8 TZ=Asia/Seoul \
             python -m pytest -q --tb=short \
             test_pr25*.py test_threads_video_integrity.py \
-            test_threads_publisher_adapter.py test_media_publish_guards.py
+            test_threads_publisher_adapter.py test_media_publish_guards.py \
+            test_threads_prompt_only_policy.py test_revenue_voice.py \
+            test_threads_growth.py::ManualOnlyPolicyTests \
+            test_zodiac_visual_rotation.py::VisualRotationContract::test_verified_flux_background_is_not_tinted
