@@ -1,0 +1,15 @@
+{
+  "schema": "threads-static-carousel-v1",
+  "date": "2026-11-28",
+  "mode": "static_jpeg",
+  "source": "existing_approved_static_backgrounds",
+  "generative_calls": 0,
+  "sha256": {
+    "card_01.jpg": "c64aba8144e503e020320ea1921e451837dc7c89eeb9a48de3297456d6bd0631",
+    "card_02.jpg": "d9b8dd12a782a908ccc8e8706a93842fff95fc6c61f5ef05f998826bfeb88b18",
+    "card_03.jpg": "f42bc12cc64a4144dfdb06d1bae6ccb023bbedc88b769577f1eb39d9233a942e",
+    "card_04.jpg": "8b038f6e9a37c2638dccf793c31d859ba2000e5c6bf162bf57bf704ebeab0bf4",
+    "card_05.jpg": "57adb84daed6ba0607b74697a47807d84f312af1c779dd3da3a437fd838e9136",
+    "card_06.jpg": "7387ad9c25cc80ab09b42881c98f6fe8d33859678728bbd13aa6ed804284e41c"
+  }
+}
